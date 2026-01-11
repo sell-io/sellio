@@ -1,0 +1,160 @@
+<% content_for :title, "Edit Account - Sell.io" %>
+
+<div class="auth-container">
+  <div class="auth-header">
+    <h2>Edit Your Account</h2>
+    <p>Update your account information</p>
+  </div>
+
+  <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put, class: "auth-form", multipart: true } ) do |f| %>
+    <% if resource.errors.any? %>
+      <div class="alert alert-alert">
+        <h3><%= pluralize(resource.errors.count, "error") %> prohibited this account from being updated:</h3>
+        <ul>
+          <% resource.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <!-- Profile Picture Section at Top -->
+    <div class="profile-picture-section">
+      <label class="profile-picture-label">Profile Picture</label>
+      <div class="profile-picture-container">
+        <div class="profile-picture-preview">
+          <% begin %>
+            <% if resource.avatar.attached? && resource.avatar.blob.present? %>
+              <%= image_tag resource.avatar, class: "profile-picture-image", id: "avatarPreview" %>
+            <% else %>
+              <div class="profile-picture-placeholder" id="avatarPreview">
+                <%= (resource.name || resource.email).first.upcase %>
+              </div>
+            <% end %>
+          <% rescue => e %>
+            <div class="profile-picture-placeholder" id="avatarPreview">
+              <%= (resource.name || resource.email).first.upcase %>
+            </div>
+          <% end %>
+        </div>
+        <div class="profile-picture-upload">
+          <%= f.file_field :avatar, accept: "image/*", class: "file-input-hidden", id: "avatarInput", onchange: "previewAvatar(this)" %>
+          <label for="avatarInput" class="file-input-label">
+            <span class="upload-icon">📷</span>
+            <span class="upload-text">
+              <% begin %>
+                <% if resource.avatar.attached? && resource.avatar.blob.present? %>
+                  Change Picture
+                <% else %>
+                  Upload Picture
+                <% end %>
+              <% rescue %>
+                Upload Picture
+              <% end %>
+            </span>
+          </label>
+          <small class="upload-hint">JPG, PNG, or GIF (max 5MB)</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <%= f.label :name, "Full Name" %>
+      <%= f.text_field :name, autofocus: true %>
+    </div>
+
+    <div class="field">
+      <%= f.label :email %>
+      <%= f.email_field :email, autocomplete: "email" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :phone, "Phone Number" %>
+      <%= f.telephone_field :phone %>
+    </div>
+
+    <div class="field">
+      <%= f.label :location, "Location" %>
+      <%= f.text_field :location %>
+    </div>
+
+    <% if devise_mapping.confirmable? && resource.pending_reconfirmation? %>
+      <div class="alert alert-notice">
+        Currently waiting confirmation for: <%= resource.unconfirmed_email %>
+      </div>
+    <% end %>
+
+    <div class="field">
+      <%= f.label :password, "New Password" %> <i>(leave blank if you don't want to change it)</i>
+      <%= f.password_field :password, autocomplete: "new-password" %>
+      <% if @minimum_password_length %>
+        <em><%= @minimum_password_length %> characters minimum</em>
+      <% end %>
+    </div>
+
+    <div class="field">
+      <%= f.label :password_confirmation, "Confirm New Password" %>
+      <%= f.password_field :password_confirmation, autocomplete: "new-password" %>
+    </div>
+
+    <div class="field" id="currentPasswordField" style="display: none;">
+      <%= f.label :current_password %> <i>(required to change password)</i>
+      <%= f.password_field :current_password, autocomplete: "current-password" %>
+    </div>
+
+    <div class="actions">
+      <%= f.submit "Update Account", class: "btn-auth" %>
+    </div>
+  <% end %>
+
+  <div class="auth-links">
+    <%= link_to "Back", :back %>
+  </div>
+</div>
+
+<script>
+  function previewAvatar(input) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const preview = document.getElementById('avatarPreview');
+        if (preview) {
+          if (preview.tagName === 'IMG') {
+            preview.src = e.target.result;
+          } else {
+            // Replace placeholder with image
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.className = 'profile-picture-image';
+            img.id = 'avatarPreview';
+            preview.parentNode.replaceChild(img, preview);
+          }
+        }
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  // Show/hide current password field based on password fields
+  document.addEventListener('DOMContentLoaded', function() {
+    const passwordField = document.querySelector('input[name="user[password]"]');
+    const passwordConfirmationField = document.querySelector('input[name="user[password_confirmation]"]');
+    const currentPasswordField = document.getElementById('currentPasswordField');
+
+    function toggleCurrentPassword() {
+      if (passwordField.value.length > 0 || passwordConfirmationField.value.length > 0) {
+        currentPasswordField.style.display = 'block';
+        currentPasswordField.querySelector('input').required = true;
+      } else {
+        currentPasswordField.style.display = 'none';
+        currentPasswordField.querySelector('input').required = false;
+        currentPasswordField.querySelector('input').value = '';
+      }
+    }
+
+    if (passwordField && passwordConfirmationField && currentPasswordField) {
+      passwordField.addEventListener('input', toggleCurrentPassword);
+      passwordConfirmationField.addEventListener('input', toggleCurrentPassword);
+    }
+  });
+</script>

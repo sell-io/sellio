@@ -1,0 +1,77 @@
+<% content_for :title, "#{@user.name || @user.email} - Profile" %>
+
+<div class="user-profile-page">
+  <div class="container">
+    <div class="profile-header">
+      <div class="profile-avatar">
+        <% if @user.avatar.attached? %>
+          <%= image_tag @user.avatar, class: "avatar-image" %>
+        <% else %>
+          <div class="avatar-placeholder">
+            <%= (@user.name || @user.email).first.upcase %>
+          </div>
+        <% end %>
+      </div>
+      <div class="profile-info">
+        <h1><%= @user.name || @user.email %></h1>
+        <% if @user.location.present? %>
+          <p class="profile-location">📍 <%= @user.location %></p>
+        <% end %>
+        <% if @user.phone.present? %>
+          <p class="profile-phone">📞 <%= @user.phone %></p>
+        <% end %>
+        <p class="profile-joined">Member since <%= @user.created_at.strftime("%B %Y") %></p>
+      </div>
+    </div>
+
+    <div class="profile-stats">
+      <div class="stat-item">
+        <div class="stat-number"><%= @listings.count %></div>
+        <div class="stat-label">Active Listings</div>
+      </div>
+    </div>
+
+    <div class="profile-listings">
+      <h2>Listings by <%= @user.name || @user.email %></h2>
+      
+      <% if @listings.any? %>
+        <div class="listings-grid">
+          <% @listings.each do |listing| %>
+            <div class="listing-card">
+              <div class="listing-image">
+                <% if listing.images.attached? %>
+                  <%= image_tag listing.images.first, class: "listing-card-image" %>
+                <% else %>
+                  <div class="image-placeholder">
+                    <span>📷</span>
+                  </div>
+                <% end %>
+              </div>
+              <div class="listing-content">
+                <h3 class="listing-title">
+                  <%= link_to listing.title, listing, class: "listing-link" %>
+                </h3>
+                <p class="listing-location">📍 <%= listing.city || "Location not specified" %></p>
+                <p class="listing-description"><%= truncate(listing.description, length: 100) if listing.description %></p>
+                <div class="listing-footer">
+                  <span class="listing-price">
+                    <% if listing.price %>
+                      €<%= number_with_delimiter(listing.price.to_i) %>
+                    <% else %>
+                      Price on request
+                    <% end %>
+                  </span>
+                  <%= link_to "View", listing, class: "btn-view" %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="empty-state">
+          <p>This user hasn't posted any listings yet.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

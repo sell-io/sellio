@@ -1,0 +1,52 @@
+<% content_for :title, "Contact Seller - Sell.io" %>
+
+<div class="message-form-page">
+  <div class="container">
+    <div class="message-form-header">
+      <%= link_to "← Back to Listing", @listing, class: "back-link" %>
+      <h1>Contact Seller</h1>
+      <p>Send a message to <%= @listing.user&.name || @listing.user&.email %> about "<%= @listing.title %>"</p>
+    </div>
+
+    <div class="message-form-card">
+      <div class="listing-preview">
+        <h3>About this listing:</h3>
+        <div class="preview-content">
+          <% if @listing.images.attached? %>
+            <%= image_tag @listing.images.first, class: "preview-image" %>
+          <% end %>
+          <div class="preview-details">
+            <strong><%= @listing.title %></strong>
+            <p>€<%= number_with_delimiter(@listing.price.to_i) if @listing.price %></p>
+          </div>
+        </div>
+      </div>
+
+      <%= form_with(model: [@listing, @message], url: messages_path, local: true, class: "message-form") do |form| %>
+        <% if @message.errors.any? %>
+          <div class="form-errors">
+            <h2><%= pluralize(@message.errors.count, "error") %> prohibited this message from being sent:</h2>
+            <ul>
+              <% @message.errors.each do |error| %>
+                <li><%= error.full_message %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <%= form.hidden_field :listing_id, value: @listing.id %>
+        <%= form.hidden_field :recipient_id, value: @listing.user.id %>
+
+        <div class="form-field">
+          <%= form.label :content, "Your Message *" %>
+          <%= form.text_area :content, rows: 8, placeholder: "Hi, I'm interested in your listing. Could you tell me more about...", required: true %>
+        </div>
+
+        <div class="form-actions">
+          <%= form.submit "Send Message", class: "btn-submit" %>
+          <%= link_to "Cancel", @listing, class: "btn-cancel" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

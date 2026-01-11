@@ -1,0 +1,54 @@
+<% content_for :title, "My Listings - Sell.io" %>
+
+<div class="my-listings-page">
+  <div class="container">
+    <div class="page-header">
+      <h1>My Listings</h1>
+      <p>Manage your posted ads</p>
+      <%= link_to "Post New Ad", new_listing_path, class: "btn-post-new" %>
+    </div>
+
+    <% if @listings.any? %>
+      <div class="listings-grid">
+        <% @listings.each do |listing| %>
+          <div class="listing-card">
+            <div class="listing-image">
+              <% if listing.images.attached? %>
+                <%= image_tag listing.images.first, class: "listing-card-image" %>
+              <% else %>
+                <div class="image-placeholder">
+                  <span>📷</span>
+                </div>
+              <% end %>
+            </div>
+            <div class="listing-content">
+              <h3 class="listing-title">
+                <%= link_to listing.title, listing, class: "listing-link" %>
+              </h3>
+              <p class="listing-location">📍 <%= listing.city || "Location not specified" %></p>
+              <p class="listing-description"><%= truncate(listing.description, length: 100) if listing.description %></p>
+              <div class="listing-footer">
+                <span class="listing-price">
+                  <% if listing.price %>
+                    €<%= number_with_delimiter(listing.price.to_i) %>
+                  <% else %>
+                    Price on request
+                  <% end %>
+                </span>
+                <div class="listing-actions">
+                  <%= link_to "Edit", edit_listing_path(listing), class: "btn-edit-small" %>
+                  <%= link_to "View", listing, class: "btn-view" %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="empty-state">
+        <p>You haven't posted any listings yet.</p>
+        <%= link_to "Post Your First Ad", new_listing_path, class: "btn-cta" %>
+      </div>
+    <% end %>
+  </div>
+</div>

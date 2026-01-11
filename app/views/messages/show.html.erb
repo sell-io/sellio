@@ -1,0 +1,111 @@
+<% content_for :title, "Conversation - Sell.io" %>
+
+<% 
+  # Get all messages in this conversation
+  other_user = @message.sender == current_user ? @message.recipient : @message.sender
+  @conversation_messages = Message.where(listing_id: @message.listing_id)
+                                  .where("(sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?)", 
+                                         current_user.id, other_user.id, other_user.id, current_user.id)
+                                  .includes(:sender, :recipient)
+                                  .order(created_at: :asc)
+  
+  # Mark all messages as read if current user is recipient
+  @conversation_messages.where(recipient_id: current_user.id, read: false).update_all(read: true)
+%>
+
+<div class="chat-page">
+  <div class="container" style="max-width: 1000px; padding: 0;">
+    <div class="chat-header">
+      <%= link_to "← Back to Messages", my_messages_path, class: "back-link" %>
+      <div class="chat-header-info">
+        <div class="chat-user-avatar">
+          <% if other_user.avatar.attached? %>
+            <%= image_tag other_user.avatar, class: "avatar-image-small" %>
+          <% else %>
+            <%= (other_user.name || other_user.email).first.upcase %>
+          <% end %>
+        </div>
+        <div class="chat-header-details">
+          <h1><%= other_user.name || other_user.email %></h1>
+          <div class="chat-listing-info">
+            <span>About: </span>
+            <% if @message.listing.images.attached? %>
+              <%= image_tag @message.listing.images.first, class: "chat-listing-image" %>
+            <% end %>
+            <%= link_to @message.listing.title, @message.listing, class: "listing-link-inline" %>
+          </div>
+        </div>
+      </div>
+      <%= link_to "View Listing", @message.listing, class: "btn-view-listing-header" %>
+    </div>
+
+    <div class="chat-messages">
+      <% @conversation_messages.each do |msg| %>
+        <div class="message-bubble <%= msg.sender == current_user ? 'sent' : 'received' %>">
+          <div class="message-bubble-header">
+            <span class="message-sender-name"><%= msg.sender == current_user ? 'You' : (msg.sender.name || msg.sender.email) %></span>
+            <span class="message-time"><%= msg.created_at.strftime("%I:%M %p") %></span>
+          </div>
+          <div class="message-bubble-content">
+            <%= simple_format(msg.content) %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <script>
+      // Auto-scroll to bottom of chat
+      document.addEventListener('DOMContentLoaded', function() {
+        const chatMessages = document.querySelector('.chat-messages');
+        if (chatMessages) {
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Auto-capitalize first letter and send on Enter
+        const chatInput = document.querySelector('.chat-input');
+        if (chatInput) {
+          let lastValue = '';
+          
+          // Auto-capitalize first letter when user starts typing
+          chatInput.addEventListener('input', function(e) {
+            const value = e.target.value;
+            const cursorPos = e.target.selectionStart;
+            
+            // Only capitalize if user is typing at the beginning
+            if (value.length > 0 && cursorPos <= 1 && value.length > lastValue.length) {
+              const firstChar = value.charAt(0);
+              if (firstChar.match(/[a-z]/)) {
+                e.target.value = firstChar.toUpperCase() + value.slice(1);
+                e.target.setSelectionRange(cursorPos, cursorPos);
+              }
+            }
+            lastValue = value;
+          });
+
+          // Send on Enter, new line on Shift+Enter
+          chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              const form = e.target.closest('form');
+              if (form && e.target.value.trim()) {
+                form.submit();
+              }
+            }
+          });
+        }
+      });
+    </script>
+
+    <div class="chat-input-container">
+      <%= form_with(model: [@message.listing, Message.new], url: messages_path, local: true, class: "chat-form") do |form| %>
+        <%= form.hidden_field :listing_id, value: @message.listing.id %>
+        <%= form.hidden_field :recipient_id, value: other_user.id %>
+        
+        <div class="chat-input-wrapper">
+          <%= form.text_area :content, rows: 1, placeholder: "Type your message... (Press Enter to send, Shift+Enter for new line)", class: "chat-input", required: true %>
+          <%= form.submit "Send", class: "btn-send-message" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

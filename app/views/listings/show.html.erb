@@ -1,0 +1,292 @@
+<% content_for :title, @listing.title %>
+
+<% if notice %>
+  <div class="alert alert-success"><%= notice %></div>
+<% end %>
+
+<div class="listing-detail">
+  <div class="listing-detail-container">
+    <!-- Images Section -->
+    <div class="listing-images-section">
+      <% if @listing.images.attached? %>
+        <div class="main-image">
+          <%= image_tag @listing.images.first, class: "listing-main-image" %>
+        </div>
+        <% if @listing.images.count > 1 %>
+          <div class="thumbnail-images">
+            <% @listing.images.each do |image| %>
+              <%= image_tag image, class: "thumbnail-image" %>
+            <% end %>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="image-placeholder-large">
+          <span>📷</span>
+          <p>No images available</p>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Details Section -->
+    <div class="listing-details-section">
+      <div class="listing-header">
+        <h1 class="listing-detail-title"><%= @listing.title %></h1>
+        <div class="listing-meta">
+          <% if @listing.category %>
+            <span class="category-badge"><%= @listing.category.name %></span>
+          <% end %>
+          <span class="listing-date">Posted <%= time_ago_in_words(@listing.created_at) %> ago</span>
+        </div>
+      </div>
+
+      <div class="listing-price-section">
+        <span class="listing-price-large">
+          <% if @listing.price %>
+            €<%= number_with_delimiter(@listing.price.to_i) %>
+          <% else %>
+            Price on request
+          <% end %>
+        </span>
+      </div>
+
+      <div class="listing-info">
+        <div class="info-item">
+          <strong>📍 Location:</strong>
+          <span><%= @listing.city || "Not specified" %></span>
+        </div>
+        <% if @listing.user %>
+          <div class="info-item">
+            <strong>👤 Seller:</strong>
+            <span><%= link_to (@listing.user.name || @listing.user.email), user_path(@listing.user), class: "seller-link" %></span>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Category-Specific Details (Motors) -->
+      <% if @listing.category&.name == "Motors" && @listing.extra_fields.present? %>
+        <div class="category-details">
+          <h2>Vehicle Details</h2>
+          <div class="details-grid">
+            <% if @listing.make.present? || @listing.model.present? %>
+              <div class="detail-item">
+                <strong>Make & Model:</strong>
+                <span><%= [@listing.make, @listing.model].compact.join(' ') %></span>
+              </div>
+            <% end %>
+            <% if @listing.year.present? %>
+              <div class="detail-item">
+                <strong>Year:</strong>
+                <span><%= @listing.year %></span>
+              </div>
+            <% end %>
+            <% if @listing.mileage.present? %>
+              <div class="detail-item">
+                <strong>Mileage:</strong>
+                <span><%= number_with_delimiter(@listing.mileage) %> km</span>
+              </div>
+            <% end %>
+            <% if @listing.engine_size.present? %>
+              <div class="detail-item">
+                <strong>Engine Size:</strong>
+                <span><%= @listing.engine_size %></span>
+              </div>
+            <% end %>
+            <% if @listing.fuel_type.present? %>
+              <div class="detail-item">
+                <strong>Fuel Type:</strong>
+                <span><%= @listing.fuel_type %></span>
+              </div>
+            <% end %>
+            <% if @listing.transmission.present? %>
+              <div class="detail-item">
+                <strong>Transmission:</strong>
+                <span><%= @listing.transmission %></span>
+              </div>
+            <% end %>
+            <% if @listing.previous_owners.present? %>
+              <div class="detail-item">
+                <strong>Previous Owners:</strong>
+                <span><%= @listing.previous_owners %></span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+        
+        <!-- Performance Section -->
+        <% if @listing.extra_fields&.dig('performance').present? %>
+          <div class="category-details">
+            <h2>Performance</h2>
+            <div class="details-grid">
+              <% performance = @listing.extra_fields['performance'] %>
+              <% if performance['power'].present? %>
+                <div class="detail-item">
+                  <strong>Power:</strong>
+                  <span><%= performance['power'] %></span>
+                </div>
+              <% end %>
+              <% if performance['torque'].present? %>
+                <div class="detail-item">
+                  <strong>Torque:</strong>
+                  <span><%= performance['torque'] %></span>
+                </div>
+              <% end %>
+              <% if performance['acceleration'].present? %>
+                <div class="detail-item">
+                  <strong>Acceleration (0-100 km/h):</strong>
+                  <span><%= performance['acceleration'] %></span>
+                </div>
+              <% end %>
+              <% if performance['top_speed'].present? %>
+                <div class="detail-item">
+                  <strong>Top Speed:</strong>
+                  <span><%= performance['top_speed'] %></span>
+                </div>
+              <% end %>
+              <% if performance['co2_emissions'].present? %>
+                <div class="detail-item">
+                  <strong>CO₂ Emissions:</strong>
+                  <span><%= performance['co2_emissions'] %></span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+        
+        <!-- Dimensions Section -->
+        <% if @listing.extra_fields&.dig('dimensions').present? %>
+          <div class="category-details">
+            <h2>Dimensions</h2>
+            <div class="details-grid">
+              <% dimensions = @listing.extra_fields['dimensions'] %>
+              <% if dimensions['length'].present? %>
+                <div class="detail-item">
+                  <strong>Length:</strong>
+                  <span><%= dimensions['length'] %></span>
+                </div>
+              <% end %>
+              <% if dimensions['width'].present? %>
+                <div class="detail-item">
+                  <strong>Width:</strong>
+                  <span><%= dimensions['width'] %></span>
+                </div>
+              <% end %>
+              <% if dimensions['height'].present? %>
+                <div class="detail-item">
+                  <strong>Height:</strong>
+                  <span><%= dimensions['height'] %></span>
+                </div>
+              <% end %>
+              <% if dimensions['wheelbase'].present? %>
+                <div class="detail-item">
+                  <strong>Wheelbase:</strong>
+                  <span><%= dimensions['wheelbase'] %></span>
+                </div>
+              <% end %>
+              <% if dimensions['weight'].present? %>
+                <div class="detail-item">
+                  <strong>Weight:</strong>
+                  <span><%= dimensions['weight'] %></span>
+                </div>
+              <% end %>
+              <% if dimensions['boot_capacity'].present? %>
+                <div class="detail-item">
+                  <strong>Boot Capacity:</strong>
+                  <span><%= dimensions['boot_capacity'] %></span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+        
+        <!-- Features Section -->
+        <% if @listing.extra_fields&.dig('features').present? %>
+          <div class="category-details">
+            <h2>Features</h2>
+            <div class="features-list">
+              <% features = @listing.extra_fields['features'] %>
+              <% if features.is_a?(Array) %>
+                <% features.each do |feature| %>
+                  <span class="feature-badge"><%= feature %></span>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+        
+        <!-- Running Costs Section -->
+        <% if @listing.extra_fields&.dig('running_costs').present? %>
+          <div class="category-details">
+            <h2>Running Costs</h2>
+            <div class="details-grid">
+              <% running_costs = @listing.extra_fields['running_costs'] %>
+              <% if running_costs['road_tax'].present? %>
+                <div class="detail-item">
+                  <strong>Road Tax:</strong>
+                  <span><%= running_costs['road_tax'] %></span>
+                </div>
+              <% end %>
+              <% if running_costs['insurance_group'].present? %>
+                <div class="detail-item">
+                  <strong>Insurance Group:</strong>
+                  <span><%= running_costs['insurance_group'] %></span>
+                </div>
+              <% end %>
+              <% if running_costs['fuel_consumption_combined'].present? %>
+                <div class="detail-item">
+                  <strong>Fuel Consumption (Combined):</strong>
+                  <span><%= running_costs['fuel_consumption_combined'] %></span>
+                </div>
+              <% end %>
+              <% if running_costs['fuel_consumption_urban'].present? %>
+                <div class="detail-item">
+                  <strong>Fuel Consumption (Urban):</strong>
+                  <span><%= running_costs['fuel_consumption_urban'] %></span>
+                </div>
+              <% end %>
+              <% if running_costs['fuel_consumption_extra_urban'].present? %>
+                <div class="detail-item">
+                  <strong>Fuel Consumption (Extra Urban):</strong>
+                  <span><%= running_costs['fuel_consumption_extra_urban'] %></span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+
+      <div class="listing-description">
+        <h2>Description</h2>
+        <p><%= simple_format(@listing.description) %></p>
+      </div>
+
+      <div class="listing-actions">
+        <% if user_signed_in? %>
+          <% if current_user == @listing.user %>
+            <%= link_to "Edit Listing", edit_listing_path(@listing), class: "btn-edit" %>
+            <%= button_to "Delete Listing", @listing, method: :delete, 
+                          data: { confirm: "Are you sure?" }, 
+                          class: "btn-delete" %>
+          <% else %>
+            <% is_favorited = current_user.favorites.exists?(listing_id: @listing.id) %>
+            <% favorite = current_user.favorites.find_by(listing_id: @listing.id) if is_favorited %>
+            <button class="btn-favorite <%= 'btn-favorite-active' if is_favorited %>" 
+                    data-listing-id="<%= @listing.id %>"
+                    data-favorited="<%= is_favorited %>"
+                    data-favorite-id="<%= favorite&.id %>">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="<%= is_favorited ? 'currentColor' : 'none' %>" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+              <%= is_favorited ? 'Saved' : 'Save Ad' %>
+            </button>
+            <% if @listing.user %>
+              <%= link_to "Contact Seller", new_message_path(listing_id: @listing.id, recipient_id: @listing.user.id), class: "btn-contact" %>
+            <% end %>
+          <% end %>
+        <% else %>
+          <%= link_to "Login to Contact Seller", new_user_session_path, class: "btn-contact" %>
+        <% end %>
+        <%= link_to "Back to Listings", listings_path, class: "btn-back" %>
+      </div>
+    </div>
+  </div>
+</div>

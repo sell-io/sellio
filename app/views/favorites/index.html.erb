@@ -1,0 +1,63 @@
+<% content_for :title, "My Saved Ads" %>
+
+<div class="listings-container">
+  <div class="listings-header">
+    <h1>My Saved Ads</h1>
+    <p class="listings-subtitle">Your favorite listings</p>
+  </div>
+
+  <% if @favorites.any? %>
+    <div class="listings-grid">
+      <% @favorites.each do |listing| %>
+        <div class="listing-card">
+          <%= link_to listing_path(listing), class: "listing-card-link" do %>
+            <div class="listing-image-container">
+              <% if listing.images.attached? %>
+                <%= image_tag listing.images.first, class: "listing-image", alt: listing.title %>
+              <% else %>
+                <div class="image-placeholder">
+                  <span>📷</span>
+                </div>
+              <% end %>
+            </div>
+            <div class="listing-info">
+              <h3 class="listing-title"><%= listing.title %></h3>
+              <div class="listing-meta">
+                <% if listing.category %>
+                  <span class="category-badge"><%= listing.category.name %></span>
+                <% end %>
+                <span class="listing-date"><%= time_ago_in_words(listing.created_at) %> ago</span>
+              </div>
+              <div class="listing-price">
+                <% if listing.price %>
+                  €<%= number_with_delimiter(listing.price.to_i) %>
+                <% else %>
+                  Price on request
+                <% end %>
+              </div>
+              <div class="listing-location">
+                📍 <%= listing.city || "Location not specified" %>
+              </div>
+            </div>
+          <% end %>
+          <div class="listing-card-actions">
+            <% favorite = current_user.favorites.find_by(listing_id: listing.id) %>
+            <%= button_to listing_favorite_path(listing, favorite), method: :delete, class: "btn-remove-favorite", data: { confirm: "Remove from saved ads?" } do %>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+              Remove
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="empty-state">
+      <div class="empty-state-icon">⭐</div>
+      <h2>No saved ads yet</h2>
+      <p>Start saving your favorite listings to view them here!</p>
+      <%= link_to "Browse Listings", listings_path, class: "btn-primary" %>
+    </div>
+  <% end %>
+</div>

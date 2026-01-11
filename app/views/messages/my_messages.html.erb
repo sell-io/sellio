@@ -1,0 +1,63 @@
+<% content_for :title, "My Messages - Sell.io" %>
+
+<div class="messages-page">
+  <div class="container" style="max-width: 900px;">
+    <div class="page-header">
+      <h1>My Messages</h1>
+      <p>Your conversations</p>
+    </div>
+
+    <% if @conversations.any? %>
+      <div class="conversations-list">
+        <% @conversations.each do |key, conversation| %>
+          <div class="conversation-card <%= 'has-unread' if conversation[:unread_count] > 0 %>">
+            <%= link_to message_path(conversation[:messages].last), class: "conversation-link" do %>
+              <div class="conversation-header">
+                <div class="conversation-user-info">
+                  <div class="user-avatar-small">
+                    <% if conversation[:other_user].avatar.attached? %>
+                      <%= image_tag conversation[:other_user].avatar, class: "avatar-image-small" %>
+                    <% else %>
+                      <%= (conversation[:other_user].name || conversation[:other_user].email).first.upcase %>
+                    <% end %>
+                  </div>
+                  <div class="conversation-details">
+                    <div class="conversation-user-name">
+                      <%= conversation[:other_user].name || conversation[:other_user].email %>
+                      <% if conversation[:unread_count] > 0 %>
+                        <span class="unread-badge-small"><%= conversation[:unread_count] %></span>
+                      <% end %>
+                    </div>
+                    <div class="conversation-listing">
+                      About: <%= conversation[:listing].title %>
+                    </div>
+                  </div>
+                </div>
+                <div class="conversation-time">
+                  <%= time_ago_in_words(conversation[:last_message_at]) %> ago
+                </div>
+              </div>
+              
+              <div class="conversation-preview">
+                <% last_message = conversation[:messages].last %>
+                <div class="message-bubble-preview <%= 'sent' if last_message.sender == current_user %>">
+                  <div class="message-sender-preview">
+                    <%= last_message.sender == current_user ? 'You' : (last_message.sender.name || last_message.sender.email) %>:
+                  </div>
+                  <div class="message-text-preview">
+                    <%= truncate(last_message.content, length: 100) %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="empty-state">
+        <p>You don't have any messages yet.</p>
+        <p>Start a conversation by contacting a seller on a listing!</p>
+      </div>
+    <% end %>
+  </div>
+</div>

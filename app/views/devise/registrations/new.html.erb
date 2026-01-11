@@ -1,0 +1,66 @@
+<% content_for :title, "Sign Up - Sell.io" %>
+
+<div class="auth-container">
+  <div class="auth-header">
+    <h2>Create Your Account</h2>
+    <p>Join Sell.io and start buying and selling today!</p>
+  </div>
+
+  <% if alert %>
+    <div class="alert alert-alert"><%= alert %></div>
+  <% end %>
+
+  <% if resource.errors.any? %>
+    <div class="alert alert-alert">
+      <h3><%= pluralize(resource.errors.count, "error") %> prohibited this account from being created:</h3>
+      <ul>
+        <% resource.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { class: "auth-form" }) do |f| %>
+    <div class="field">
+      <%= f.label :name, "Full Name" %>
+      <%= f.text_field :name, autofocus: true, placeholder: "John Doe" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :email %>
+      <%= f.email_field :email, autocomplete: "email", placeholder: "your@email.com" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :phone, "Phone Number" %>
+      <%= f.telephone_field :phone, placeholder: "+353 123 456 789" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :location, "Location" %>
+      <%= f.text_field :location, placeholder: "Dublin, Ireland" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :password %>
+      <% if @minimum_password_length %>
+        <em>(<%= @minimum_password_length %> characters minimum)</em>
+      <% end %>
+      <%= f.password_field :password, autocomplete: "new-password", placeholder: "Choose a strong password" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :password_confirmation, "Confirm Password" %>
+      <%= f.password_field :password_confirmation, autocomplete: "new-password", placeholder: "Confirm your password" %>
+    </div>
+
+    <div class="actions">
+      <%= f.submit "Sign Up", class: "btn-auth" %>
+    </div>
+  <% end %>
+
+  <div class="auth-links">
+    <p>Already have an account? <%= link_to "Login here", new_user_session_path %></p>
+  </div>
+</div>

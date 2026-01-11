@@ -1,0 +1,17 @@
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  host: 127.0.0.1
+  port: 5432
+  database: sellio_crap
+  username: postgres
+  password: test
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+
+development:
+  <<: *default
+  database: sellio_crap_development
+
+test:
+  <<: *default
+  database: sellio_crap_test
