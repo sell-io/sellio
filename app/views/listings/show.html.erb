@@ -32,7 +32,10 @@
       <div class="listing-header">
         <h1 class="listing-detail-title"><%= @listing.title %></h1>
         <div class="listing-meta">
-          <% if @listing.category %>
+          <% subcategory = @listing.extra_fields&.dig('subcategory') %>
+          <% if subcategory.present? %>
+            <span class="subcategory-badge"><%= subcategory %></span>
+          <% elsif @listing.category %>
             <span class="category-badge"><%= @listing.category.name %></span>
           <% end %>
           <span class="listing-date">Posted <%= time_ago_in_words(@listing.created_at) %> ago</span>

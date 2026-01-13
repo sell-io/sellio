@@ -37,9 +37,9 @@
       <h2>Vehicle Details</h2>
       
       <div class="form-field">
-        <label for="listing_subcategory">Vehicle Type *</label>
+        <label for="listing_subcategory">Subcategories *</label>
         <select name="listing[subcategory]" id="listing_subcategory" class="form-select">
-          <option value="">Select vehicle type</option>
+          <option value="">Select subcategory</option>
           <option value="Car" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Car' %>>Car</option>
           <option value="Van" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Van' %>>Van</option>
           <option value="Truck" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Truck' %>>Truck</option>

@@ -52,7 +52,6 @@
                   <%= link_to listing.title, listing, class: "listing-link" %>
                 </h3>
                 <p class="listing-location">📍 <%= listing.city || "Location not specified" %></p>
-                <p class="listing-description"><%= truncate(listing.description, length: 100) if listing.description %></p>
                 <div class="listing-footer">
                   <span class="listing-price">
                     <% if listing.price %>

@@ -100,6 +100,23 @@
                     });
                   }
                   favoriteBtn.title = 'Add to favorites';
+                  
+                  // If on favorites page, remove the card or reload
+                  if (window.location.pathname === '/my_saved_ads') {
+                    const listingCard = favoriteBtn.closest('.listing-card');
+                    if (listingCard) {
+                      listingCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                      listingCard.style.opacity = '0';
+                      listingCard.style.transform = 'scale(0.95)';
+                      setTimeout(() => {
+                        listingCard.remove();
+                        // If no cards left, reload to show empty state
+                        if (document.querySelectorAll('.listing-card').length === 0) {
+                          window.location.reload();
+                        }
+                      }, 300);
+                    }
+                  }
                 }
               }
             })

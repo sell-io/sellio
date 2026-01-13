@@ -252,6 +252,11 @@
           <div class="category-icon-large" style="color: #3B82F6;">🐾</div>
           <span>Pets</span>
         <% end %>
+        <% furniture_category = Category.find_by("name ILIKE ?", "%furniture%") %>
+        <%= link_to furniture_category ? "/listings?category_id=#{furniture_category.id}" : listings_path(search: "Furniture"), class: "category-icon-item", data: { turbo: false } do %>
+          <div class="category-icon-large" style="color: #8B4513;">🪑</div>
+          <span>Furniture</span>
+        <% end %>
       </div>
     </div>
   </section>
@@ -318,7 +323,6 @@
                       </p>
                     <% end %>
                   </div>
-                  <p class="listing-description"><%= truncate(listing.description, length: 100) if listing.description %></p>
                   <div class="listing-footer">
                     <span class="listing-price">
                       <% if listing.price %>

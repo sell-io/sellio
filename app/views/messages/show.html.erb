@@ -11,101 +11,122 @@
   
   # Mark all messages as read if current user is recipient
   @conversation_messages.where(recipient_id: current_user.id, read: false).update_all(read: true)
+  
+  # Group messages by date for better organization
+  @messages_by_date = @conversation_messages.group_by { |m| m.created_at.to_date }
 %>
 
-<div class="chat-page">
-  <div class="container" style="max-width: 1000px; padding: 0;">
-    <div class="chat-header">
-      <%= link_to "← Back to Messages", my_messages_path, class: "back-link" %>
-      <div class="chat-header-info">
-        <div class="chat-user-avatar">
-          <% if other_user.avatar.attached? %>
-            <%= image_tag other_user.avatar, class: "avatar-image-small" %>
+<div class="chat-shell">
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="left">
+      <%= link_to my_messages_path, { class: "chat-back-button", title: "Back to messages", "aria-label" => "Back to messages" } do %>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      <% end %>
+      <div class="avatar">
+        <% if other_user.avatar.attached? %>
+          <%= image_tag other_user.avatar, class: "chat-avatar-image", alt: other_user.name || other_user.email %>
+        <% else %>
+          <%= (other_user.name || other_user.email).first.upcase %>
+        <% end %>
+      </div>
+      <div>
+        <div class="name"><%= other_user.name || other_user.email %></div>
+        <div class="subtitle">
+          <% if @message.listing %>
+            <%= truncate(@message.listing.title, length: 40) %>
           <% else %>
-            <%= (other_user.name || other_user.email).first.upcase %>
+            Online
           <% end %>
         </div>
-        <div class="chat-header-details">
-          <h1><%= other_user.name || other_user.email %></h1>
-          <div class="chat-listing-info">
-            <span>About: </span>
-            <% if @message.listing.images.attached? %>
-              <%= image_tag @message.listing.images.first, class: "chat-listing-image" %>
-            <% end %>
-            <%= link_to @message.listing.title, @message.listing, class: "listing-link-inline" %>
-          </div>
-        </div>
       </div>
-      <%= link_to "View Listing", @message.listing, class: "btn-view-listing-header" %>
-    </div>
-
-    <div class="chat-messages">
-      <% @conversation_messages.each do |msg| %>
-        <div class="message-bubble <%= msg.sender == current_user ? 'sent' : 'received' %>">
-          <div class="message-bubble-header">
-            <span class="message-sender-name"><%= msg.sender == current_user ? 'You' : (msg.sender.name || msg.sender.email) %></span>
-            <span class="message-time"><%= msg.created_at.strftime("%I:%M %p") %></span>
-          </div>
-          <div class="message-bubble-content">
-            <%= simple_format(msg.content) %>
-          </div>
-        </div>
-      <% end %>
-    </div>
-
-    <script>
-      // Auto-scroll to bottom of chat
-      document.addEventListener('DOMContentLoaded', function() {
-        const chatMessages = document.querySelector('.chat-messages');
-        if (chatMessages) {
-          chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        // Auto-capitalize first letter and send on Enter
-        const chatInput = document.querySelector('.chat-input');
-        if (chatInput) {
-          let lastValue = '';
-          
-          // Auto-capitalize first letter when user starts typing
-          chatInput.addEventListener('input', function(e) {
-            const value = e.target.value;
-            const cursorPos = e.target.selectionStart;
-            
-            // Only capitalize if user is typing at the beginning
-            if (value.length > 0 && cursorPos <= 1 && value.length > lastValue.length) {
-              const firstChar = value.charAt(0);
-              if (firstChar.match(/[a-z]/)) {
-                e.target.value = firstChar.toUpperCase() + value.slice(1);
-                e.target.setSelectionRange(cursorPos, cursorPos);
-              }
-            }
-            lastValue = value;
-          });
-
-          // Send on Enter, new line on Shift+Enter
-          chatInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              const form = e.target.closest('form');
-              if (form && e.target.value.trim()) {
-                form.submit();
-              }
-            }
-          });
-        }
-      });
-    </script>
-
-    <div class="chat-input-container">
-      <%= form_with(model: [@message.listing, Message.new], url: messages_path, local: true, class: "chat-form") do |form| %>
-        <%= form.hidden_field :listing_id, value: @message.listing.id %>
-        <%= form.hidden_field :recipient_id, value: other_user.id %>
-        
-        <div class="chat-input-wrapper">
-          <%= form.text_area :content, rows: 1, placeholder: "Type your message... (Press Enter to send, Shift+Enter for new line)", class: "chat-input", required: true %>
-          <%= form.submit "Send", class: "btn-send-message" %>
-        </div>
+      <% if @message.listing %>
+        <%= link_to @message.listing, { class: "chat-listing-link", title: "View listing" } do %>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
+          </svg>
+        <% end %>
       <% end %>
     </div>
   </div>
+
+  <!-- Messages -->
+  <div class="chat-body" id="chat-messages" role="log" aria-live="polite" aria-label="Conversation messages">
+    <% @conversation_messages.each do |message| %>
+      <% is_sent = message.sender == current_user %>
+      
+      <div class="message <%= is_sent ? 'outgoing' : 'incoming' %>">
+        <div class="bubble">
+          <span class="text"><%= h(message.content.to_s.strip) %></span>
+          <span class="time"><%= message.created_at.strftime("%H:%M") %></span>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Input -->
+  <div class="chat-input">
+    <%= form_with(model: [@message.listing, Message.new], url: messages_path, local: true, id: "chat-form") do |form| %>
+      <%= form.hidden_field :listing_id, value: @message.listing.id %>
+      <%= form.hidden_field :recipient_id, value: other_user.id %>
+      <%= form.text_field :content, placeholder: "Type a message…", id: "chat-input", required: true, "aria-label" => "Message input" %>
+      <%= form.submit "Send", class: "send-button" %>
+    <% end %>
+  </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const chatMessages = document.getElementById('chat-messages');
+    if (!chatMessages) return;
+    const chatInput = document.getElementById('chat-input');
+    const chatForm = document.getElementById('chat-form');
+    
+    // Auto-scroll to bottom
+    function scrollToBottom() {
+      if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    }
+    
+    // Initial scroll
+    scrollToBottom();
+    
+    // Send on Enter
+    if (chatInput) {
+      chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (chatForm && chatInput.value.trim()) {
+            chatForm.submit();
+            chatInput.value = '';
+          }
+        }
+      });
+      
+      // Focus input on load
+      chatInput.focus();
+    }
+    
+    // Scroll to bottom when new messages are added (for future real-time updates)
+    const observer = new MutationObserver(function() {
+      scrollToBottom();
+    });
+    
+    if (chatMessages) {
+      observer.observe(chatMessages, { childList: true, subtree: true });
+    }
+    
+    // Handle form submission
+    if (chatForm) {
+      chatForm.addEventListener('submit', function(e) {
+        if (!chatInput.value.trim()) {
+          e.preventDefault();
+          return false;
+        }
+      });
+    }
+  });
+</script>
