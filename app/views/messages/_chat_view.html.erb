@@ -10,7 +10,9 @@
         <% end %>
       </div>
       <div>
-        <div class="name"><%= other_user.name || other_user.email %></div>
+        <%= link_to user_path(other_user), class: "name-link" do %>
+          <div class="name"><%= other_user.name || other_user.email %></div>
+        <% end %>
         <div class="subtitle">
           <% if message.listing %>
             <%= truncate(message.listing.title, length: 40) %>

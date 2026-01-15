@@ -33,7 +33,8 @@
     </div>
 
     <!-- Category-Specific Fields (Motors/Cars) -->
-    <div class="form-section" id="motors-fields" style="display: none;">
+    <% is_motors_category = listing.category&.name&.downcase&.include?('motor') || listing.category&.name&.downcase&.include?('car') || (listing.persisted? && listing.category_id && Category.find_by(id: listing.category_id)&.name&.downcase&.include?('motor')) %>
+    <div class="form-section" id="motors-fields" style="<%= 'display: block;' if is_motors_category %>">
       <h2>Vehicle Details</h2>
       
       <div class="form-field">
@@ -77,7 +78,7 @@
       <div class="form-row">
         <div class="form-field">
           <label for="listing_make">Make</label>
-          <select name="listing[make]" id="listing_make" class="form-select">
+          <select name="listing[make]" id="listing_make" class="form-select" onchange="if(window.updateListingModels) { console.log('Make changed via onchange, calling updateListingModels'); window.updateListingModels(); } else { console.error('updateListingModels not available on change'); }">
             <option value="">All Makes</option>
             <option value="Alfa Romeo" <%= 'selected' if listing.extra_fields&.dig('make') == 'Alfa Romeo' %>>Alfa Romeo</option>
             <option value="Aston Martin" <%= 'selected' if listing.extra_fields&.dig('make') == 'Aston Martin' %>>Aston Martin</option>
@@ -210,24 +211,77 @@
     </div>
 
     <div class="form-section">
-      <h2>Images</h2>
-      <p class="form-help">Upload up to 10 images of your item</p>
+      <h2>Photos and Video</h2>
+      <p class="form-help" style="margin-bottom: 1.5rem; color: #6b7280;">Up to 10 photos</p>
       
-      <div class="form-field">
-        <%= form.label :images, "Photos" %>
-        <%= form.file_field :images, multiple: true, accept: "image/*", class: "file-input" %>
+      <!-- Drag and Drop Upload Zone -->
+      <div class="image-upload-zone" id="image-upload-zone">
+        <%= form.file_field :images, multiple: true, accept: "image/jpeg,image/png,image/gif,image/jpg,image/webp", class: "image-upload-input-hidden", id: "image-upload-input" %>
+        <div class="upload-zone-content">
+          <div class="upload-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 18C4.23858 18 2 15.7614 2 13C2 10.2386 4.23858 8 7 8C7.34147 8 7.67314 8.03428 7.99143 8.09796C8.68723 5.76256 10.7206 4 13 4C16.3137 4 19 6.68629 19 10C20.1046 10 21 10.8954 21 12C21 13.1046 20.1046 14 19 14H7Z" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 8V16M8 12L12 8L16 12" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <p class="upload-primary-text">Add Photos</p>
+          <p class="upload-secondary-text">or drag and drop</p>
+          <p class="upload-info-text">Up to 10 images</p>
+          <p class="upload-format-text">.jpg, .png, .gif and .webp files</p>
+        </div>
       </div>
 
+      <!-- Image Preview Container -->
+      <div id="image-preview-container" class="image-preview-container" style="display: none;">
+        <p class="form-help" style="margin-top: 1.5rem; margin-bottom: 0.75rem; font-weight: 500;">Selected images (first image is the main picture - drag to reorder, click X to remove):</p>
+        <div id="image-preview-grid" class="image-preview-grid"></div>
+      </div>
+
+      <!-- Hidden input to store image order -->
+      <input type="hidden" id="image-order" name="image_order" value="">
+
       <% if listing.persisted? && listing.images.attached? %>
-        <div class="existing-images">
-          <p>Current images:</p>
-          <div class="existing-images-grid">
-            <% listing.images.each do |image| %>
-              <div class="existing-image-item">
-                <%= image_tag image, class: "existing-image" %>
+        <% ordered_existing_images = listing.ordered_images %>
+        <% all_images = listing.images.to_a %>
+        <%# Build image map with IDs %>
+        <% image_map = {} %>
+        <% all_images.each do |img| %>
+          <% attachment = listing.images_attachments.find { |a| a.blob_id == img.id } %>
+          <% image_id = attachment&.id || img.id %>
+          <% image_map[image_id.to_s] = { image: img, attachment: attachment } %>
+        <% end %>
+        <%# Get current order %>
+        <% current_order_ids = ordered_existing_images.map { |img| 
+             attachment = listing.images_attachments.find { |a| a.blob_id == img.id }
+             attachment&.id
+           }.compact.reject(&:nil?) %>
+        <% order_value = current_order_ids.any? ? current_order_ids.join(',') : '' %>
+        <input type="hidden" id="existing-image-order-container" name="existing_image_order" value="<%= order_value %>">
+        
+        <div class="existing-images" style="margin-top: 1.5rem;">
+          <p class="form-help">Current images (drag to reorder, click × to remove):</p>
+          
+          <!-- Compact thumbnail grid at top - draggable -->
+          <div class="image-thumbnails-grid" id="image-thumbnails-grid" data-draggable-container="true">
+            <% all_images.each_with_index do |img, index| %>
+              <% attachment = listing.images_attachments.find { |a| a.blob_id == img.id } %>
+              <% image_id = attachment&.id || img.id %>
+              <div class="image-thumbnail-item existing-image-item" 
+                   data-image-id="<%= image_id %>" 
+                   data-image-index="<%= index %>"
+                   draggable="true">
+                <%= image_tag url_for(img), class: "thumbnail-image", draggable: "false" %>
+                <button type="button" class="remove-thumbnail-image" data-image-id="<%= image_id %>" title="Remove image">×</button>
+                <% if index == 0 %>
+                  <span class="main-badge-existing">COVER</span>
+                <% end %>
               </div>
             <% end %>
           </div>
+          
+          <p class="form-help" style="margin-top: 0.75rem; color: #6b7280; font-size: 0.875rem;">
+            You can add more images using the upload zone above.
+          </p>
         </div>
       <% end %>
     </div>
@@ -240,21 +294,246 @@
 <% end %>
 
 <script>
+  // Make sure carModels and updateListingModels are available globally
+  // Initialize as null first, will be set below
+  window.carModels = null;
+  window.updateListingModels = null;
+  
   function showCategoryFields() {
     const categorySelect = document.getElementById('listing_category_id');
     const motorsFields = document.getElementById('motors-fields');
-    const selectedCategory = categorySelect.options[categorySelect.selectedIndex].text;
     
-    if (selectedCategory === 'Motors') {
+    if (!categorySelect || !motorsFields) return;
+    
+    const selectedCategoryId = categorySelect.value;
+    const selectedCategoryText = categorySelect.options[categorySelect.selectedIndex]?.text || '';
+    
+    // Check if Motors category is selected (by name or by checking if it's a motors category)
+    const isMotors = selectedCategoryText.toLowerCase().includes('motor') || 
+                     selectedCategoryText.toLowerCase().includes('car') ||
+                     (selectedCategoryId && selectedCategoryText === 'Motors');
+    
+    if (isMotors) {
       motorsFields.style.display = 'block';
+      // Trigger model update when motors fields are shown
+      if (window.updateListingModels) {
+        setTimeout(function() {
+          window.updateListingModels();
+        }, 50);
+      }
     } else {
       motorsFields.style.display = 'none';
     }
   }
   
+  // Comprehensive car make-model relationships
+  window.carModels = {
+    'Audi': ['A1', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q2', 'Q3', 'Q5', 'Q7', 'Q8', 'TT', 'R8', 'e-tron', 'e-tron GT', 'RS3', 'RS4', 'RS5', 'RS6', 'RS7', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'],
+    'BMW': ['1 Series', '2 Series', '3 Series', '4 Series', '5 Series', '6 Series', '7 Series', '8 Series', 'X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'Z4', 'i3', 'i4', 'iX', 'iX3', 'M2', 'M3', 'M4', 'M5', 'M8', 'X3 M', 'X4 M', 'X5 M', 'X6 M'],
+    'Mercedes-Benz': ['A-Class', 'B-Class', 'C-Class', 'E-Class', 'S-Class', 'CLA', 'CLS', 'GLA', 'GLB', 'GLC', 'GLE', 'GLS', 'SL', 'AMG GT', 'EQC', 'EQS', 'EQE', 'C63 AMG', 'E63 AMG', 'S63 AMG', 'G63 AMG'],
+    'Volkswagen': ['Golf', 'Polo', 'Passat', 'Jetta', 'Tiguan', 'Touareg', 'Arteon', 'T-Cross', 'T-Roc', 'ID.3', 'ID.4', 'ID.5', 'ID.Buzz', 'Beetle', 'Up!', 'Scirocco', 'Sharan', 'Touran', 'Amarok', 'Caddy'],
+    'Ford': ['Fiesta', 'Focus', 'Mondeo', 'Kuga', 'Edge', 'Explorer', 'Mustang', 'Puma', 'EcoSport', 'Ranger', 'Transit', 'S-Max', 'Galaxy', 'Tourneo', 'Fusion', 'Escape', 'Expedition', 'F-150'],
+    'Toyota': ['Aygo', 'Yaris', 'Corolla', 'Camry', 'Prius', 'C-HR', 'RAV4', 'Highlander', 'Land Cruiser', 'Hilux', 'Proace', 'Avensis', 'Auris', 'Verso', 'GT86', 'Supra', 'bZ4X'],
+    'Honda': ['Civic', 'Accord', 'CR-V', 'HR-V', 'Pilot', 'Fit', 'Insight', 'Ridgeline', 'Passport', 'Odyssey', 'e', 'CR-Z', 'NSX'],
+    'Hyundai': ['i10', 'i20', 'i30', 'Elantra', 'Sonata', 'Tucson', 'Santa Fe', 'Kona', 'Ioniq', 'Palisade', 'Venue', 'Nexo', 'IONIQ 5', 'IONIQ 6', 'Genesis', 'Veloster', 'Accent'],
+    'Nissan': ['Micra', 'Sentra', 'Altima', 'Maxima', 'Juke', 'Qashqai', 'X-Trail', 'Pathfinder', 'Armada', 'Leaf', 'Ariya', '370Z', 'GT-R', 'Navara', 'Note', 'Pulsar'],
+    'Renault': ['Clio', 'Megane', 'Scenic', 'Kadjar', 'Captur', 'Koleos', 'Talisman', 'Zoe', 'Twingo', 'Kangoo', 'Trafic', 'Master', 'Arkana', 'Austral'],
+    'Peugeot': ['108', '208', '308', '508', '2008', '3008', '5008', 'Partner', 'Expert', 'Boxer', 'Rifter', 'Traveller', 'e-208', 'e-2008'],
+    'Citroen': ['C1', 'C3', 'C4', 'C5', 'Berlingo', 'Cactus', 'C4 Picasso', 'Grand C4 Picasso', 'SpaceTourer', 'Jumper', 'e-C4', 'Ami'],
+    'Skoda': ['Fabia', 'Octavia', 'Superb', 'Kodiaq', 'Karoq', 'Kamiq', 'Scala', 'Enyaq', 'Rapid', 'Yeti'],
+    'Seat': ['Ibiza', 'Leon', 'Ateca', 'Tarraco', 'Arona', 'Formentor', 'Alhambra', 'Altea', 'Toledo', 'Cupra Born', 'Cupra Formentor'],
+    'Mazda': ['Mazda2', 'Mazda3', 'Mazda6', 'CX-3', 'CX-5', 'CX-9', 'CX-30', 'MX-5', 'MX-30', 'BT-50'],
+    'Kia': ['Picanto', 'Rio', 'Ceed', 'Optima', 'Sportage', 'Sorento', 'Stonic', 'Niro', 'EV6', 'Soul', 'Seltos', 'Telluride', 'Carnival', 'Stinger'],
+    'Volvo': ['V40', 'V60', 'V90', 'XC40', 'XC60', 'XC90', 'S60', 'S90', 'C30', 'C70', 'XC70', 'EX30', 'EX90'],
+    'Opel': ['Corsa', 'Astra', 'Insignia', 'Crossland', 'Grandland', 'Mokka', 'Adam', 'Karl', 'Combo', 'Vivaro', 'Movano', 'Corsa-e', 'Mokka-e'],
+    'Vauxhall': ['Corsa', 'Astra', 'Insignia', 'Crossland', 'Grandland', 'Mokka', 'Adam', 'Karl', 'Combo', 'Vivaro', 'Movano', 'Corsa-e', 'Mokka-e'],
+    'Fiat': ['500', 'Panda', 'Punto', 'Tipo', '500X', '500L', 'Doblo', 'Qubo', 'Talento', 'Ducato', '500e'],
+    'Suzuki': ['Swift', 'Vitara', 'S-Cross', 'Jimny', 'Ignis', 'SX4', 'Baleno', 'Celerio', 'Across'],
+    'Mitsubishi': ['Mirage', 'Lancer', 'Outlander', 'ASX', 'Eclipse Cross', 'Shogun', 'Pajero', 'i-MiEV'],
+    'Subaru': ['Impreza', 'Legacy', 'Outback', 'Forester', 'XV', 'BRZ', 'Ascent', 'WRX', 'Levorg'],
+    'Jaguar': ['XE', 'XF', 'XJ', 'F-Pace', 'E-Pace', 'I-Pace', 'F-Type', 'XK', 'X-Type'],
+    'Land Rover': ['Discovery', 'Discovery Sport', 'Range Rover', 'Range Rover Sport', 'Range Rover Evoque', 'Defender', 'Range Rover Velar'],
+    'Lexus': ['IS', 'ES', 'GS', 'LS', 'NX', 'RX', 'UX', 'GX', 'LX', 'LC', 'RC', 'CT'],
+    'Porsche': ['911', '718', 'Panamera', 'Macan', 'Cayenne', 'Taycan', 'Boxster', 'Cayman'],
+    'Tesla': ['Model 3', 'Model S', 'Model X', 'Model Y', 'Roadster', 'Cybertruck'],
+    'Mini': ['Hatch', 'Clubman', 'Countryman', 'Convertible', 'Paceman', 'Coupe', 'Roadster'],
+    'Smart': ['Fortwo', 'Forfour', 'EQ Fortwo', 'EQ Forfour'],
+    'Dacia': ['Sandero', 'Duster', 'Logan', 'Lodgy', 'Dokker', 'Spring'],
+    'Chevrolet': ['Spark', 'Cruze', 'Malibu', 'Equinox', 'Tahoe', 'Silverado', 'Traverse', 'Blazer', 'Camaro', 'Corvette', 'Bolt'],
+    'Chrysler': ['300', 'Pacifica', 'Voyager', 'Grand Caravan'],
+    'Dodge': ['Charger', 'Challenger', 'Durango', 'Journey', 'Grand Caravan', 'Ram'],
+    'Jeep': ['Renegade', 'Compass', 'Cherokee', 'Grand Cherokee', 'Wrangler', 'Gladiator', 'Wagoneer'],
+    'Alfa Romeo': ['Giulia', 'Stelvio', '4C', 'Giulietta', 'Mito', '159', 'Brera'],
+    'Aston Martin': ['DB11', 'Vantage', 'DBS', 'DBX', 'Rapide', 'Vanquish'],
+    'Bentley': ['Continental', 'Flying Spur', 'Bentayga', 'Mulsanne'],
+    'Ferrari': ['488', 'F8', 'Roma', 'Portofino', 'SF90', '812', 'GTC4Lusso', 'LaFerrari'],
+    'Lamborghini': ['Huracan', 'Aventador', 'Urus', 'Gallardo'],
+    'Maserati': ['Ghibli', 'Quattroporte', 'Levante', 'GranTurismo', 'MC20'],
+    'McLaren': ['540C', '570S', '720S', 'GT', 'Artura', 'P1', '650S'],
+    'Rolls-Royce': ['Ghost', 'Wraith', 'Dawn', 'Cullinan', 'Phantom'],
+    'Infiniti': ['Q30', 'Q50', 'Q60', 'QX30', 'QX50', 'QX60', 'QX80', 'Q70']
+  };
+
+  // Function to update models based on selected make in listing form
+  // Make sure this is assigned to window so it's globally accessible
+  window.updateListingModels = function() {
+    console.log('=== updateListingModels function called ===');
+    const makeSelect = document.getElementById('listing_make');
+    const modelSelect = document.getElementById('listing_model');
+    
+    if (!makeSelect || !modelSelect) {
+      console.warn('Make or model select element not found');
+      return;
+    }
+    
+    // Get the selected make value
+    const selectedMakeValue = makeSelect.value;
+    const selectedMakeText = makeSelect.options[makeSelect.selectedIndex]?.text || '';
+    const currentModel = modelSelect.value; // Preserve current selection if editing
+    
+    console.log('updateListingModels called - Make value:', selectedMakeValue, 'Make text:', selectedMakeText);
+    
+    // Clear existing options
+    modelSelect.innerHTML = '<option value="">Select Model</option>';
+    
+    // If no make is selected or it's the "All Makes" option, clear model dropdown
+    if (!selectedMakeValue || selectedMakeValue === '' || selectedMakeText === 'All Makes') {
+      console.log('No make selected or "All Makes" selected, clearing models');
+      modelSelect.value = '';
+      return;
+    }
+    
+    // Use the value (which should match the carModels keys)
+    const selectedMake = selectedMakeValue;
+    
+    // Check if make exists in carModels (use window.carModels for global access)
+    const modelsData = window.carModels;
+    if (!modelsData) {
+      console.error('carModels object not found!');
+      return;
+    }
+    
+    console.log('Looking for make:', selectedMake);
+    console.log('Available makes in carModels:', Object.keys(modelsData));
+    
+    // Try exact match first
+    let models = modelsData[selectedMake];
+    
+    // If not found, try case-insensitive match
+    if (!models) {
+      const foundKey = Object.keys(modelsData).find(function(key) {
+        return key.toLowerCase() === selectedMake.toLowerCase();
+      });
+      if (foundKey) {
+        models = modelsData[foundKey];
+        console.log('Found make with case-insensitive match:', foundKey);
+      } else {
+        // Try matching by text if value doesn't match
+        const foundByText = Object.keys(modelsData).find(function(key) {
+          return key.toLowerCase() === selectedMakeText.toLowerCase();
+        });
+        if (foundByText) {
+          models = modelsData[foundByText];
+          console.log('Found make by matching text:', foundByText);
+        }
+      }
+    }
+    
+    if (models && Array.isArray(models) && models.length > 0) {
+      console.log('✓ Found models for make:', selectedMake, 'Models:', models);
+      // Add models for selected make
+      models.forEach(function(model) {
+        const option = document.createElement('option');
+        option.value = model;
+        option.textContent = model;
+        modelSelect.appendChild(option);
+      });
+      console.log('✓ Added', models.length, 'models to dropdown');
+      
+      // If editing and current model exists in the list, restore it
+      if (currentModel) {
+        const modelOption = Array.from(modelSelect.options).find(opt => opt.value === currentModel);
+        if (modelOption) {
+          modelSelect.value = currentModel;
+          console.log('✓ Restored current model:', currentModel);
+        }
+      }
+    } else {
+      console.error('✗ No models found for make:', selectedMake);
+      console.error('Make value was:', selectedMakeValue, 'Make text was:', selectedMakeText);
+      console.error('Available makes in carModels:', Object.keys(modelsData));
+      // Add a generic option if no models
+      const option = document.createElement('option');
+      option.value = 'Other';
+      option.textContent = 'Other';
+      modelSelect.appendChild(option);
+    }
+    console.log('=== updateListingModels function finished ===');
+  };
+  
   // Vehicle registration lookup
   document.addEventListener('DOMContentLoaded', function() {
+    // Show category fields on page load (important for edit forms)
     showCategoryFields();
+    
+    // Also check after a small delay to ensure DOM is fully ready
+    setTimeout(showCategoryFields, 100);
+    
+    // Initialize model dropdown based on make selection
+    const makeSelect = document.getElementById('listing_make');
+    const modelSelect = document.getElementById('listing_model');
+    
+    if (makeSelect && modelSelect) {
+      // Update models when make changes
+      makeSelect.addEventListener('change', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (window.updateListingModels) {
+          window.updateListingModels();
+        }
+      });
+      
+      // Also listen for input event (for programmatic changes)
+      makeSelect.addEventListener('input', function() {
+        if (window.updateListingModels) {
+          window.updateListingModels();
+        }
+      });
+      
+      // If editing and make is already selected, populate models immediately
+      if (makeSelect.value) {
+        console.log('Make already selected on page load:', makeSelect.value);
+        if (window.updateListingModels) {
+          window.updateListingModels();
+        } else {
+          console.error('updateListingModels function not available!');
+        }
+      }
+      
+      // Also try after a short delay to catch any edge cases
+      setTimeout(function() {
+        if (makeSelect.value && modelSelect.options.length <= 1) {
+          console.log('Retrying model update after delay, make:', makeSelect.value);
+          if (window.updateListingModels) {
+            window.updateListingModels();
+          } else {
+            console.error('updateListingModels function still not available!');
+          }
+        }
+      }, 200);
+      
+      // One more retry after a longer delay to ensure it works
+      setTimeout(function() {
+        if (makeSelect.value && modelSelect.options.length <= 1) {
+          console.log('Final retry for model update, make:', makeSelect.value);
+          if (window.updateListingModels) {
+            window.updateListingModels();
+          }
+        }
+      }, 500);
+    } else {
+      console.error('Could not find listing_make or listing_model elements');
+    }
     
     const lookupBtn = document.getElementById('lookup_registration_btn');
     const lookupInput = document.getElementById('vehicle_registration_lookup');
@@ -314,9 +593,10 @@
             const makeSelect = document.getElementById('listing_make');
             if (makeSelect && data.data.make) {
               makeSelect.value = data.data.make;
-              // Trigger model update
-              const makeEvent = new Event('change');
-              makeSelect.dispatchEvent(makeEvent);
+              // Update models for the selected make
+              if (window.updateListingModels) {
+                window.updateListingModels();
+              }
             }
             
             const modelSelect = document.getElementById('listing_model');
@@ -393,5 +673,1389 @@
         }
       });
     }
+
+    // Image upload and preview functionality
+    // Make imageFiles accessible globally for updateUploadZoneVisibility
+    window.imageFiles = window.imageFiles || [];
+    let imageFiles = window.imageFiles;
+    let draggedElement = null;
+    let imageFileIdCounter = 0; // Unique ID counter for each file
+    const MAX_IMAGES = 10;
+    
+    // Get DOM elements (will be refreshed on Turbo navigation)
+    const imagePreviewContainer = document.getElementById('image-preview-container');
+    const imagePreviewGrid = document.getElementById('image-preview-grid');
+    const imageOrderInput = document.getElementById('image-order');
+
+    function processFiles(files) {
+      // Limit to MAX_IMAGES
+      const filesToProcess = Array.from(files).slice(0, MAX_IMAGES - imageFiles.length);
+      
+      // Filter and add unique IDs while preserving the EXACT FileList order
+      const newFiles = [];
+      filesToProcess.forEach(function(file, originalIndex) {
+        if (file.type.startsWith('image/')) {
+          // Check file extension
+          const fileName = file.name.toLowerCase();
+          const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+          const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
+          
+          if (hasValidExtension) {
+            file._uniqueId = 'img_' + (imageFileIdCounter++);
+            file._originalIndex = originalIndex;
+            file._selectionOrder = originalIndex;
+            newFiles.push(file);
+          }
+        }
+      });
+
+      // Add to existing files (up to MAX_IMAGES)
+      const remainingSlots = MAX_IMAGES - imageFiles.length;
+      imageFiles = imageFiles.concat(newFiles.slice(0, remainingSlots));
+      // Update global reference
+      window.imageFiles = imageFiles;
+
+      // Update preview and file input
+      updateImagePreview();
+      updateImageOrder();
+      updateFileInput();
+      
+      // Get upload zone element
+      const imageUploadZone = document.getElementById('image-upload-zone');
+      
+      // Hide upload zone only if we've reached max images (10 new images)
+      // But always show it if we're editing and have existing images
+      if (imageFiles.length >= MAX_IMAGES && imageUploadZone) {
+        imageUploadZone.style.display = 'none';
+      } else if (imageUploadZone) {
+        imageUploadZone.style.display = 'flex';
+      }
+      
+      // Always show upload zone when editing (even with existing images)
+      // Count existing images if any
+      const existingThumbnails = document.getElementById('image-thumbnails-grid');
+      if (existingThumbnails && imageUploadZone) {
+        const existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([style*="opacity: 0.5"])').length;
+        const totalImages = imageFiles.length + existingCount;
+        if (totalImages < MAX_IMAGES) {
+          imageUploadZone.style.display = 'flex';
+        }
+      }
+    }
+
+    // Function to setup image upload event listeners - make it globally accessible
+    window.setupImageUploadListeners = function() {
+      const imageUploadInput = document.getElementById('image-upload-input');
+      const imageUploadZone = document.getElementById('image-upload-zone');
+      
+      if (!imageUploadInput || !imageUploadZone) {
+        console.log('Image upload elements not found, skipping listener setup');
+        return;
+      }
+      
+      // Check if already set up to prevent duplicates
+      if (imageUploadZone.hasAttribute('data-upload-listeners-setup')) {
+        console.log('Upload listeners already set up, skipping');
+        return;
+      }
+      imageUploadZone.setAttribute('data-upload-listeners-setup', 'true');
+      
+      // Make the input cover the entire zone and handle clicks directly
+      imageUploadInput.style.position = 'absolute';
+      imageUploadInput.style.top = '0';
+      imageUploadInput.style.left = '0';
+      imageUploadInput.style.width = '100%';
+      imageUploadInput.style.height = '100%';
+      imageUploadInput.style.opacity = '0';
+      imageUploadInput.style.cursor = 'pointer';
+      imageUploadInput.style.zIndex = '10';
+      imageUploadInput.style.display = 'block'; // Make sure it's visible (but transparent)
+      
+      // Make content pointer-events none so clicks pass through to input
+      const uploadContent = imageUploadZone.querySelector('.upload-zone-content');
+      if (uploadContent) {
+        uploadContent.style.pointerEvents = 'none'; // Let clicks pass through to input
+      }
+      
+      // No need for zone click handler - the input handles it directly
+      
+      // File input change
+      imageUploadInput.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files.length > 0) {
+          processFiles(e.target.files);
+          // Clear the input so the same file can be selected again if needed
+          e.target.value = '';
+        }
+      });
+      
+      // Drag and drop functionality
+      imageUploadZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        imageUploadZone.classList.add('drag-over');
+      });
+      
+      imageUploadZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        imageUploadZone.classList.remove('drag-over');
+      });
+      
+      imageUploadZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        imageUploadZone.classList.remove('drag-over');
+        
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          processFiles(e.dataTransfer.files);
+        }
+      });
+      
+      console.log('Image upload listeners set up successfully');
+    };
+    
+    // Setup listeners initially
+    window.setupImageUploadListeners();
+
+    function updateImagePreview() {
+      if (!imagePreviewGrid) return;
+
+      // Store current dragged element if any
+      const currentDragged = draggedElement;
+      const currentDraggedId = currentDragged ? currentDragged.dataset.fileId : null;
+
+      imagePreviewGrid.innerHTML = '';
+      
+      // Reset dragged element
+      draggedElement = null;
+
+      if (imageFiles.length === 0) {
+        if (imagePreviewContainer) {
+          imagePreviewContainer.style.display = 'none';
+        }
+        const imageUploadZone = document.getElementById('image-upload-zone');
+        if (imageUploadZone) {
+          imageUploadZone.style.display = 'flex';
+        }
+        return;
+      }
+
+      // Always show the preview container when we have images
+      if (imagePreviewContainer) {
+        imagePreviewContainer.style.display = 'block';
+      }
+      
+      // Also add dragover handler to the container for better drag handling
+      if (!imagePreviewGrid.hasAttribute('data-container-drag-setup')) {
+        imagePreviewGrid.setAttribute('data-container-drag-setup', 'true');
+        imagePreviewGrid.addEventListener('dragover', function(e) {
+          if (!draggedElement) return;
+          e.preventDefault();
+          e.stopPropagation();
+          e.dataTransfer.dropEffect = 'move';
+        });
+        imagePreviewGrid.addEventListener('drop', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+      }
+      
+      // Check total images (new + existing) before hiding upload zone
+      const imageUploadZone = document.getElementById('image-upload-zone');
+      const existingThumbnails = document.getElementById('image-thumbnails-grid');
+      let existingCount = 0;
+      if (existingThumbnails) {
+        existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([style*="opacity: 0.5"])').length;
+      }
+      const totalImages = imageFiles.length + existingCount;
+      
+      if (imageUploadZone && totalImages >= MAX_IMAGES) {
+        imageUploadZone.style.display = 'none';
+      } else if (imageUploadZone) {
+        imageUploadZone.style.display = 'flex';
+      }
+
+      imageFiles.forEach(function(file, index) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const uniqueId = file._uniqueId || 'img_' + index;
+          const isMain = index === 0; // First file (index 0) is always the main/cover picture
+          
+          const imageItem = document.createElement('div');
+          imageItem.className = 'image-preview-item';
+          imageItem.draggable = true;
+          imageItem.setAttribute('draggable', 'true');
+          imageItem.dataset.index = index;
+          imageItem.dataset.fileId = uniqueId;
+          imageItem.title = isMain ? 'Cover Picture (Main) - Drag to reorder' : 'Drag to reorder or click star to set as cover';
+          imageItem.style.cursor = 'move';
+          imageItem.innerHTML = `
+            <img src="${e.target.result}" alt="Preview ${index + 1}" class="preview-image">
+            <div class="preview-overlay">
+              <div class="preview-left">
+                ${isMain ? '<span class="main-badge">COVER</span>' : ''}
+                <span class="preview-number">${index + 1}</span>
+              </div>
+              <div class="preview-right">
+                ${!isMain ? '<button type="button" class="set-main-image" data-file-id="${uniqueId}" title="Set as cover picture">⭐</button>' : ''}
+                <button type="button" class="remove-preview-image" data-file-id="${uniqueId}" title="Remove image">×</button>
+              </div>
+            </div>
+          `;
+
+          // Drag and drop handlers - make sure all events are properly attached
+          // Use capture phase to ensure we catch events before they bubble
+          imageItem.addEventListener('dragstart', handleDragStart);
+          imageItem.addEventListener('dragover', handleDragOver);
+          imageItem.addEventListener('dragenter', handleDragEnter);
+          imageItem.addEventListener('dragleave', handleDragLeave);
+          imageItem.addEventListener('drop', handleDrop);
+          imageItem.addEventListener('dragend', handleDragEnd);
+          
+          // Prevent image drag (browser default) to allow container drag
+          const img = imageItem.querySelector('.preview-image');
+          if (img) {
+            img.setAttribute('draggable', 'false');
+            img.style.pointerEvents = 'none';
+            img.addEventListener('dragstart', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }, false);
+          }
+          
+          // Overlay is already set to pointer-events: none in CSS
+          // But ensure buttons inside are still clickable
+          const overlayForButtons = imageItem.querySelector('.preview-overlay');
+          if (overlayForButtons) {
+            overlayForButtons.style.pointerEvents = 'none';
+            const buttons = overlayForButtons.querySelectorAll('button');
+            buttons.forEach(function(btn) {
+              btn.style.pointerEvents = 'auto';
+              btn.style.zIndex = '100';
+              btn.style.position = 'relative';
+            });
+          }
+
+          // Remove button handler - use file ID for reliable removal
+          const removeBtn = imageItem.querySelector('.remove-preview-image');
+          if (removeBtn) {
+            removeBtn.style.pointerEvents = 'auto';
+            removeBtn.style.zIndex = '100';
+            removeBtn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              const fileId = this.getAttribute('data-file-id');
+              console.log('Remove button clicked, fileId:', fileId);
+              if (fileId) {
+                removeImageByFileId(fileId);
+              } else {
+                // Fallback to index if file ID not found
+                const itemIndex = parseInt(imageItem.dataset.index);
+                if (!isNaN(itemIndex)) {
+                  removeImage(itemIndex);
+                }
+              }
+            }, true); // Use capture phase
+            // Prevent drag on buttons
+            removeBtn.addEventListener('mousedown', function(e) {
+              e.stopPropagation();
+            }, true);
+            removeBtn.addEventListener('dragstart', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+            }, true);
+          }
+
+          // Set as main button handler - use file ID for reliable operation
+          const setMainBtn = imageItem.querySelector('.set-main-image');
+          if (setMainBtn) {
+            setMainBtn.addEventListener('click', function(e) {
+              e.stopPropagation();
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              const fileId = this.getAttribute('data-file-id');
+              if (fileId) {
+                setAsMainByFileId(fileId);
+              } else {
+                // Fallback to index if file ID not found
+                const itemIndex = parseInt(imageItem.dataset.index);
+                if (!isNaN(itemIndex)) {
+                  setAsMain(itemIndex);
+                }
+              }
+            });
+            // Prevent drag on buttons
+            setMainBtn.addEventListener('mousedown', function(e) {
+              e.stopPropagation();
+            });
+          }
+
+          imagePreviewGrid.appendChild(imageItem);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function removeImageByFileId(fileId) {
+      const fileIndex = imageFiles.findIndex(function(file) {
+        return (file._uniqueId || '') === fileId;
+      });
+      
+      if (fileIndex === -1) {
+        console.warn('File not found with ID:', fileId);
+        return;
+      }
+      
+      imageFiles.splice(fileIndex, 1);
+      // Update global reference
+      window.imageFiles = imageFiles;
+      updateImagePreview();
+      updateImageOrder();
+      updateFileInput();
+      
+      // Show upload zone again if under max (checking both new and existing images)
+      const imageUploadZone = document.getElementById('image-upload-zone');
+      const existingThumbnails = document.getElementById('image-thumbnails-grid');
+      let existingCount = 0;
+      if (existingThumbnails) {
+        existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([style*="opacity: 0.5"])').length;
+      }
+      const totalImages = imageFiles.length + existingCount;
+      
+      if (totalImages < MAX_IMAGES && imageUploadZone) {
+        imageUploadZone.style.display = 'flex';
+      }
+    }
+
+    function removeImage(index) {
+      if (index >= 0 && index < imageFiles.length) {
+        imageFiles.splice(index, 1);
+        // Update global reference
+        window.imageFiles = imageFiles;
+        updateImagePreview();
+        updateImageOrder();
+        updateFileInput();
+        
+        // Show upload zone again if under max (checking both new and existing images)
+        const imageUploadZone = document.getElementById('image-upload-zone');
+        const existingThumbnails = document.getElementById('image-thumbnails-grid');
+        let existingCount = 0;
+        if (existingThumbnails) {
+          existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([style*="opacity: 0.5"])').length;
+        }
+        const totalImages = imageFiles.length + existingCount;
+        
+        if (totalImages < MAX_IMAGES && imageUploadZone) {
+          imageUploadZone.style.display = 'flex';
+        }
+      }
+    }
+
+    function setAsMainByFileId(fileId) {
+      const fileIndex = imageFiles.findIndex(function(file) {
+        return (file._uniqueId || '') === fileId;
+      });
+      
+      if (fileIndex === -1 || fileIndex === 0) {
+        return;
+      }
+      
+      // Move the selected image to the first position
+      const file = imageFiles[fileIndex];
+      imageFiles.splice(fileIndex, 1);
+      imageFiles.unshift(file);
+      
+      updateImagePreview();
+      updateImageOrder();
+      updateFileInput();
+    }
+
+    function setAsMain(index) {
+      // Fallback method using index
+      if (index === 0 || index >= imageFiles.length) return;
+      
+      // Move the selected image to the first position
+      const file = imageFiles[index];
+      imageFiles.splice(index, 1);
+      imageFiles.unshift(file);
+      
+      updateImagePreview();
+      updateImageOrder();
+      updateFileInput();
+    }
+
+    function updateFileInput() {
+      if (!imageUploadInput) return;
+
+      // Create a new DataTransfer object to update the file input
+      // CRITICAL: Preserve the exact order from imageFiles array
+      // The first file in imageFiles is the main/cover picture
+      const dataTransfer = new DataTransfer();
+      
+      // Add files in the EXACT order they appear in imageFiles array
+      // This preserves the selection order - first selected = first in array = main picture
+      imageFiles.forEach(function(file, index) {
+        try {
+          dataTransfer.items.add(file);
+        } catch (e) {
+          console.warn('Could not add file to DataTransfer:', e);
+        }
+      });
+      
+      // Update the file input with the ordered files
+      imageUploadInput.files = dataTransfer.files;
+      
+      // Verify order is preserved
+      if (imageFiles.length > 0 && dataTransfer.files.length > 0) {
+        const firstFile = imageFiles[0];
+        const firstInInput = dataTransfer.files[0];
+        if (firstFile.name !== firstInInput.name) {
+          console.warn('File order mismatch detected!');
+        }
+      }
+    }
+
+    function updateImageOrder() {
+      if (imageOrderInput && imageFiles && imageFiles.length > 0) {
+        // Store the order as indices (0, 1, 2, ...)
+        // The order of imageFiles array IS the order we want
+        const order = imageFiles.map(function(file, index) {
+          return index;
+        }).join(',');
+        imageOrderInput.value = order;
+        console.log('Updated new image order:', order, 'File count:', imageFiles.length);
+      } else if (imageOrderInput) {
+        // Clear if no files
+        imageOrderInput.value = '';
+      }
+    }
+
+    // Drag and drop handlers for new/preview images
+    function handleDragStart(e) {
+      // Make sure we're dragging the image item, not a child element
+      const target = e.target.closest('.image-preview-item');
+      if (!target) {
+        e.preventDefault();
+        return false;
+      }
+      
+      // Don't start drag if clicking on a button
+      if (e.target.closest('button')) {
+        e.preventDefault();
+        return false;
+      }
+      
+      draggedElement = target;
+      target.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', target.dataset.fileId || target.dataset.index || '');
+      // Don't prevent default - we want the drag to happen
+      e.stopPropagation();
+      
+      console.log('Drag started on image item:', target.dataset.fileId);
+      return true;
+    }
+
+    function handleDragOver(e) {
+      // Find the image item (might be triggered on child elements)
+      const target = e.target.closest('.image-preview-item');
+      if (!target) {
+        // If not on an item, check if we're over the container
+        if (imagePreviewGrid && imagePreviewGrid.contains(e.target)) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+        }
+        return false;
+      }
+      
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = 'move';
+      
+      if (draggedElement && target !== draggedElement) {
+        const allItemsForDrag = Array.from(imagePreviewGrid.querySelectorAll('.image-preview-item'));
+        const draggedIndex = allItemsForDrag.indexOf(draggedElement);
+        const targetIndex = allItemsForDrag.indexOf(target);
+
+        if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
+          // Move the DOM element immediately for visual feedback
+          if (draggedIndex < targetIndex) {
+            imagePreviewGrid.insertBefore(draggedElement, target.nextSibling);
+          } else {
+            imagePreviewGrid.insertBefore(draggedElement, target);
+          }
+
+          // Reorder the imageFiles array to match DOM order
+          const draggedFile = imageFiles[draggedIndex];
+          if (draggedFile) {
+            imageFiles.splice(draggedIndex, 1);
+            imageFiles.splice(targetIndex, 0, draggedFile);
+            
+            // Update file input and order immediately during drag
+            updateFileInput();
+            updateImageOrder();
+          }
+        }
+      }
+      return false;
+    }
+    
+    function handleDragEnter(e) {
+      // Find the image item (might be triggered on child elements)
+      const target = e.target.closest('.image-preview-item');
+      if (!target) return false;
+      
+      if (e.preventDefault) e.preventDefault();
+      if (target !== draggedElement) {
+        target.classList.add('drag-over');
+      }
+      return false;
+    }
+    
+    function handleDragLeave(e) {
+      // Find the image item (might be triggered on child elements)
+      const target = e.target.closest('.image-preview-item');
+      if (target) {
+        target.classList.remove('drag-over');
+      }
+    }
+
+    function handleDrop(e) {
+      // Find the image item (might be triggered on child elements)
+      const target = e.target.closest('.image-preview-item');
+      if (!target) return false;
+      
+      e.preventDefault();
+      e.stopPropagation();
+      target.classList.remove('drag-over');
+      
+      // Final order update on drop
+      if (draggedElement && target !== draggedElement) {
+        const allItems = Array.from(imagePreviewGrid.querySelectorAll('.image-preview-item'));
+        const draggedIndex = allItems.indexOf(draggedElement);
+        const targetIndex = allItems.indexOf(target);
+        
+        if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
+          // Reorder the imageFiles array
+          const draggedFile = imageFiles[draggedIndex];
+          if (draggedFile) {
+            imageFiles.splice(draggedIndex, 1);
+            imageFiles.splice(targetIndex, 0, draggedFile);
+            window.imageFiles = imageFiles;
+            updateFileInput();
+            updateImageOrder();
+          }
+        }
+      }
+      
+      return false;
+    }
+
+    function handleDragEnd(e) {
+      // Find the image item (might be triggered on child elements)
+      const target = e.target.closest('.image-preview-item') || this;
+      target.classList.remove('dragging');
+      target.classList.remove('drag-over');
+      
+      // Remove drag-over from all items
+      const allItemsList = imagePreviewGrid.querySelectorAll('.image-preview-item');
+      allItemsList.forEach(function(item) {
+        item.classList.remove('drag-over');
+      });
+      
+      draggedElement = null;
+      
+      // Rebuild imageFiles array to match the new DOM order
+      const allItemsArray = Array.from(imagePreviewGrid.querySelectorAll('.image-preview-item'));
+      const reorderedFiles = [];
+      
+      allItemsArray.forEach(function(item) {
+        const fileId = item.dataset.fileId;
+        const file = imageFiles.find(function(f) {
+          return (f._uniqueId || '') === fileId;
+        });
+        if (file) {
+          reorderedFiles.push(file);
+        }
+      });
+      
+      // Update imageFiles array to match the new order
+      // CRITICAL: The first file in the array is ALWAYS the cover/main image
+      imageFiles = reorderedFiles;
+      // Update global reference
+      window.imageFiles = imageFiles;
+      
+      // Update order FIRST to ensure it's saved correctly
+      updateImageOrder();
+      updateFileInput();
+      
+      // Then update preview - this will show the first image as cover
+      updateImagePreview();
+      
+      // Explicitly ensure first image is marked as main after DOM updates
+      setTimeout(function() {
+        const allItemsInTimeout = imagePreviewGrid.querySelectorAll('.image-preview-item');
+        allItemsInTimeout.forEach(function(item, idx) {
+          const leftDiv = item.querySelector('.preview-left');
+          const rightDiv = item.querySelector('.preview-right');
+          const badge = item.querySelector('.main-badge');
+          const setMainBtn = item.querySelector('.set-main-image');
+          
+          if (idx === 0) {
+            // FIRST IMAGE IS ALWAYS THE MAIN/COVER IMAGE
+            // Ensure it has the badge
+            if (!badge && leftDiv) {
+              const newBadge = document.createElement('span');
+              newBadge.className = 'main-badge';
+              newBadge.textContent = 'COVER';
+              leftDiv.insertBefore(newBadge, leftDiv.firstChild);
+            }
+            // Remove set-main button if present
+            if (setMainBtn) {
+              setMainBtn.remove();
+            }
+          } else {
+            // Other images should have the set-main button, not the badge
+            if (badge) {
+              badge.remove();
+            }
+            if (!setMainBtn && rightDiv) {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'set-main-image';
+              btn.setAttribute('data-file-id', item.dataset.fileId || '');
+              btn.title = 'Set as cover picture';
+              btn.textContent = '⭐';
+              btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                const fileId = this.getAttribute('data-file-id');
+                if (fileId) {
+                  setAsMainByFileId(fileId);
+                }
+              });
+              btn.addEventListener('mousedown', function(e) {
+                e.stopPropagation();
+              });
+              rightDiv.insertBefore(btn, rightDiv.querySelector('.remove-preview-image'));
+            }
+          }
+        });
+        
+        // Verify order is correct
+        console.log('After drag - First image (main):', imageFiles[0]?.name);
+        console.log('Image order:', imageFiles.map(f => f.name).join(', '));
+      }, 50);
+    }
+
+    // Handle existing image removal and reordering (for edit mode)
+    // Setup function that works immediately
+    function setupExistingImageHandlers() {
+      const existingImageGrid = document.getElementById('image-thumbnails-grid');
+      if (!existingImageGrid) {
+        // Retry after a short delay if grid not found yet (for dynamically loaded content)
+        setTimeout(setupExistingImageHandlers, 100);
+        return;
+      }
+      
+      console.log('Setting up drag handlers for existing images...');
+      console.log('Grid element:', existingImageGrid);
+      
+      // Check if handlers are already set up to avoid duplicates
+      const handlersAlreadySetup = existingImageGrid.hasAttribute('data-drag-handlers-setup');
+      if (handlersAlreadySetup) {
+        console.log('Drag handlers already set up, skipping...');
+        return;
+      }
+      
+      // Mark as set up
+      existingImageGrid.setAttribute('data-drag-handlers-setup', 'true');
+      
+      // Clear any old drag handler flags
+      const existingItemsForCleanup = existingImageGrid.querySelectorAll('.existing-image-item, .image-thumbnail-item');
+      existingItemsForCleanup.forEach(function(item) {
+        item.removeAttribute('data-drag-handlers-attached');
+      });
+      
+      // Setup drag and drop for existing images
+      const existingItems = existingImageGrid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"])');
+      let draggedExistingItem = null;
+      
+      // Also add container-level drag handlers
+      if (!existingImageGrid.hasAttribute('data-container-drag-setup')) {
+        existingImageGrid.setAttribute('data-container-drag-setup', 'true');
+        existingImageGrid.addEventListener('dragover', function(e) {
+          if (!draggedExistingItem) return;
+          e.preventDefault();
+          e.stopPropagation();
+          e.dataTransfer.dropEffect = 'move';
+        });
+        existingImageGrid.addEventListener('drop', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+      }
+      
+      existingItems.forEach(function(item) {
+        item.setAttribute('draggable', 'true');
+        
+        // Prevent image and button from interfering with drag
+        const img = item.querySelector('img');
+        if (img) {
+          img.setAttribute('draggable', 'false');
+        }
+        const buttons = item.querySelectorAll('button');
+        buttons.forEach(function(btn) {
+          btn.setAttribute('draggable', 'false');
+          btn.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+          });
+        });
+        
+        // Drag start
+        item.addEventListener('dragstart', function(e) {
+          // Don't start drag if clicking on a button
+          if (e.target.closest('button')) {
+            e.preventDefault();
+            return false;
+          }
+          
+          draggedExistingItem = item;
+          item.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', item.getAttribute('data-image-id') || '');
+          e.stopPropagation();
+        });
+        
+        // Drag over
+        item.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.dataTransfer.dropEffect = 'move';
+          
+          if (draggedExistingItem && draggedExistingItem !== item) {
+            const allItems = Array.from(existingImageGrid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"])'));
+            const draggedIndex = allItems.indexOf(draggedExistingItem);
+            const targetIndex = allItems.indexOf(item);
+            
+            if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
+              // Move immediately for visual feedback
+              if (draggedIndex < targetIndex) {
+                existingImageGrid.insertBefore(draggedExistingItem, item.nextSibling);
+              } else {
+                existingImageGrid.insertBefore(draggedExistingItem, item);
+              }
+            }
+          }
+        });
+        
+        // Drag enter
+        item.addEventListener('dragenter', function(e) {
+          e.preventDefault();
+          if (item !== draggedExistingItem) {
+            item.classList.add('drag-over');
+          }
+        });
+        
+        // Drag leave
+        item.addEventListener('dragleave', function(e) {
+          item.classList.remove('drag-over');
+        });
+        
+        // Drop
+        item.addEventListener('drop', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          item.classList.remove('drag-over');
+        });
+        
+        // Drag end
+        item.addEventListener('dragend', function(e) {
+          item.classList.remove('dragging');
+          item.classList.remove('drag-over');
+          const allItems = existingImageGrid.querySelectorAll('.existing-image-item, .image-thumbnail-item');
+          allItems.forEach(function(i) {
+            i.classList.remove('drag-over');
+          });
+          
+          // Update order and indices
+          updateExistingImageOrder();
+          updateExistingImageIndices();
+          
+          draggedExistingItem = null;
+        });
+      });
+      
+      // Container for removed image IDs
+      let removedImagesContainer = document.getElementById('removed-images-container');
+      if (!removedImagesContainer) {
+        removedImagesContainer = document.createElement('div');
+        removedImagesContainer.id = 'removed-images-container';
+        removedImagesContainer.style.display = 'none';
+        const formField = document.querySelector('.form-field');
+        if (formField && formField.parentElement) {
+          formField.parentElement.appendChild(removedImagesContainer);
+        } else if (imageUploadInput && imageUploadInput.parentElement) {
+          imageUploadInput.parentElement.appendChild(removedImagesContainer);
+        }
+      }
+      
+      // Container for image order - use existing or create hidden input for existing image order
+      let imageOrderContainer = document.getElementById('existing-image-order-container');
+      if (!imageOrderContainer) {
+        imageOrderContainer = document.createElement('input');
+        imageOrderContainer.type = 'hidden';
+        imageOrderContainer.id = 'existing-image-order-container';
+        imageOrderContainer.name = 'existing_image_order';
+        // Find the form and append to it
+        const form = document.querySelector('form');
+        if (form) {
+          form.appendChild(imageOrderContainer);
+        } else {
+          // Fallback: append near image upload field
+          const formField = document.querySelector('.form-field');
+          if (formField && formField.parentElement) {
+            formField.parentElement.appendChild(imageOrderContainer);
+          } else if (imageUploadInput && imageUploadInput.parentElement) {
+            imageUploadInput.parentElement.appendChild(imageOrderContainer);
+          }
+        }
+      }
+      
+      // ALWAYS initialize/update the order from DOM, even if it already has a value
+      // This ensures the order matches what's actually displayed
+      if (imageOrderContainer && existingImageGrid) {
+        const items = existingImageGrid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"])');
+        if (items.length > 0) {
+          const order = Array.from(items).map(function(item) {
+            return item.getAttribute('data-image-id');
+          }).filter(function(id) { return id; }).join(',');
+          imageOrderContainer.value = order;
+          console.log('Initialized/updated existing image order:', order);
+        }
+      }
+      
+      // Initialize indices
+      updateExistingImageIndices();
+      
+      // Handle remove buttons - use event delegation for reliability
+      existingImageGrid.addEventListener('click', function(e) {
+        const removeBtn = e.target.closest('.remove-thumbnail-image, .remove-existing-image');
+        if (!removeBtn) return;
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const imageItem = removeBtn.closest('.existing-image-item');
+        if (!imageItem) {
+          console.warn('Could not find image item for remove button');
+          return;
+        }
+        
+        const imageId = removeBtn.getAttribute('data-image-id');
+        if (!imageId) {
+          console.warn('No image ID found for remove button');
+          return;
+        }
+        
+        // Get or create removed images container
+        let container = document.getElementById('removed-images-container');
+        if (!container) {
+          container = document.createElement('div');
+          container.id = 'removed-images-container';
+          container.style.display = 'none';
+          const formField = document.querySelector('.form-field');
+          if (formField && formField.parentElement) {
+            formField.parentElement.appendChild(container);
+          } else if (imageUploadInput && imageUploadInput.parentElement) {
+            imageUploadInput.parentElement.appendChild(container);
+          }
+        }
+        
+        if (!container) {
+          console.error('Could not create removed images container');
+          return;
+        }
+        
+        // Check if this image is already marked for removal
+        const existingInput = container.querySelector(`input[value="${imageId}"]`);
+        if (existingInput) {
+          // Already marked for removal
+          return;
+        }
+        
+        // Create a new hidden input for this removed image
+        const removedInput = document.createElement('input');
+        removedInput.type = 'hidden';
+        removedInput.name = 'removed_image_ids[]';
+        removedInput.value = imageId;
+        removedInput.setAttribute('data-removed-id', imageId);
+        container.appendChild(removedInput);
+        
+        // Hide the image item visually (but keep in DOM for order tracking)
+        imageItem.style.opacity = '0.5';
+        imageItem.style.pointerEvents = 'none';
+        imageItem.setAttribute('data-removed', 'true');
+        
+        // Update order if function exists
+        const orderContainer = document.getElementById('existing-image-order-container');
+        if (orderContainer) {
+          const grid = document.getElementById('image-thumbnails-grid');
+          if (grid) {
+            const items = grid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"])');
+            const order = Array.from(items).map(function(item) {
+              return item.getAttribute('data-image-id');
+            }).filter(function(id) { return id; }).join(',');
+            orderContainer.value = order;
+          }
+        }
+      });
+      
+      
+      // Mark as set up after all handlers are attached
+      existingImageGrid.setAttribute('data-drag-handlers-setup', 'true');
+      console.log('✓ Drag handlers setup complete for', existingItems.length, 'items');
+      
+      // Make functions globally accessible
+      window.setupExistingImageHandlers = setupExistingImageHandlers;
+      window.updateExistingImageOrder = updateExistingImageOrder;
+      window.updateExistingImageIndices = updateExistingImageIndices;
+      
+      // Make setupExistingImageHandlers globally accessible
+      window.setupExistingImageHandlers = setupExistingImageHandlers;
+      
+      function updateExistingImageIndices() {
+        const items = existingImageGrid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"])');
+        
+        // First, remove ALL main badges to start fresh
+        items.forEach(function(item) {
+          const mainBadge = item.querySelector('.main-badge-existing');
+          if (mainBadge) {
+            mainBadge.remove();
+          }
+        });
+        
+        // Now, add badges based on new order - FIRST IMAGE IS ALWAYS MAIN
+        items.forEach(function(item, index) {
+          item.setAttribute('data-image-index', index);
+          
+          if (index === 0) {
+            // FIRST IMAGE IS ALWAYS THE MAIN/COVER IMAGE
+            const badge = document.createElement('span');
+            badge.className = 'main-badge-existing';
+            badge.textContent = 'COVER';
+            badge.style.cssText = 'position: absolute; top: 4px; left: 4px; background: #22C55E; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; z-index: 10;';
+            item.style.position = 'relative';
+            item.appendChild(badge);
+          }
+        });
+      }
+      
+      function updateExistingImageOrder() {
+        const container = document.getElementById('existing-image-order-container');
+        const grid = document.getElementById('image-thumbnails-grid');
+        if (!container || !grid) {
+          console.warn('Cannot update existing image order: container or grid not found');
+          return;
+        }
+        const items = grid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"])');
+        if (items.length === 0) {
+          container.value = '';
+          console.log('No existing images to order');
+          return;
+        }
+        const order = Array.from(items).map(function(item) {
+          const imageId = item.getAttribute('data-image-id');
+          if (!imageId) {
+            console.warn('Image item missing data-image-id:', item);
+          }
+          return imageId;
+        }).filter(function(id) { return id; }).join(',');
+        container.value = order;
+        console.log('Updated existing image order:', order, 'Item count:', items.length);
+      }
+      
+      // Initialize the existing image order on page load
+      // This ensures the order is always sent, even if user doesn't make changes
+      if (typeof updateExistingImageOrder === 'function') {
+        updateExistingImageOrder();
+      }
+      
+      // Ensure order is ALWAYS updated before form submission
+      const form = document.querySelector('form');
+      if (form) {
+        // Function to sync all orders before submission
+        function syncAllImageOrders() {
+          // Update new/preview images order
+          if (typeof updateImageOrder === 'function') {
+            updateImageOrder();
+          }
+          
+          // Rebuild imageFiles array from DOM to ensure order is correct
+          const allItemsForSync = imagePreviewGrid ? Array.from(imagePreviewGrid.querySelectorAll('.image-preview-item')) : [];
+          if (allItemsForSync.length > 0 && typeof imageFiles !== 'undefined') {
+            const reorderedFiles = [];
+            allItemsForSync.forEach(function(item) {
+              const fileId = item.dataset.fileId;
+              const file = imageFiles.find(function(f) {
+                return (f._uniqueId || '') === fileId;
+              });
+              if (file) {
+                reorderedFiles.push(file);
+              }
+            });
+            if (reorderedFiles.length > 0) {
+              imageFiles = reorderedFiles;
+              // Update global reference
+              window.imageFiles = imageFiles;
+              if (typeof updateFileInput === 'function') {
+                updateFileInput();
+              }
+              if (typeof updateImageOrder === 'function') {
+                updateImageOrder();
+              }
+            }
+          }
+          
+          // ALWAYS update existing image order - even if user didn't drag
+          // This ensures the current order is preserved
+          if (typeof window.updateExistingImageOrder === 'function') {
+            window.updateExistingImageOrder();
+          }
+        }
+        
+        // Update order on form submit (capture phase to run early)
+        form.addEventListener('submit', function(e) {
+          syncAllImageOrders();
+          
+          // Double-check that existing image order is set
+          const existingOrderContainer = document.getElementById('existing-image-order-container');
+          if (existingOrderContainer && !existingOrderContainer.value) {
+            // If still empty, get it from DOM
+            const grid = document.getElementById('existing-images-grid');
+            if (grid) {
+              const items = grid.querySelectorAll('.existing-image-item:not([data-removed="true"])');
+              if (items.length > 0) {
+                const order = Array.from(items).map(function(item) {
+                  return item.getAttribute('data-image-id');
+                }).filter(function(id) { return id; }).join(',');
+                existingOrderContainer.value = order;
+                console.log('Set existing image order on submit:', order);
+              }
+            }
+          }
+          
+          // Log orders for debugging
+          const newOrderContainer = document.getElementById('image-order');
+          if (existingOrderContainer) {
+            console.log('Form submitting with existing image order:', existingOrderContainer.value);
+          }
+          if (newOrderContainer) {
+            console.log('Form submitting with new image order:', newOrderContainer.value);
+          }
+        }, true);
+        
+        // Also update order when submit button is clicked (as a backup)
+        const submitButton = form.querySelector('input[type="submit"], button[type="submit"]');
+        if (submitButton) {
+          submitButton.addEventListener('click', function(e) {
+            // Small delay to ensure this runs before form submission
+            setTimeout(syncAllImageOrders, 10);
+          });
+        }
+      }
+      
+      
+      // Also call the global function as a backup
+      if (typeof window.setupExistingImageRemoveHandlers === 'function') {
+        window.setupExistingImageRemoveHandlers();
+      }
+    }
+    
+    // Call setup function immediately
+    try {
+      setupExistingImageHandlers();
+    } catch (e) {
+      console.error('Error in setupExistingImageHandlers:', e);
+    }
+    
+    // Also call after delays to ensure it works even with slow page loads
+    setTimeout(function() {
+      try {
+        setupExistingImageHandlers();
+      } catch (e) {
+        console.error('Error in setupExistingImageHandlers (100ms):', e);
+      }
+    }, 100);
+    setTimeout(function() {
+      try {
+        setupExistingImageHandlers();
+      } catch (e) {
+        console.error('Error in setupExistingImageHandlers (300ms):', e);
+      }
+    }, 300);
+    setTimeout(function() {
+      try {
+        setupExistingImageHandlers();
+      } catch (e) {
+        console.error('Error in setupExistingImageHandlers (500ms):', e);
+      }
+    }, 500);
   });
+  
+  // Also re-initialize on Turbo navigation
+  // Use a flag to prevent multiple simultaneous initializations
+  let turboInitializing = false;
+  
+  function initializeOnTurbo() {
+    if (turboInitializing) return;
+    turboInitializing = true;
+    
+    try {
+      // Initialize models dropdown
+      if (typeof window.updateListingModels === 'function') {
+        const makeSelect = document.getElementById('listing_make');
+        if (makeSelect && makeSelect.value) {
+          setTimeout(function() {
+            window.updateListingModels();
+          }, 50);
+        }
+      }
+      
+      // Initialize image handlers
+      if (typeof window.setupExistingImageHandlers === 'function') {
+        window.setupExistingImageHandlers();
+        setTimeout(function() {
+          if (typeof window.setupExistingImageHandlers === 'function') {
+            window.setupExistingImageHandlers();
+          }
+          turboInitializing = false;
+        }, 100);
+      } else {
+        turboInitializing = false;
+      }
+      
+      // Initialize order on Turbo navigation
+      if (typeof window.updateExistingImageOrder === 'function') {
+        setTimeout(function() {
+          if (typeof window.updateExistingImageOrder === 'function') {
+            window.updateExistingImageOrder();
+          }
+        }, 150);
+      }
+    } catch (e) {
+      console.error('Error initializing on Turbo:', e);
+      turboInitializing = false;
+    }
+  }
+  
+  // Handle thumbnail remove buttons
+  function setupThumbnailRemoveButtons() {
+    const thumbnailsGrid = document.getElementById('image-thumbnails-grid');
+    if (!thumbnailsGrid) return;
+    
+    // Remove old listeners to prevent duplicates
+    const newGrid = thumbnailsGrid.cloneNode(true);
+    thumbnailsGrid.parentNode.replaceChild(newGrid, thumbnailsGrid);
+    const freshGrid = document.getElementById('image-thumbnails-grid');
+    
+    freshGrid.addEventListener('click', function(e) {
+      const removeBtn = e.target.closest('.remove-thumbnail-image');
+      if (!removeBtn) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const imageId = removeBtn.getAttribute('data-image-id');
+      if (!imageId) {
+        console.warn('No image ID found for remove button');
+        return;
+      }
+      
+      console.log('Removing thumbnail with ID:', imageId);
+      
+      // Remove thumbnail visually
+      const thumbnailItem = removeBtn.closest('.image-thumbnail-item');
+      if (thumbnailItem) {
+        thumbnailItem.style.opacity = '0.5';
+        thumbnailItem.style.pointerEvents = 'none';
+      }
+      
+      // Add hidden input for removed image
+      let removedContainer = document.getElementById('removed-images-container');
+      if (!removedContainer) {
+        removedContainer = document.createElement('div');
+        removedContainer.id = 'removed-images-container';
+        removedContainer.style.display = 'none';
+        const form = document.querySelector('form');
+        if (form) {
+          form.appendChild(removedContainer);
+        } else {
+          const formSection = document.querySelector('.form-section');
+          if (formSection) {
+            formSection.appendChild(removedContainer);
+          }
+        }
+      }
+      
+      if (!removedContainer.querySelector(`input[value="${imageId}"]`)) {
+        const removedInput = document.createElement('input');
+        removedInput.type = 'hidden';
+        removedInput.name = 'removed_image_ids[]';
+        removedInput.value = imageId;
+        removedContainer.appendChild(removedInput);
+        console.log('Added removed image ID to form:', imageId);
+      }
+      
+      // Update upload zone visibility after removal
+      if (typeof updateUploadZoneVisibility === 'function') {
+        updateUploadZoneVisibility();
+      }
+    }, true); // Use capture phase for better reliability
+  }
+  
+  // Function to update upload zone visibility based on total images
+  function updateUploadZoneVisibility() {
+    const imageUploadZone = document.getElementById('image-upload-zone');
+    if (!imageUploadZone) return;
+    
+    // Count new images - check if imageFiles exists (global or local)
+    let newImageCount = 0;
+    const imagePreviewGrid = document.getElementById('image-preview-grid');
+    if (imagePreviewGrid) {
+      // Count from DOM for reliability
+      newImageCount = imagePreviewGrid.querySelectorAll('.image-preview-item').length;
+    } else if (typeof window.imageFiles !== 'undefined' && window.imageFiles) {
+      // Fallback to global imageFiles if DOM not available
+      newImageCount = window.imageFiles.length;
+    }
+    
+    // Count existing images (not marked for removal)
+    const existingThumbnails = document.getElementById('image-thumbnails-grid');
+    let existingCount = 0;
+    if (existingThumbnails) {
+      existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([style*="opacity: 0.5"])').length;
+    }
+    
+    const totalImages = newImageCount + existingCount;
+    const MAX_IMAGES = 10;
+    
+    if (totalImages >= MAX_IMAGES) {
+      imageUploadZone.style.display = 'none';
+    } else {
+      imageUploadZone.style.display = 'flex';
+    }
+  }
+  
+  // Initialize on Turbo events
+  document.addEventListener('turbo:load', function() {
+    setupThumbnailRemoveButtons();
+    // Re-setup image upload listeners on Turbo navigation
+    if (typeof window.setupImageUploadListeners === 'function') {
+      // Remove the setup flag to allow re-initialization
+      const imageUploadZone = document.getElementById('image-upload-zone');
+      if (imageUploadZone) {
+        imageUploadZone.removeAttribute('data-upload-listeners-setup');
+      }
+      window.setupImageUploadListeners();
+    }
+    // Setup existing image drag handlers
+    if (typeof setupExistingImageHandlers === 'function') {
+      setTimeout(function() {
+        setupExistingImageHandlers();
+      }, 100);
+    }
+    // Update upload zone visibility on page load
+    setTimeout(updateUploadZoneVisibility, 100);
+  });
+  
+  document.addEventListener('turbo:render', function() {
+    setupThumbnailRemoveButtons();
+    // Re-setup image upload listeners on Turbo render
+    if (typeof window.setupImageUploadListeners === 'function') {
+      // Remove the setup flag to allow re-initialization
+      const imageUploadZone = document.getElementById('image-upload-zone');
+      if (imageUploadZone) {
+        imageUploadZone.removeAttribute('data-upload-listeners-setup');
+      }
+      window.setupImageUploadListeners();
+    }
+    // Setup existing image drag handlers
+    if (typeof setupExistingImageHandlers === 'function') {
+      setTimeout(function() {
+        setupExistingImageHandlers();
+      }, 100);
+    }
+    // Update upload zone visibility on render
+    setTimeout(updateUploadZoneVisibility, 100);
+  });
+  
+  
+  // Also call initializeOnTurbo for other functionality
+  document.addEventListener('turbo:load', initializeOnTurbo);
+  document.addEventListener('turbo:render', initializeOnTurbo);
+  
+  // Global function for setting up existing image handlers (can be called from anywhere)
+  window.setupExistingImageRemoveHandlers = function() {
+    const existingImageGrid = document.getElementById('existing-images-grid');
+    if (!existingImageGrid || existingImageGrid.hasAttribute('data-remove-handlers-setup')) {
+      return;
+    }
+    existingImageGrid.setAttribute('data-remove-handlers-setup', 'true');
+    
+    existingImageGrid.addEventListener('click', function(e) {
+      const removeBtn = e.target.closest('.remove-existing-image');
+      if (!removeBtn) return;
+      
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const imageItem = removeBtn.closest('.existing-image-item');
+      const imageId = removeBtn.getAttribute('data-image-id');
+      
+      if (!imageItem || !imageId) return;
+      
+      let container = document.getElementById('removed-images-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'removed-images-container';
+        container.style.display = 'none';
+        const formField = document.querySelector('.form-field');
+        if (formField && formField.parentElement) {
+          formField.parentElement.appendChild(container);
+        }
+      }
+      
+      if (!container.querySelector(`input[value="${imageId}"]`)) {
+        const removedInput = document.createElement('input');
+        removedInput.type = 'hidden';
+        removedInput.name = 'removed_image_ids[]';
+        removedInput.value = imageId;
+        container.appendChild(removedInput);
+        imageItem.style.display = 'none';
+        imageItem.setAttribute('data-removed', 'true');
+      }
+    });
+  };
+  
+  // Call immediately if DOM is ready
+  if (document.readyState !== 'loading') {
+    window.setupExistingImageRemoveHandlers();
+  }
+  
+  // Also listen for page load events
+  document.addEventListener('DOMContentLoaded', window.setupExistingImageRemoveHandlers);
+  
+  // Listen for Turbo events if using Turbo (Rails 7+)
+  if (typeof Turbo !== 'undefined') {
+    document.addEventListener('turbo:load', window.setupExistingImageRemoveHandlers);
+    document.addEventListener('turbo:render', window.setupExistingImageRemoveHandlers);
+  }
+  
+  // Final fallback - call after a delay
+  setTimeout(window.setupExistingImageRemoveHandlers, 200);
 </script>

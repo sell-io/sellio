@@ -45,6 +45,33 @@ class Listing < ApplicationRecord
   def transmission
     extra_fields&.dig('transmission')
   end
+  
+  # Get images in the correct order (as stored in extra_fields or by created_at)
+  def ordered_images
+    return images unless images.attached?
+    
+    # Check if we have a stored order
+    stored_order = extra_fields&.dig('image_order')
+    
+    if stored_order.present? && stored_order.is_a?(Array)
+      # Reorder based on stored order
+      attachments_by_id = images_attachments.index_by(&:id)
+      ordered_attachments = stored_order.map do |id|
+        attachments_by_id[id.to_i]
+      end.compact
+      
+      # Add any attachments not in the stored order (newly added)
+      existing_ids = stored_order.map(&:to_i)
+      remaining_attachments = images_attachments.reject { |a| existing_ids.include?(a.id) }
+      ordered_attachments.concat(remaining_attachments)
+      
+      # Return the blobs in order
+      ordered_attachments.map(&:blob)
+    else
+      # No stored order, use created_at order (first uploaded = first)
+      images_attachments.order(created_at: :asc).map(&:blob)
+    end
+  end
 end
 
 

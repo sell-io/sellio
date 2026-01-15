@@ -13,7 +13,7 @@
         <h3>About this listing:</h3>
         <div class="preview-content">
           <% if @listing.images.attached? %>
-            <%= image_tag @listing.images.first, class: "preview-image" %>
+            <%= image_tag @listing.ordered_images.first, class: "preview-image" %>
           <% end %>
           <div class="preview-details">
             <strong><%= @listing.title %></strong>

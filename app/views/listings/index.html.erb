@@ -4,9 +4,11 @@
   <div class="alert alert-success"><%= notice %></div>
 <% end %>
 
+<% is_browse_page = request.path == '/listings' %>
+
 <div class="homepage">
-  <!-- Hero Section with Search (only show on homepage) -->
-  <% unless params[:category_id].present? || params[:search].present? %>
+  <!-- Hero Section with Search (only show on homepage, not on browse page) -->
+  <% unless params[:category_id].present? || params[:search].present? || is_browse_page %>
   <section class="hero-section" style="background-image: url('/SellioHomePage.png'); background-size: cover; background-position: center; position: relative;">
     <div class="hero-overlay"></div>
     <div class="hero-content">
@@ -26,8 +28,8 @@
   </section>
   <% end %>
 
-  <!-- Car Filter Section (only show on homepage) -->
-  <% unless params[:category_id].present? || params[:search].present? %>
+  <!-- Car Filter Section (only show on homepage, not on browse page) -->
+  <% unless params[:category_id].present? || params[:search].present? || is_browse_page %>
   <% motors_category = Category.find_by("name ILIKE ?", "%motor%") %>
   <% if motors_category %>
   <section class="car-filter-section">
@@ -36,6 +38,7 @@
         <h2 class="car-filter-title">Looking for a new car?</h2>
         <%= form_with url: listings_path, method: :get, local: true, class: "car-filter-form" do |f| %>
           <%= f.hidden_field :category_id, value: motors_category.id %>
+          <%= f.hidden_field :subcategory, value: "Car" %>
           <div class="car-filter-grid">
             <div class="car-filter-field">
               <%= f.label :make, "All Makes" %>
@@ -101,15 +104,17 @@
             </div>
             <div class="car-filter-field">
               <%= f.label :min_price, "Min Price" %>
-              <%= f.number_field :min_price, placeholder: "Min Price", class: "car-filter-input", min: 0, step: 100 %>
+              <%= f.number_field :min_price, placeholder: "Min Price", class: "car-filter-input", min: 0, step: 100, value: params[:min_price] %>
             </div>
             <div class="car-filter-field">
               <%= f.label :max_price, "Max Price" %>
-              <%= f.number_field :max_price, placeholder: "Max Price", class: "car-filter-input", min: 0, step: 100 %>
+              <%= f.number_field :max_price, placeholder: "Max Price", class: "car-filter-input", min: 0, step: 100, value: params[:max_price] %>
             </div>
           </div>
-          <% car_count = Listing.where(category_id: motors_category.id).count %>
-          <%= f.submit "Search #{number_with_delimiter(car_count)} Cars", class: "car-filter-button" %>
+          <div class="form-actions">
+            <% car_count = Listing.where(category_id: motors_category.id).where("extra_fields->>'subcategory' = ?", "Car").count %>
+            <%= f.submit "Search #{number_with_delimiter(car_count)} Cars", class: "car-filter-button" %>
+          </div>
         <% end %>
       </div>
     </div>
@@ -164,66 +169,88 @@
       'Infiniti': ['Q30', 'Q50', 'Q60', 'QX30', 'QX50', 'QX60', 'QX80', 'Q70']
     };
 
-    document.addEventListener('DOMContentLoaded', function() {
+    // Function to update models based on selected make
+    function updateCarModels() {
+      const makeSelect = document.getElementById('car_make_select');
+      const modelSelect = document.getElementById('car_model_select');
+      
+      if (!makeSelect || !modelSelect) {
+        return;
+      }
+      
+      const selectedMake = makeSelect.value;
+      const previousMake = makeSelect.getAttribute('data-previous-make') || '';
+      
+      // Clear existing options
+      modelSelect.innerHTML = '<option value="">All Models</option>';
+      
+      // If make changed, clear the model selection
+      if (selectedMake !== previousMake) {
+        modelSelect.value = '';
+      }
+      
+      // Store current make for next comparison
+      makeSelect.setAttribute('data-previous-make', selectedMake);
+      
+      if (selectedMake && carModels[selectedMake]) {
+        // Add models for selected make
+        carModels[selectedMake].forEach(function(model) {
+          const option = document.createElement('option');
+          option.value = model;
+          option.textContent = model;
+          modelSelect.appendChild(option);
+        });
+      } else if (!selectedMake) {
+        // If no make selected, show all models
+        const allModels = [];
+        Object.values(carModels).forEach(function(models) {
+          models.forEach(function(model) {
+            if (!allModels.includes(model)) {
+              allModels.push(model);
+            }
+          });
+        });
+        allModels.sort().forEach(function(model) {
+          const option = document.createElement('option');
+          option.value = model;
+          option.textContent = model;
+          modelSelect.appendChild(option);
+        });
+      }
+    }
+
+    // Initialize when DOM is ready
+    function initCarModelFilter() {
       const makeSelect = document.getElementById('car_make_select');
       const modelSelect = document.getElementById('car_model_select');
       
       if (makeSelect && modelSelect) {
+        // Store initial make value
+        makeSelect.setAttribute('data-previous-make', makeSelect.value || '');
+        
         // Initialize models based on current make selection
-        updateModels();
+        updateCarModels();
         
         // Update models when make changes
         makeSelect.addEventListener('change', function() {
-          updateModels();
+          updateCarModels();
         });
       }
-      
-      function updateModels() {
-        const selectedMake = makeSelect.value;
-        const currentModel = modelSelect.value;
-        
-        // Clear existing options
-        modelSelect.innerHTML = '<option value="">All Models</option>';
-        
-        if (selectedMake && carModels[selectedMake]) {
-          // Add models for selected make
-          carModels[selectedMake].forEach(function(model) {
-            const option = document.createElement('option');
-            option.value = model;
-            option.textContent = model;
-            if (model === currentModel) {
-              option.selected = true;
-            }
-            modelSelect.appendChild(option);
-          });
-        } else {
-          // If no make selected or make not in list, show all models
-          const allModels = [];
-          Object.values(carModels).forEach(function(models) {
-            models.forEach(function(model) {
-              if (!allModels.includes(model)) {
-                allModels.push(model);
-              }
-            });
-          });
-          allModels.sort().forEach(function(model) {
-            const option = document.createElement('option');
-            option.value = model;
-            option.textContent = model;
-            if (model === currentModel) {
-              option.selected = true;
-            }
-            modelSelect.appendChild(option);
-          });
-        }
-      }
-    });
+    }
+
+    // Run when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initCarModelFilter);
+    } else {
+      // DOM already loaded
+      initCarModelFilter();
+    }
   </script>
   <% end %>
   <% end %>
 
-  <!-- Categories Section (only show on homepage, not on filtered listings page) -->
-  <% unless params[:category_id].present? || params[:search].present? %>
+  <!-- Categories Section (only show on homepage, not on filtered listings page or browse page) -->
+  <% unless params[:category_id].present? || params[:search].present? || is_browse_page %>
   <section class="categories-section">
     <div class="container">
       <div class="categories-row">
@@ -262,38 +289,130 @@
   </section>
   <% end %>
 
+  <!-- Category Filter Section (show when browsing all ads via Browse button, not on homepage or when filters are applied) -->
+  <% has_filters = params[:make].present? || params[:model].present? || params[:min_year].present? || params[:max_year].present? || params[:min_price].present? || params[:max_price].present? || params[:subcategory].present? %>
+  <% if params[:category_id].blank? && params[:search].blank? && is_browse_page && !has_filters %>
+  <section class="category-filter-section">
+    <div class="container">
+      <div class="category-filter-box">
+        <h2 class="category-filter-title">Filter by Category</h2>
+        <%= form_with url: listings_path, method: :get, local: true, class: "category-filter-form" do |f| %>
+          <div class="category-filter-grid">
+            <label class="category-filter-option <%= 'active' if params[:category_id].blank? %>">
+              <%= f.radio_button :category_id, "", checked: params[:category_id].blank?, onchange: "this.form.submit();" %>
+              <span class="category-filter-label">All Categories</span>
+              <span class="category-count">(<%= Listing.count %>)</span>
+            </label>
+            <% @categories.each do |category| %>
+              <label class="category-filter-option <%= 'active' if params[:category_id].to_i == category.id %>">
+                <%= f.radio_button :category_id, category.id, checked: (params[:category_id].to_i == category.id), onchange: "this.form.submit();" %>
+                <span class="category-filter-label"><%= category.name %></span>
+                <span class="category-count">(<%= category.listings.count %>)</span>
+              </label>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </section>
+  <% end %>
+
+  <!-- Vehicle Type Filter Section (show when Motors category is selected, but not when car filters are applied from homepage) -->
+  <% motors_category = Category.find_by("name ILIKE ?", "%motor%") || Category.find_by("name ILIKE ?", "%car%") %>
+  <% if motors_category && (@selected_category&.id == motors_category.id || params[:category_id].to_i == motors_category.id) && !has_filters %>
+  <section class="vehicle-type-filter-section">
+    <div class="container">
+      <div class="vehicle-type-filter-box">
+        <h2 class="vehicle-type-filter-title">Filter by Vehicle Type</h2>
+        <%= form_with url: listings_path, method: :get, local: true, class: "vehicle-type-filter-form" do |f| %>
+          <%= f.hidden_field :category_id, value: motors_category.id %>
+          <div class="vehicle-type-filter-grid">
+            <% vehicle_types = [
+              ['Car', '🚗'],
+              ['Van', '🚐'],
+              ['Truck', '🚚'],
+              ['Tractor', '🚜'],
+              ['Motorcycle', '🏍️'],
+              ['Scooter', '🛵'],
+              ['Quad', '🏎️'],
+              ['Caravan', '🚐'],
+              ['Trailer', '🚛'],
+              ['Boat', '⛵'],
+              ['Other', '🚙']
+            ] %>
+            <% vehicle_types.each do |type, icon| %>
+              <% count = Listing.where(category_id: motors_category.id).where("extra_fields->>'subcategory' = ?", type).count %>
+              <label class="vehicle-type-option <%= 'active' if params[:subcategory] == type %>">
+                <%= f.radio_button :subcategory, type, checked: (params[:subcategory] == type), onchange: "this.form.submit();" %>
+                <div class="vehicle-type-content">
+                  <span class="vehicle-type-icon"><%= icon %></span>
+                  <span class="vehicle-type-label"><%= type %></span>
+                  <span class="vehicle-type-count">(<%= count %>)</span>
+                </div>
+              </label>
+            <% end %>
+          </div>
+          <div class="form-actions">
+            <%= link_to "Show All", listings_path(category_id: motors_category.id), class: "btn-clear-vehicle-filters" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </section>
+  <% end %>
+
   <!-- Featured Listings Section -->
   <section class="listings-section">
     <div class="container">
       <div class="homepage-main-content">
         <div class="featured-listings-column">
           <div class="section-header">
-            <% if @selected_category %>
+            <% if has_filters && params[:subcategory] == "Car" %>
+              <h2 class="section-title">Car Search Results</h2>
+            <% elsif @selected_category %>
               <h2 class="section-title"><%= @selected_category.name %> Listings</h2>
             <% elsif params[:category_id].present? || params[:search].present? %>
               <h2 class="section-title">Search Results</h2>
+            <% elsif is_browse_page %>
+              <h2 class="section-title">All Listings</h2>
             <% else %>
               <h2 class="section-title">Featured Listings</h2>
             <% end %>
-            <%= link_to "View All >", listings_path, class: "view-all-link" %>
+            <% unless is_browse_page || has_filters %>
+              <%= link_to "View All >", listings_path, class: "view-all-link" %>
+            <% end %>
           </div>
       
       <% if @listings.any? %>
-        <% if @selected_category || params[:category_id].present? || params[:search].present? %>
+        <% if @selected_category || params[:category_id].present? || params[:search].present? || has_filters %>
           <p class="filter-info" style="margin-bottom: 1.5rem; color: #666; font-size: 0.9375rem;">
             Showing <%= @listings.count %> <%= @listings.count == 1 ? 'listing' : 'listings' %>
-            <% if @selected_category %>
+            <% if has_filters && params[:subcategory] == "Car" %>
+              <% filter_parts = [] %>
+              <% filter_parts << params[:make] if params[:make].present? %>
+              <% filter_parts << params[:model] if params[:model].present? %>
+              <% if filter_parts.any? %>
+                matching <%= filter_parts.join(' ') %>
+              <% else %>
+                matching your search criteria
+              <% end %>
+            <% elsif @selected_category %>
               in <%= @selected_category.name %>
             <% end %>
           </p>
         <% end %>
         <div class="listings-grid">
-          <% (@selected_category || params[:category_id].present? || params[:search].present? ? @listings : @listings.limit(12)).each do |listing| %>
+          <% listings_to_show = if @selected_category || params[:category_id].present? || params[:search].present? || is_browse_page
+                                   @listings
+                                 else
+                                   @listings.limit(12)
+                                 end %>
+          <% listings_to_show.each do |listing| %>
             <div class="listing-card">
               <%= link_to listing, class: "listing-card-link" do %>
                 <div class="listing-image">
                   <% if listing.images.attached? %>
-                    <%= image_tag listing.images.first, class: "listing-card-image" %>
+                    <%= image_tag listing.ordered_images.first, class: "listing-card-image" %>
                   <% else %>
                     <div class="image-placeholder">
                       <span>📷</span>
@@ -359,8 +478,8 @@
       <% end %>
         </div>
         
-        <!-- Sell Your Stuff Today Box (only show on homepage) -->
-        <% unless params[:category_id].present? || params[:search].present? %>
+        <!-- Sell Your Stuff Today Box (only show on homepage, not on browse page) -->
+        <% unless params[:category_id].present? || params[:search].present? || is_browse_page %>
         <div class="sell-box-column">
           <div class="sell-box">
             <h2 class="sell-box-title">Sell Your Stuff Today</h2>
@@ -387,8 +506,8 @@
     </div>
   </section>
 
-  <!-- CTA Section (only show on homepage) -->
-  <% unless params[:category_id].present? || params[:search].present? %>
+  <!-- CTA Section (only show on homepage, not on browse page) -->
+  <% unless params[:category_id].present? || params[:search].present? || is_browse_page %>
   <section class="cta-section">
     <div class="container">
       <h2>Ready to sell something?</h2>

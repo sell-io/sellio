@@ -14,7 +14,7 @@
           <div class="listing-card">
             <div class="listing-image">
               <% if listing.images.attached? %>
-                <%= image_tag listing.images.first, class: "listing-card-image" %>
+                <%= image_tag listing.ordered_images.first, class: "listing-card-image" %>
               <% else %>
                 <div class="image-placeholder">
                   <span>📷</span>

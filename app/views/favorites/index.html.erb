@@ -14,7 +14,7 @@
           <%= link_to listing_path(listing), class: "listing-card-link" do %>
             <div class="listing-image-container">
               <% if listing.images.attached? %>
-                <%= image_tag listing.images.first, class: "listing-image", alt: listing.title %>
+                <%= image_tag listing.ordered_images.first, class: "listing-image", alt: listing.title %>
               <% else %>
                 <div class="image-placeholder">
                   <span>📷</span>

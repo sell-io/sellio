@@ -2,7 +2,9 @@ Rails.application.routes.draw do
   devise_for :users, controllers: { registrations: 'registrations' }
   resources :tasks
   resources :messages, only: [:index, :show, :new, :create]
-  resources :users, only: [:show]
+  resources :users, only: [:show] do
+    resources :reviews, only: [:create]
+  end
   root "listings#index"
   
   # User account pages
