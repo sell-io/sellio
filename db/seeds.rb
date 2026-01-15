@@ -1,22 +1,104 @@
-ActiveStorage::Blob.create!([
-  {byte_size: 179008, checksum: "OeObwisWsP3cJqnXfm82DA==", content_type: "image/jpeg", filename: "Mercedes.jpg", key: "nbcjadgtz4gcbdn9frb5h5wedcuu", metadata: {"identified" => true, "analyzed" => true}, service_name: "local"},
-  {byte_size: 323400, checksum: "x3JzY85MJ7ym/fSs6hyp0A==", content_type: "image/webp", filename: "Polo.webp", key: "pb4ch6w3qpt0e9jqw0626y9rnr95", metadata: {"identified" => true, "analyzed" => true}, service_name: "local"}
-])
-User.create!([
-  {email: "adrianasecas12@gmail.com", encrypted_password: "$2a$12$Qgx5jypB6UgdUmJTdcjws.5UDjj8E3tw6jz88jAO/vAThvmVbaYWm", location: "Limerick,Ireland", name: "Adriana Secas", phone: "+353892126853", remember_created_at: nil, reset_password_sent_at: nil, reset_password_token: nil},
-  {email: "alexsidorov05@gmail.com", encrypted_password: "$2a$12$AuzqtaAAC4yWqgrCNhEOI.jyj0dw7zGATvoz2pgm0oirmj305mRQi", location: "Limerick,Ireland", name: "Alex Sidorov", phone: "+353852406366", remember_created_at: nil, reset_password_sent_at: nil, reset_password_token: nil}
-])
-Category.create!([
-  {description: "Cars, Vans, Motorcycles", icon: "🚗", name: "Motors", slug: nil},
-  {description: "Houses, Apartments, Land", icon: "🏠", name: "Property", slug: nil},
-  {description: "Full-time, Part-time, Contract", icon: "💼", name: "Jobs", slug: nil},
-  {description: "Phones, Computers, TVs", icon: "📱", name: "Electronics", slug: nil},
-  {description: "Home & Garden", icon: "🪑", name: "Furniture", slug: nil},
-  {description: "Clothing & Accessories", icon: "👕", name: "Fashion", slug: nil},
-  {description: "Sports, Games, Books", icon: "🎮", name: "Hobbies", slug: nil},
-  {description: "Dogs, Cats, Birds", icon: "🐾", name: "Pets", slug: nil},
-  {description: "Babysitting, Car Valeting, Cleaning, etc.", icon: "🔧", name: "Services", slug: nil}
-])
-Listing.create!([
-  {category_id: 1, city: "Limerick", condition: nil, contact_email: nil, contact_phone: nil, description: "2021 Volkswagen Polo grey ", expires_at: nil, extra_fields: {"make" => "Volkswagen", "year" => "2021", "mileage" => "50000", "fuel_type" => "Petrol", "engine_size" => "1", "transmission" => "Manual", "previous_owners" => "0"}, featured: nil, price: "20000.0", status: nil, title: "Volkswagen Polo", user_id: 2, views: nil}
-])
+# Create ActiveStorage blobs if they don't exist
+ActiveStorage::Blob.find_or_create_by(key: "nbcjadgtz4gcbdn9frb5h5wedcuu") do |blob|
+  blob.byte_size = 179008
+  blob.checksum = "OeObwisWsP3cJqnXfm82DA=="
+  blob.content_type = "image/jpeg"
+  blob.filename = "Mercedes.jpg"
+  blob.metadata = {"identified" => true, "analyzed" => true}
+  blob.service_name = "local"
+end
+
+ActiveStorage::Blob.find_or_create_by(key: "pb4ch6w3qpt0e9jqw0626y9rnr95") do |blob|
+  blob.byte_size = 323400
+  blob.checksum = "x3JzY85MJ7ym/fSs6hyp0A=="
+  blob.content_type = "image/webp"
+  blob.filename = "Polo.webp"
+  blob.metadata = {"identified" => true, "analyzed" => true}
+  blob.service_name = "local"
+end
+
+# Create users if they don't exist
+User.find_or_create_by(email: "adrianasecas12@gmail.com") do |user|
+  user.password = "password123"
+  user.password_confirmation = "password123"
+  user.location = "Limerick,Ireland"
+  user.name = "Adriana Secas"
+  user.phone = "+353892126853"
+end
+
+User.find_or_create_by(email: "alexsidorov05@gmail.com") do |user|
+  user.password = "password123"
+  user.password_confirmation = "password123"
+  user.location = "Limerick,Ireland"
+  user.name = "Alex Sidorov"
+  user.phone = "+353852406366"
+end
+
+# Create categories if they don't exist
+Category.find_or_create_by(name: "Motors") do |cat|
+  cat.description = "Cars, Vans, Motorcycles"
+  cat.icon = "🚗"
+  cat.slug = nil
+end
+
+Category.find_or_create_by(name: "Property") do |cat|
+  cat.description = "Houses, Apartments, Land"
+  cat.icon = "🏠"
+  cat.slug = nil
+end
+
+Category.find_or_create_by(name: "Jobs") do |cat|
+  cat.description = "Full-time, Part-time, Contract"
+  cat.icon = "💼"
+  cat.slug = nil
+end
+
+Category.find_or_create_by(name: "Electronics") do |cat|
+  cat.description = "Phones, Computers, TVs"
+  cat.icon = "📱"
+  cat.slug = nil
+end
+
+Category.find_or_create_by(name: "Furniture") do |cat|
+  cat.description = "Home & Garden"
+  cat.icon = "🪑"
+  cat.slug = nil
+end
+
+Category.find_or_create_by(name: "Fashion") do |cat|
+  cat.description = "Clothing & Accessories"
+  cat.icon = "👕"
+  cat.slug = nil
+end
+
+Category.find_or_create_by(name: "Hobbies") do |cat|
+  cat.description = "Sports, Games, Books"
+  cat.icon = "🎮"
+  cat.slug = nil
+end
+
+Category.find_or_create_by(name: "Pets") do |cat|
+  cat.description = "Dogs, Cats, Birds"
+  cat.icon = "🐾"
+  cat.slug = nil
+end
+
+Category.find_or_create_by(name: "Services") do |cat|
+  cat.description = "Babysitting, Car Valeting, Cleaning, etc."
+  cat.icon = "🔧"
+  cat.slug = nil
+end
+
+# Create listing if it doesn't exist
+motors_category = Category.find_by(name: "Motors")
+alex_user = User.find_by(email: "alexsidorov05@gmail.com")
+
+if motors_category && alex_user
+  Listing.find_or_create_by(title: "Volkswagen Polo", user_id: alex_user.id) do |listing|
+    listing.category_id = motors_category.id
+    listing.city = "Limerick"
+    listing.description = "2021 Volkswagen Polo grey "
+    listing.price = 20000.0
+    listing.extra_fields = {"make" => "Volkswagen", "year" => "2021", "mileage" => "50000", "fuel_type" => "Petrol", "engine_size" => "1", "transmission" => "Manual", "previous_owners" => "0"}
+  end
+end

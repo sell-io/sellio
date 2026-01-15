@@ -6,287 +6,567 @@
 
 <div class="listing-detail">
   <div class="listing-detail-container">
-    <!-- Images Section -->
-    <div class="listing-images-section">
-      <% if @listing.images.attached? %>
-        <div class="main-image">
-          <%= image_tag @listing.images.first, class: "listing-main-image" %>
-        </div>
-        <% if @listing.images.count > 1 %>
-          <div class="thumbnail-images">
-            <% @listing.images.each do |image| %>
-              <%= image_tag image, class: "thumbnail-image" %>
-            <% end %>
-          </div>
-        <% end %>
-      <% else %>
-        <div class="image-placeholder-large">
-          <span>📷</span>
-          <p>No images available</p>
-        </div>
-      <% end %>
-    </div>
-
-    <!-- Details Section -->
-    <div class="listing-details-section">
-      <div class="listing-header">
-        <h1 class="listing-detail-title"><%= @listing.title %></h1>
-        <div class="listing-meta">
-          <% if @listing.category %>
-            <span class="category-badge"><%= @listing.category.name %></span>
-          <% end %>
-          <span class="listing-date">Posted <%= time_ago_in_words(@listing.created_at) %> ago</span>
-        </div>
-      </div>
-
-      <div class="listing-price-section">
-        <span class="listing-price-large">
-          <% if @listing.price %>
-            €<%= number_with_delimiter(@listing.price.to_i) %>
-          <% else %>
-            Price on request
-          <% end %>
-        </span>
-      </div>
-
-      <div class="listing-info">
-        <div class="info-item">
-          <strong>📍 Location:</strong>
-          <span><%= @listing.city || "Not specified" %></span>
-        </div>
-        <% if @listing.user %>
-          <div class="info-item">
-            <strong>👤 Seller:</strong>
-            <span><%= link_to (@listing.user.name || @listing.user.email), user_path(@listing.user), class: "seller-link" %></span>
-          </div>
-        <% end %>
-      </div>
-
-      <!-- Category-Specific Details (Motors) -->
-      <% if @listing.category&.name == "Motors" && @listing.extra_fields.present? %>
-        <div class="category-details">
-          <h2>Vehicle Details</h2>
-          <div class="details-grid">
-            <% if @listing.make.present? || @listing.model.present? %>
-              <div class="detail-item">
-                <strong>Make & Model:</strong>
-                <span><%= [@listing.make, @listing.model].compact.join(' ') %></span>
-              </div>
-            <% end %>
-            <% if @listing.year.present? %>
-              <div class="detail-item">
-                <strong>Year:</strong>
-                <span><%= @listing.year %></span>
-              </div>
-            <% end %>
-            <% if @listing.mileage.present? %>
-              <div class="detail-item">
-                <strong>Mileage:</strong>
-                <span><%= number_with_delimiter(@listing.mileage) %> km</span>
-              </div>
-            <% end %>
-            <% if @listing.engine_size.present? %>
-              <div class="detail-item">
-                <strong>Engine Size:</strong>
-                <span><%= @listing.engine_size %></span>
-              </div>
-            <% end %>
-            <% if @listing.fuel_type.present? %>
-              <div class="detail-item">
-                <strong>Fuel Type:</strong>
-                <span><%= @listing.fuel_type %></span>
-              </div>
-            <% end %>
-            <% if @listing.transmission.present? %>
-              <div class="detail-item">
-                <strong>Transmission:</strong>
-                <span><%= @listing.transmission %></span>
-              </div>
-            <% end %>
-            <% if @listing.previous_owners.present? %>
-              <div class="detail-item">
-                <strong>Previous Owners:</strong>
-                <span><%= @listing.previous_owners %></span>
-              </div>
-            <% end %>
-          </div>
-        </div>
-        
-        <!-- Performance Section -->
-        <% if @listing.extra_fields&.dig('performance').present? %>
-          <div class="category-details">
-            <h2>Performance</h2>
-            <div class="details-grid">
-              <% performance = @listing.extra_fields['performance'] %>
-              <% if performance['power'].present? %>
-                <div class="detail-item">
-                  <strong>Power:</strong>
-                  <span><%= performance['power'] %></span>
-                </div>
+    <!-- Main Content: Images + Details on Left, Seller Info on Right -->
+    <div class="listing-main-content">
+      <!-- Images and Details on the Left -->
+      <div class="listing-images-section">
+        <% ordered_images = @listing.ordered_images %>
+        <% if ordered_images.any? %>
+          <div class="image-gallery-container">
+            <!-- Small thumbnails on the left side -->
+            <div class="thumbnail-images-sidebar">
+              <% max_thumbnails = 5 %>
+              <% ordered_images.first(max_thumbnails).each_with_index do |image, index| %>
+                <%= image_tag image, class: "thumbnail-image #{'thumbnail-active' if index == 0}", 
+                              data: { image_index: index, image_url: url_for(image) } %>
               <% end %>
-              <% if performance['torque'].present? %>
-                <div class="detail-item">
-                  <strong>Torque:</strong>
-                  <span><%= performance['torque'] %></span>
-                </div>
-              <% end %>
-              <% if performance['acceleration'].present? %>
-                <div class="detail-item">
-                  <strong>Acceleration (0-100 km/h):</strong>
-                  <span><%= performance['acceleration'] %></span>
-                </div>
-              <% end %>
-              <% if performance['top_speed'].present? %>
-                <div class="detail-item">
-                  <strong>Top Speed:</strong>
-                  <span><%= performance['top_speed'] %></span>
-                </div>
-              <% end %>
-              <% if performance['co2_emissions'].present? %>
-                <div class="detail-item">
-                  <strong>CO₂ Emissions:</strong>
-                  <span><%= performance['co2_emissions'] %></span>
+              <% if ordered_images.count > max_thumbnails %>
+                <div class="view-all-photos-thumbnail" id="view-all-photos-btn">
+                  <div class="view-all-overlay">
+                    <span class="view-all-text">+<%= ordered_images.count - max_thumbnails %></span>
+                    <span class="view-all-label">View all</span>
+                  </div>
                 </div>
               <% end %>
             </div>
-          </div>
-        <% end %>
-        
-        <!-- Dimensions Section -->
-        <% if @listing.extra_fields&.dig('dimensions').present? %>
-          <div class="category-details">
-            <h2>Dimensions</h2>
-            <div class="details-grid">
-              <% dimensions = @listing.extra_fields['dimensions'] %>
-              <% if dimensions['length'].present? %>
-                <div class="detail-item">
-                  <strong>Length:</strong>
-                  <span><%= dimensions['length'] %></span>
-                </div>
-              <% end %>
-              <% if dimensions['width'].present? %>
-                <div class="detail-item">
-                  <strong>Width:</strong>
-                  <span><%= dimensions['width'] %></span>
-                </div>
-              <% end %>
-              <% if dimensions['height'].present? %>
-                <div class="detail-item">
-                  <strong>Height:</strong>
-                  <span><%= dimensions['height'] %></span>
-                </div>
-              <% end %>
-              <% if dimensions['wheelbase'].present? %>
-                <div class="detail-item">
-                  <strong>Wheelbase:</strong>
-                  <span><%= dimensions['wheelbase'] %></span>
-                </div>
-              <% end %>
-              <% if dimensions['weight'].present? %>
-                <div class="detail-item">
-                  <strong>Weight:</strong>
-                  <span><%= dimensions['weight'] %></span>
-                </div>
-              <% end %>
-              <% if dimensions['boot_capacity'].present? %>
-                <div class="detail-item">
-                  <strong>Boot Capacity:</strong>
-                  <span><%= dimensions['boot_capacity'] %></span>
-                </div>
+            <div class="main-image" id="main-image-container">
+              <%= image_tag ordered_images.first, class: "listing-main-image", id: "main-listing-image", data: { image_url: url_for(ordered_images.first) } %>
+            </div>
+            
+            <!-- Hidden images for JavaScript to access all images -->
+            <div style="display: none;" id="all-images-data">
+              <% ordered_images.each_with_index do |image, index| %>
+                <%= image_tag image, class: "hidden-gallery-image", 
+                              data: { image_index: index, image_url: url_for(image) } %>
               <% end %>
             </div>
           </div>
-        <% end %>
-        
-        <!-- Features Section -->
-        <% if @listing.extra_fields&.dig('features').present? %>
-          <div class="category-details">
-            <h2>Features</h2>
-            <div class="features-list">
-              <% features = @listing.extra_fields['features'] %>
-              <% if features.is_a?(Array) %>
-                <% features.each do |feature| %>
-                  <span class="feature-badge"><%= feature %></span>
+          
+          <!-- Title, Price, and Description below images -->
+          <div class="listing-details-below-images">
+            <!-- Title -->
+            <div class="listing-header">
+              <h1 class="listing-detail-title"><%= @listing.title %></h1>
+              <div class="listing-meta">
+                <% subcategory = @listing.extra_fields&.dig('subcategory') %>
+                <% if subcategory.present? %>
+                  <span class="subcategory-badge"><%= subcategory %></span>
+                <% elsif @listing.category %>
+                  <span class="category-badge"><%= @listing.category.name %></span>
                 <% end %>
-              <% end %>
+                <span class="listing-date">Posted <%= time_ago_in_words(@listing.created_at) %> ago</span>
+              </div>
             </div>
-          </div>
-        <% end %>
-        
-        <!-- Running Costs Section -->
-        <% if @listing.extra_fields&.dig('running_costs').present? %>
-          <div class="category-details">
-            <h2>Running Costs</h2>
-            <div class="details-grid">
-              <% running_costs = @listing.extra_fields['running_costs'] %>
-              <% if running_costs['road_tax'].present? %>
-                <div class="detail-item">
-                  <strong>Road Tax:</strong>
-                  <span><%= running_costs['road_tax'] %></span>
-                </div>
-              <% end %>
-              <% if running_costs['insurance_group'].present? %>
-                <div class="detail-item">
-                  <strong>Insurance Group:</strong>
-                  <span><%= running_costs['insurance_group'] %></span>
-                </div>
-              <% end %>
-              <% if running_costs['fuel_consumption_combined'].present? %>
-                <div class="detail-item">
-                  <strong>Fuel Consumption (Combined):</strong>
-                  <span><%= running_costs['fuel_consumption_combined'] %></span>
-                </div>
-              <% end %>
-              <% if running_costs['fuel_consumption_urban'].present? %>
-                <div class="detail-item">
-                  <strong>Fuel Consumption (Urban):</strong>
-                  <span><%= running_costs['fuel_consumption_urban'] %></span>
-                </div>
-              <% end %>
-              <% if running_costs['fuel_consumption_extra_urban'].present? %>
-                <div class="detail-item">
-                  <strong>Fuel Consumption (Extra Urban):</strong>
-                  <span><%= running_costs['fuel_consumption_extra_urban'] %></span>
+
+            <div class="listing-price-section">
+              <span class="listing-price-large">
+                <% if @listing.price %>
+                  €<%= number_with_delimiter(@listing.price.to_i) %>
+                <% else %>
+                  Price on request
+                <% end %>
+              </span>
+            </div>
+            
+            <!-- Location and Seller Info -->
+            <div class="listing-info">
+              <div class="info-item">
+                <strong>📍 Location:</strong>
+                <span><%= @listing.city || "Not specified" %></span>
+              </div>
+              <% if @listing.user %>
+                <div class="info-item">
+                  <strong>👤 Seller:</strong>
+                  <span><%= link_to (@listing.user.name || @listing.user.email), user_path(@listing.user), class: "seller-link" %></span>
                 </div>
               <% end %>
             </div>
-          </div>
-        <% end %>
-      <% end %>
 
-      <div class="listing-description">
-        <h2>Description</h2>
-        <p><%= simple_format(@listing.description) %></p>
-      </div>
-
-      <div class="listing-actions">
-        <% if user_signed_in? %>
-          <% if current_user == @listing.user %>
-            <%= link_to "Edit Listing", edit_listing_path(@listing), class: "btn-edit" %>
-            <%= button_to "Delete Listing", @listing, method: :delete, 
-                          data: { confirm: "Are you sure?" }, 
-                          class: "btn-delete" %>
-          <% else %>
-            <% is_favorited = current_user.favorites.exists?(listing_id: @listing.id) %>
-            <% favorite = current_user.favorites.find_by(listing_id: @listing.id) if is_favorited %>
-            <button class="btn-favorite <%= 'btn-favorite-active' if is_favorited %>" 
-                    data-listing-id="<%= @listing.id %>"
-                    data-favorited="<%= is_favorited %>"
-                    data-favorite-id="<%= favorite&.id %>">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="<%= is_favorited ? 'currentColor' : 'none' %>" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
-              <%= is_favorited ? 'Saved' : 'Save Ad' %>
-            </button>
-            <% if @listing.user %>
-              <%= link_to "Contact Seller", new_message_path(listing_id: @listing.id, recipient_id: @listing.user.id), class: "btn-contact" %>
+            <!-- Category-Specific Details (Motors) -->
+            <% if @listing.category&.name == "Motors" && @listing.extra_fields.present? %>
+              <div class="category-details">
+                <h2>Vehicle Details</h2>
+                <div class="details-grid">
+                  <% if @listing.make.present? || @listing.model.present? %>
+                    <div class="detail-item">
+                      <strong>Make & Model:</strong>
+                      <span><%= [@listing.make, @listing.model].compact.join(' ') %></span>
+                    </div>
+                  <% end %>
+                  <% if @listing.year.present? %>
+                    <div class="detail-item">
+                      <strong>Year:</strong>
+                      <span><%= @listing.year %></span>
+                    </div>
+                  <% end %>
+                  <% if @listing.mileage.present? %>
+                    <div class="detail-item">
+                      <strong>Mileage:</strong>
+                      <span><%= number_with_delimiter(@listing.mileage) %> km</span>
+                    </div>
+                  <% end %>
+                  <% if @listing.engine_size.present? %>
+                    <div class="detail-item">
+                      <strong>Engine Size:</strong>
+                      <span><%= @listing.engine_size %></span>
+                    </div>
+                  <% end %>
+                  <% if @listing.fuel_type.present? %>
+                    <div class="detail-item">
+                      <strong>Fuel Type:</strong>
+                      <span><%= @listing.fuel_type %></span>
+                    </div>
+                  <% end %>
+                  <% if @listing.transmission.present? %>
+                    <div class="detail-item">
+                      <strong>Transmission:</strong>
+                      <span><%= @listing.transmission %></span>
+                    </div>
+                  <% end %>
+                  <% if @listing.previous_owners.present? %>
+                    <div class="detail-item">
+                      <strong>Previous Owners:</strong>
+                      <span><%= @listing.previous_owners %></span>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
             <% end %>
-          <% end %>
-        <% else %>
-          <%= link_to "Login to Contact Seller", new_user_session_path, class: "btn-contact" %>
-        <% end %>
-        <%= link_to "Back to Listings", listings_path, class: "btn-back" %>
+            
+                <!-- Description -->
+                <% if @listing.description.present? %>
+                  <div class="listing-description-section">
+                    <h2>Description</h2>
+                    <div class="listing-description">
+                      <%= simple_format(@listing.description) %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+              
+              <!-- Back to Listings Button -->
+              <div class="listing-actions">
+                <% if user_signed_in? && current_user != @listing.user %>
+                  <% is_favorited = current_user.favorites.exists?(listing_id: @listing.id) %>
+                  <% favorite = current_user.favorites.find_by(listing_id: @listing.id) if is_favorited %>
+                  <button class="btn-favorite <%= 'btn-favorite-active' if is_favorited %>" 
+                          data-listing-id="<%= @listing.id %>"
+                          data-favorited="<%= is_favorited %>"
+                          data-favorite-id="<%= favorite&.id %>">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="<%= is_favorited ? 'currentColor' : 'none' %>" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                    <%= is_favorited ? 'Saved' : 'Save Ad' %>
+                  </button>
+                <% end %>
+                <%= link_to "Back to Listings", listings_path, class: "btn-back" %>
+              </div>
+            <% else %>
+              <div class="image-placeholder-large">
+                <span>📷</span>
+                <p>No images available</p>
+              </div>
+              <!-- Back to Listings Button for no images case -->
+              <div class="listing-actions">
+                <%= link_to "Back to Listings", listings_path, class: "btn-back" %>
+              </div>
+            <% end %>
       </div>
+      
+      <!-- Seller Info Card on the Right -->
+      <% if @listing.user %>
+        <div class="seller-info-card">
+          <div class="seller-info-header">
+            <div class="seller-avatar">
+              <% if @listing.user.avatar.attached? %>
+                <%= image_tag @listing.user.avatar, class: "seller-avatar-image" %>
+              <% else %>
+                <div class="seller-avatar-placeholder">
+                  <%= (@listing.user.name || @listing.user.email).first.upcase %>
+                </div>
+              <% end %>
+            </div>
+            <div class="seller-info-text">
+              <div class="seller-name-row">
+                <h3 class="seller-name"><%= @listing.user.name || @listing.user.email %></h3>
+                <span class="seller-verified">✓</span>
+              </div>
+              <p class="seller-type-location">
+                <span>Private Seller</span>
+                <% if @listing.city.present? %>
+                  <span class="separator">•</span>
+                  <span><%= @listing.city %></span>
+                <% end %>
+              </p>
+              <p class="seller-verification">
+                <span class="verification-check">✓</span>
+                Partial verification: Email, Phone
+              </p>
+            </div>
+          </div>
+          
+          <div class="seller-stats">
+            <div class="seller-stat-item">
+              <div class="stat-icon">★</div>
+              <div class="stat-content">
+                <div class="stat-value">No rating</div>
+              </div>
+            </div>
+            <div class="seller-stat-item">
+              <div class="stat-content">
+                <div class="stat-value">0</div>
+                <div class="stat-label">No reviews yet</div>
+              </div>
+            </div>
+            <div class="seller-stat-item">
+              <div class="stat-content">
+                <div class="stat-value"><%= time_ago_in_words(@listing.user.created_at) %></div>
+                <div class="stat-label">on Sellio</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="seller-actions">
+            <% if user_signed_in? %>
+              <% if current_user == @listing.user %>
+                <%= link_to "Edit Listing", edit_listing_path(@listing), class: "btn-seller-action btn-edit" %>
+                <%= button_to "Delete Listing", @listing, method: :delete, 
+                              data: { confirm: "Are you sure?" }, 
+                              class: "btn-seller-action btn-delete" %>
+              <% else %>
+                <%= link_to "Send Message", new_message_path(listing_id: @listing.id, recipient_id: @listing.user.id), class: "btn-seller-primary" %>
+              <% end %>
+            <% else %>
+              <%= link_to "Login to Contact Seller", new_user_session_path, class: "btn-seller-primary" %>
+            <% end %>
+          </div>
+          
+          <!-- Phone Number Displayed Directly -->
+          <% if @listing.user.phone.present? %>
+            <div class="seller-phone-display">
+              <strong>Phone:</strong>
+              <a href="tel:<%= @listing.user.phone %>" class="phone-number-link"><%= @listing.user.phone %></a>
+            </div>
+          <% end %>
+          
+          <!-- View all ads link -->
+          <div class="seller-view-ads">
+            <%= link_to "View all ads", user_path(@listing.user), class: "view-ads-link" %>
+          </div>
+        </div>
+      <% end %>
     </div>
+
+    <!-- Image Modal/Lightbox -->
+    <div class="image-modal" id="image-modal" style="display: none;">
+      <span class="image-modal-close" id="modal-close">&times;</span>
+      <img class="image-modal-content" id="modal-image">
+      <% ordered_images = @listing.ordered_images %>
+      <% if ordered_images.any? && ordered_images.count > 1 %>
+        <button class="image-modal-nav image-modal-prev" id="modal-prev-btn">‹</button>
+        <button class="image-modal-nav image-modal-next" id="modal-next-btn">›</button>
+      <% end %>
+    </div>
+
   </div>
 </div>
+
+<script>
+  // Image gallery functionality with swipe and modal
+  // Use both DOMContentLoaded and turbo:load for compatibility
+  (function() {
+    let galleryInitialized = false;
+    let currentImageIndex = 0;
+    let imageUrls = [];
+    let thumbnailImages = [];
+    let mainImage = null;
+    let mainImageContainer = null;
+    let modal = null;
+    let modalImage = null;
+    
+    function initImageGallery() {
+      // Get elements fresh each time
+      thumbnailImages = Array.from(document.querySelectorAll('.thumbnail-image'));
+      mainImage = document.getElementById('main-listing-image');
+      mainImageContainer = document.getElementById('main-image-container');
+      modal = document.getElementById('image-modal');
+      modalImage = document.getElementById('modal-image');
+      const modalClose = document.getElementById('modal-close');
+      const modalPrevBtn = document.getElementById('modal-prev-btn');
+      const modalNextBtn = document.getElementById('modal-next-btn');
+      const viewAllPhotosBtn = document.getElementById('view-all-photos-btn');
+      
+      if (!mainImage) {
+        galleryInitialized = false;
+        return;
+      }
+      
+      // Reset state
+      currentImageIndex = 0;
+      imageUrls = [];
+    
+      // Store ALL image URLs from hidden images container
+      const allImagesContainer = document.getElementById('all-images-data');
+      if (allImagesContainer) {
+        const allHiddenImages = Array.from(allImagesContainer.querySelectorAll('.hidden-gallery-image'));
+        allHiddenImages.forEach(function(img) {
+          const fullSizeUrl = img.getAttribute('data-image-url') || img.src;
+          if (fullSizeUrl) {
+            imageUrls.push(fullSizeUrl);
+          }
+        });
+      }
+      
+      // Fallback: if no hidden images, get from visible thumbnails and main image
+      if (imageUrls.length === 0) {
+        if (thumbnailImages.length > 0) {
+          thumbnailImages.forEach(function(thumbnail) {
+            const fullSizeUrl = thumbnail.getAttribute('data-image-url') || thumbnail.src;
+            if (fullSizeUrl) {
+              imageUrls.push(fullSizeUrl);
+            }
+          });
+        }
+        if (mainImage.src) {
+          const mainImageUrl = mainImage.getAttribute('data-image-url') || mainImage.src;
+          if (mainImageUrl && !imageUrls.includes(mainImageUrl)) {
+            imageUrls.unshift(mainImageUrl);
+          }
+        }
+      }
+      
+      // Handle "View all photos" button click
+      if (viewAllPhotosBtn) {
+        viewAllPhotosBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          // Open modal at first image
+          openModal(0);
+        });
+      }
+      
+      // Reset to first image
+      currentImageIndex = 0;
+    
+      // Function to update main image
+      function updateMainImage(index) {
+        if (imageUrls.length === 0) return;
+        if (index < 0) index = imageUrls.length - 1;
+        if (index >= imageUrls.length) index = 0;
+        
+        currentImageIndex = index;
+        currentImageIndex = index;
+        
+        // Use full-size URL for main image
+        const fullSizeUrl = thumbnailImages[index]?.getAttribute('data-image-url') || imageUrls[index];
+        if (mainImage && fullSizeUrl) {
+          mainImage.src = fullSizeUrl;
+          // Also update data attribute
+          mainImage.setAttribute('data-image-url', fullSizeUrl);
+        }
+        
+        // Update thumbnail active state
+        thumbnailImages.forEach(function(img, idx) {
+          img.classList.toggle('thumbnail-active', idx === index);
+        });
+      }
+      
+      // Remove old event listeners by cloning elements (clean slate)
+      // Thumbnail click handlers
+      thumbnailImages.forEach(function(thumbnail, index) {
+        // Remove old listener by cloning
+        const newThumbnail = thumbnail.cloneNode(true);
+        thumbnail.parentNode.replaceChild(newThumbnail, thumbnail);
+        thumbnailImages[index] = newThumbnail;
+        
+        newThumbnail.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          updateMainImage(index);
+        });
+      });
+      
+      // Previous/Next button handlers removed - using thumbnails only
+      
+      // Click main image to open modal
+      if (mainImageContainer) {
+        mainImageContainer.addEventListener('click', function(e) {
+          // Don't open modal if clicking navigation buttons
+          if (e.target.classList.contains('image-nav-btn')) return;
+          if (e.target.closest('.image-nav-btn')) return;
+          openModal(currentImageIndex);
+        });
+      }
+    
+      // Open modal
+      function openModal(index) {
+        if (modal && modalImage && imageUrls.length > 0) {
+          if (index < 0) index = imageUrls.length - 1;
+          if (index >= imageUrls.length) index = 0;
+          // Use full-size URL for modal
+          const fullSizeUrl = thumbnailImages[index]?.getAttribute('data-image-url') || imageUrls[index];
+          if (fullSizeUrl) {
+            modalImage.src = fullSizeUrl;
+            currentImageIndex = index;
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+          }
+        }
+      }
+      
+      // Close modal
+      function closeModal() {
+        if (modal) {
+          modal.style.display = 'none';
+          document.body.style.overflow = 'auto';
+        }
+      }
+      
+      if (modalClose) {
+        modalClose.addEventListener('click', closeModal);
+      }
+      
+      // Modal navigation
+      if (modalPrevBtn) {
+        modalPrevBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (imageUrls.length > 0) {
+            currentImageIndex = (currentImageIndex - 1 + imageUrls.length) % imageUrls.length;
+            const fullSizeUrl = thumbnailImages[currentImageIndex]?.getAttribute('data-image-url') || imageUrls[currentImageIndex];
+            if (modalImage && fullSizeUrl) {
+              modalImage.src = fullSizeUrl;
+            }
+          }
+        });
+      }
+      
+      if (modalNextBtn) {
+        modalNextBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (imageUrls.length > 0) {
+            currentImageIndex = (currentImageIndex + 1) % imageUrls.length;
+            const fullSizeUrl = thumbnailImages[currentImageIndex]?.getAttribute('data-image-url') || imageUrls[currentImageIndex];
+            if (modalImage && fullSizeUrl) {
+              modalImage.src = fullSizeUrl;
+            }
+          }
+        });
+      }
+      
+      // Close modal on background click
+      if (modal) {
+        modal.addEventListener('click', function(e) {
+          if (e.target === modal || e.target === modalImage) {
+            closeModal();
+          }
+        });
+      }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+      if (modal && modal.style.display === 'block') {
+        if (e.key === 'Escape') {
+          closeModal();
+        } else if (e.key === 'ArrowLeft') {
+          currentImageIndex = (currentImageIndex - 1 + imageUrls.length) % imageUrls.length;
+          const fullSizeUrl = thumbnailImages[currentImageIndex]?.getAttribute('data-image-url') || imageUrls[currentImageIndex];
+          modalImage.src = fullSizeUrl;
+        } else if (e.key === 'ArrowRight') {
+          currentImageIndex = (currentImageIndex + 1) % imageUrls.length;
+          const fullSizeUrl = thumbnailImages[currentImageIndex]?.getAttribute('data-image-url') || imageUrls[currentImageIndex];
+          modalImage.src = fullSizeUrl;
+        }
+      }
+    });
+    
+      // Swipe functionality for touch devices
+      let touchStartX = 0;
+      let touchEndX = 0;
+      
+      if (mainImageContainer) {
+        mainImageContainer.addEventListener('touchstart', function(e) {
+          touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        
+        mainImageContainer.addEventListener('touchend', function(e) {
+          touchEndX = e.changedTouches[0].screenX;
+          handleSwipe();
+        }, { passive: true });
+      }
+      
+      if (modal) {
+        modal.addEventListener('touchstart', function(e) {
+          touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        
+        modal.addEventListener('touchend', function(e) {
+          touchEndX = e.changedTouches[0].screenX;
+          if (modal.style.display === 'block') {
+            handleModalSwipe();
+          }
+        }, { passive: true });
+      }
+      
+      function handleSwipe() {
+        if (imageUrls.length === 0) return;
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+        
+        if (Math.abs(diff) > swipeThreshold) {
+          if (diff > 0) {
+            // Swipe left - next image
+            updateMainImage(currentImageIndex + 1);
+          } else {
+            // Swipe right - previous image
+            updateMainImage(currentImageIndex - 1);
+          }
+        }
+      }
+      
+      function handleModalSwipe() {
+        if (imageUrls.length === 0) return;
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+        
+        if (Math.abs(diff) > swipeThreshold) {
+          if (diff > 0) {
+            // Swipe left - next image
+            currentImageIndex = (currentImageIndex + 1) % imageUrls.length;
+            const fullSizeUrl = thumbnailImages[currentImageIndex]?.getAttribute('data-image-url') || imageUrls[currentImageIndex];
+            if (modalImage && fullSizeUrl) {
+              modalImage.src = fullSizeUrl;
+            }
+          } else {
+            // Swipe right - previous image
+            currentImageIndex = (currentImageIndex - 1 + imageUrls.length) % imageUrls.length;
+            const fullSizeUrl = thumbnailImages[currentImageIndex]?.getAttribute('data-image-url') || imageUrls[currentImageIndex];
+            if (modalImage && fullSizeUrl) {
+              modalImage.src = fullSizeUrl;
+            }
+          }
+        }
+      }
+      
+      // Mark as initialized
+      galleryInitialized = true;
+    }
+    
+    // Initialize on page load
+    function initializeOnTurbo() {
+      galleryInitialized = false;
+      initImageGallery();
+    }
+    
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeOnTurbo);
+    } else {
+      initializeOnTurbo();
+    }
+    
+    // Re-initialize on Turbo navigation
+    document.addEventListener('turbo:load', initializeOnTurbo);
+    document.addEventListener('turbo:render', initializeOnTurbo);
+  })();
+</script>

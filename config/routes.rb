@@ -2,12 +2,15 @@ Rails.application.routes.draw do
   devise_for :users, controllers: { registrations: 'registrations' }
   resources :tasks
   resources :messages, only: [:index, :show, :new, :create]
-  resources :users, only: [:show]
+  resources :users, only: [:show] do
+    resources :reviews, only: [:create]
+  end
   root "listings#index"
   
   # User account pages
   get "my_listings", to: "listings#my_listings", as: :my_listings
   get "my_messages", to: "messages#my_messages", as: :my_messages
+  delete "delete_conversation", to: "messages#delete_conversation", as: :delete_conversation
   get "my_saved_ads", to: "favorites#index", as: :my_saved_ads
   
   # Vehicle registration lookup (must be before resources to avoid conflicts)

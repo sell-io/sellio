@@ -1,0 +1,120 @@
+<div class="chat-shell">
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="left">
+      <div class="avatar">
+        <% if other_user.avatar.attached? %>
+          <%= image_tag other_user.avatar, class: "chat-avatar-image", alt: other_user.name || other_user.email %>
+        <% else %>
+          <%= (other_user.name || other_user.email).first.upcase %>
+        <% end %>
+      </div>
+      <div>
+        <%= link_to user_path(other_user), class: "name-link" do %>
+          <div class="name"><%= other_user.name || other_user.email %></div>
+        <% end %>
+        <div class="subtitle">
+          <% if message.listing %>
+            <%= truncate(message.listing.title, length: 40) %>
+          <% else %>
+            Online
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="chat-body" id="chat-messages" role="log" aria-live="polite" aria-label="Conversation messages">
+    <% conversation_messages.each do |msg| %>
+      <% is_sent = msg.sender == current_user %>
+      
+      <div class="message <%= is_sent ? 'outgoing' : 'incoming' %>">
+        <div class="bubble">
+          <span class="text"><%= h(msg.content.to_s.strip) %></span>
+          <span class="time"><%= msg.created_at.strftime("%H:%M") %></span>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Input -->
+  <div class="chat-input">
+    <%= form_with(model: [message.listing, Message.new], url: messages_path, local: true, id: "chat-form") do |form| %>
+      <%= form.hidden_field :listing_id, value: message.listing.id %>
+      <%= form.hidden_field :recipient_id, value: other_user.id %>
+      <%= form.text_field :content, placeholder: "Type a message…", id: "chat-input", required: true, "aria-label" => "Message input" %>
+      <%= form.submit "Send", class: "send-button" %>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const chatForm = document.getElementById('chat-form');
+    
+    // Smooth scroll to bottom
+    function scrollToBottom() {
+      if (chatMessages) {
+        chatMessages.scrollTo({
+          top: chatMessages.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }
+    
+    // Initial smooth scroll after a tiny delay to ensure content is rendered
+    setTimeout(scrollToBottom, 100);
+    
+    // Also scroll immediately for instant feedback
+    if (chatMessages) {
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Send on Enter
+    if (chatInput) {
+      chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (chatForm && chatInput.value.trim()) {
+            // Scroll to bottom before submitting for smooth transition
+            scrollToBottom();
+            // Small delay to allow scroll to start
+            setTimeout(function() {
+              chatForm.submit();
+            }, 50);
+          }
+        }
+      });
+      
+      // Focus input on load
+      chatInput.focus();
+    }
+    
+    // Scroll to bottom when new messages are added (with smooth behavior)
+    const observer = new MutationObserver(function() {
+      // Use requestAnimationFrame for smooth updates
+      requestAnimationFrame(function() {
+        scrollToBottom();
+      });
+    });
+    
+    if (chatMessages) {
+      observer.observe(chatMessages, { childList: true, subtree: true });
+    }
+    
+    // Handle form submission
+    if (chatForm) {
+      chatForm.addEventListener('submit', function(e) {
+        if (!chatInput.value.trim()) {
+          e.preventDefault();
+          return false;
+        }
+        // Scroll to bottom before form submits
+        scrollToBottom();
+      });
+    }
+  });
+</script>

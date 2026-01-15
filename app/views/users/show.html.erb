@@ -13,7 +13,37 @@
         <% end %>
       </div>
       <div class="profile-info">
-        <h1><%= @user.name || @user.email %></h1>
+        <div class="profile-name-rating">
+          <h1><%= @user.name || @user.email %></h1>
+          <% if @user.reviews_count > 0 %>
+            <div class="user-rating">
+              <div class="stars">
+                <% average = @user.average_rating %>
+                <% 5.times do |i| %>
+                  <% if i < average.floor %>
+                    <span class="star filled">★</span>
+                  <% elsif i < average %>
+                    <span class="star half">★</span>
+                  <% else %>
+                    <span class="star">★</span>
+                  <% end %>
+                <% end %>
+              </div>
+              <span class="rating-text"><%= average %> (<%= @user.reviews_count %> <%= @user.reviews_count == 1 ? 'review' : 'reviews' %>)</span>
+            </div>
+          <% else %>
+            <div class="user-rating">
+              <div class="stars">
+                <span class="star">★</span>
+                <span class="star">★</span>
+                <span class="star">★</span>
+                <span class="star">★</span>
+                <span class="star">★</span>
+              </div>
+              <span class="rating-text">No reviews yet</span>
+            </div>
+          <% end %>
+        </div>
         <% if @user.location.present? %>
           <p class="profile-location">📍 <%= @user.location %></p>
         <% end %>
@@ -29,7 +59,85 @@
         <div class="stat-number"><%= @listings.count %></div>
         <div class="stat-label">Active Listings</div>
       </div>
+      <div class="stat-item">
+        <div class="stat-number"><%= @user.reviews_count %></div>
+        <div class="stat-label">Reviews</div>
+      </div>
     </div>
+
+    <!-- Reviews Section -->
+    <% if user_signed_in? && current_user != @user %>
+      <div class="review-section">
+        <h2>Leave a Review</h2>
+        <% if @user_review %>
+          <div class="existing-review">
+            <p>You already reviewed this user:</p>
+            <div class="review-display">
+              <div class="stars">
+                <% @user_review.rating.times do %>
+                  <span class="star filled">★</span>
+                <% end %>
+                <% (5 - @user_review.rating).times do %>
+                  <span class="star">★</span>
+                <% end %>
+              </div>
+              <% if @user_review.comment.present? %>
+                <p class="review-comment"><%= @user_review.comment %></p>
+              <% end %>
+            </div>
+          </div>
+        <% else %>
+          <%= form_with model: [@user, @review], local: true, class: "review-form" do |form| %>
+            <div class="review-rating">
+              <label>Rating: <span style="color: red;">*</span></label>
+              <div class="star-rating">
+                <% (1..5).each do |rating| %>
+                  <%= form.radio_button :rating, rating, id: "rating_#{rating}", class: "star-input", required: true %>
+                  <label for="rating_<%= rating %>" class="star-label">
+                    ★
+                  </label>
+                <% end %>
+              </div>
+            </div>
+            <div class="review-comment-field">
+              <%= form.label :comment, "Comment (optional):" %>
+              <%= form.text_area :comment, rows: 4, placeholder: "Share your experience with this user...", class: "review-textarea" %>
+            </div>
+            <%= form.submit "Submit Review", class: "btn-submit-review" %>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <!-- All Reviews -->
+    <% if @reviews.any? %>
+      <div class="reviews-section">
+        <h2>Reviews (<%= @reviews.count %>)</h2>
+        <div class="reviews-list">
+          <% @reviews.each do |review| %>
+            <div class="review-item">
+              <div class="review-header">
+                <div class="reviewer-info">
+                  <strong><%= review.reviewer.name || review.reviewer.email %></strong>
+                  <span class="review-date"><%= review.created_at.strftime("%B %d, %Y") %></span>
+                </div>
+                <div class="stars">
+                  <% review.rating.times do %>
+                    <span class="star filled">★</span>
+                  <% end %>
+                  <% (5 - review.rating).times do %>
+                    <span class="star">★</span>
+                  <% end %>
+                </div>
+              </div>
+              <% if review.comment.present? %>
+                <p class="review-comment"><%= review.comment %></p>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
 
     <div class="profile-listings">
       <h2>Listings by <%= @user.name || @user.email %></h2>
@@ -40,7 +148,7 @@
             <div class="listing-card">
               <div class="listing-image">
                 <% if listing.images.attached? %>
-                  <%= image_tag listing.images.first, class: "listing-card-image" %>
+                  <%= image_tag listing.ordered_images.first, class: "listing-card-image" %>
                 <% else %>
                   <div class="image-placeholder">
                     <span>📷</span>
@@ -52,7 +160,6 @@
                   <%= link_to listing.title, listing, class: "listing-link" %>
                 </h3>
                 <p class="listing-location">📍 <%= listing.city || "Location not specified" %></p>
-                <p class="listing-description"><%= truncate(listing.description, length: 100) if listing.description %></p>
                 <div class="listing-footer">
                   <span class="listing-price">
                     <% if listing.price %>
@@ -75,3 +182,45 @@
     </div>
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const starInputs = document.querySelectorAll('.star-input');
+    const starLabels = document.querySelectorAll('.star-label');
+    
+    starInputs.forEach(function(input, index) {
+      input.addEventListener('change', function() {
+        // Reset all stars
+        starLabels.forEach(function(label) {
+          label.style.color = '#ddd';
+        });
+        
+        // Fill stars up to and including the selected one
+        const selectedRating = parseInt(input.value);
+        for (let i = 0; i < selectedRating; i++) {
+          if (starLabels[i]) {
+            starLabels[i].style.color = '#FFD700';
+          }
+        }
+      });
+      
+      // Also handle on click to ensure it works
+      const label = starLabels[index];
+      if (label) {
+        label.addEventListener('click', function() {
+          // The radio button will be checked by the label click
+          setTimeout(function() {
+            const selectedRating = parseInt(input.value);
+            starLabels.forEach(function(lbl, idx) {
+              if (idx < selectedRating) {
+                lbl.style.color = '#FFD700';
+              } else {
+                lbl.style.color = '#ddd';
+              }
+            });
+          }, 10);
+        });
+      }
+    });
+  });
+</script>

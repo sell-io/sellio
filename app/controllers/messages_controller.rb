@@ -30,7 +30,8 @@ class MessagesController < ApplicationController
           other_user: other_user,
           messages: [],
           unread_count: 0,
-          last_message_at: message.created_at
+          last_message_at: message.created_at,
+          last_message: message
         }
       end
       
@@ -42,14 +43,30 @@ class MessagesController < ApplicationController
         @conversations[conversation_key][:unread_count] += 1
       end
       
-      # Update last message time
+      # Update last message time and message
       if message.created_at > @conversations[conversation_key][:last_message_at]
         @conversations[conversation_key][:last_message_at] = message.created_at
+        @conversations[conversation_key][:last_message] = message
       end
     end
     
     # Sort conversations by last message time (most recent first)
     @conversations = @conversations.sort_by { |_key, conv| conv[:last_message_at] }.reverse.to_h
+    
+    # Load selected conversation if message_id is provided
+    if params[:message_id].present?
+      @selected_message = Message.find_by(id: params[:message_id])
+      if @selected_message && (@selected_message.sender == current_user || @selected_message.recipient == current_user)
+        @other_user = @selected_message.sender == current_user ? @selected_message.recipient : @selected_message.sender
+        @conversation_messages = Message.where(listing_id: @selected_message.listing_id)
+                                        .where("(sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?)", 
+                                               current_user.id, @other_user.id, @other_user.id, current_user.id)
+                                        .includes(:sender, :recipient)
+                                        .order(created_at: :asc)
+        # Mark as read
+        @conversation_messages.where(recipient_id: current_user.id, read: false).update_all(read: true)
+      end
+    end
   end
 
   # GET /messages/1
@@ -75,14 +92,28 @@ class MessagesController < ApplicationController
 
     respond_to do |format|
       if @message.save
-        # Redirect to the conversation (show the message)
-        format.html { redirect_to message_path(@message), notice: "Message sent successfully." }
+        # Redirect to my_messages with the conversation selected
+        format.html { redirect_to my_messages_path(message_id: @message.id), notice: "Message sent successfully." }
         format.json { render :show, status: :created, location: @message }
       else
         format.html { render :new, status: :unprocessable_entity }
         format.json { render json: @message.errors, status: :unprocessable_entity }
       end
     end
+  end
+
+  # DELETE /delete_conversation
+  def delete_conversation
+    listing_id = params[:listing_id]
+    other_user_id = params[:other_user_id]
+
+    # Delete all messages in this conversation
+    Message.where(listing_id: listing_id)
+           .where("(sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?)",
+                  current_user.id, other_user_id, other_user_id, current_user.id)
+           .destroy_all
+
+    redirect_to my_messages_path, notice: "Conversation deleted successfully."
   end
 
   private
