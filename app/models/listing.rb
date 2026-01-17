@@ -48,28 +48,48 @@ class Listing < ApplicationRecord
   
   # Get images in the correct order (as stored in extra_fields or by created_at)
   def ordered_images
-    return images unless images.attached?
+    return [] unless images.attached?
     
     # Check if we have a stored order
     stored_order = extra_fields&.dig('image_order')
     
-    if stored_order.present? && stored_order.is_a?(Array)
+    Rails.logger.info "Listing #{id} - ordered_images called. Stored order: #{stored_order.inspect}, Total attachments: #{images_attachments.count}, extra_fields keys: #{extra_fields&.keys.inspect}"
+    
+    if stored_order.present? && stored_order.is_a?(Array) && stored_order.any?
       # Reorder based on stored order
       attachments_by_id = images_attachments.index_by(&:id)
       ordered_attachments = stored_order.map do |id|
         attachments_by_id[id.to_i]
       end.compact
       
-      # Add any attachments not in the stored order (newly added)
+      Rails.logger.info "Listing #{id} - Found #{ordered_attachments.count} attachments from stored order (expected #{stored_order.length})"
+      
+      # CRITICAL: Add any attachments not in the stored order (this handles cases where new images were added but order wasn't updated)
       existing_ids = stored_order.map(&:to_i)
       remaining_attachments = images_attachments.reject { |a| existing_ids.include?(a.id) }
-      ordered_attachments.concat(remaining_attachments)
+      if remaining_attachments.any?
+        Rails.logger.warn "Listing #{id} - WARNING: Found #{remaining_attachments.count} attachments not in stored order, appending them"
+        ordered_attachments.concat(remaining_attachments)
+      end
       
-      # Return the blobs in order
-      ordered_attachments.map(&:blob)
+      # Return the blobs in order - ensure we return an array
+      result = ordered_attachments.map(&:blob).compact
+      Rails.logger.info "Listing #{id} - ordered_images from stored order: #{result.count} images (expected #{images_attachments.count})"
+      
+      # CRITICAL: If we're missing images, fall back to showing all images in created_at order
+      if result.count != images_attachments.count
+        Rails.logger.error "Listing #{id} - ERROR: ordered_images count (#{result.count}) doesn't match attachments count (#{images_attachments.count}). Falling back to created_at order."
+        # Return all images in created_at order as fallback
+        result = images_attachments.order(created_at: :asc).map(&:blob).compact
+        Rails.logger.info "Listing #{id} - Fallback: returning #{result.count} images in created_at order"
+      end
+      
+      result
     else
       # No stored order, use created_at order (first uploaded = first)
-      images_attachments.order(created_at: :asc).map(&:blob)
+      result = images_attachments.order(created_at: :asc).map(&:blob).compact
+      Rails.logger.info "Listing #{id} - ordered_images from created_at: #{result.count} images (no stored order found)"
+      result
     end
   end
 end
