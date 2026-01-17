@@ -2984,15 +2984,24 @@ select[name*="year"]:focus {
 
 /* New select-based image ordering UI */
 .image-thumbnails-grid {
-  display: grid;
+  display: grid !important;
   grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding: 1rem;
+  visibility: visible !important;
+  opacity: 1 !important;
   background: linear-gradient(to bottom, #ffffff, #f9fafb);
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  min-height: 100px;
+}
+
+.existing-images {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .image-thumbnail-item {
@@ -3004,6 +3013,9 @@ select[name*="year"]:focus {
   background: white;
   transition: all 0.2s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .image-thumbnail-item:hover {
@@ -3012,13 +3024,56 @@ select[name*="year"]:focus {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+.new-image-placeholder {
+  border: 2px dashed #4FD1A5 !important;
+  background: #f0fdf4;
+}
+
+.new-image-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: #4FD1A5;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.cover-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: #22C55E;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.image-thumbnail-item.drag-insert-before {
+  border-top: 3px solid #22C55E;
+}
+
+.image-thumbnail-item.drag-insert-after {
+  border-bottom: 3px solid #22C55E;
+}
+
 .thumbnail-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
+  display: block !important;
   max-width: 100%;
   max-height: 100%;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .remove-thumbnail-image {
@@ -3299,7 +3354,6 @@ select[name*="year"]:focus {
 
 .image-preview-item {
   position: relative;
-  cursor: move;
   cursor: grab;
   border-radius: 8px;
   overflow: hidden;
@@ -3310,6 +3364,11 @@ select[name*="year"]:focus {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  -webkit-user-drag: element;
+}
+
+.image-preview-item:active {
+  cursor: grabbing;
 }
 
 .image-preview-item:hover {
@@ -5440,11 +5499,11 @@ select[name*="year"]:focus {
     flex-direction: column;
     gap: 1.5rem;
   }
-  
+
   .listing-images-section {
     max-width: 100%;
   }
-  
+
   .image-gallery-container {
     flex-direction: column;
     width: 100%;

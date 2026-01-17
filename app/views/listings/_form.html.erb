@@ -231,26 +231,21 @@
         </div>
       </div>
 
-      <!-- Image Preview Container -->
-      <div id="image-preview-container" class="image-preview-container" style="display: none;">
-        <p class="form-help" style="margin-top: 1.5rem; margin-bottom: 0.75rem; font-weight: 500;">Selected images (first image is the main picture - drag to reorder, click X to remove):</p>
-        <div id="image-preview-grid" class="image-preview-grid"></div>
-      </div>
-
       <!-- Hidden input to store image order -->
       <input type="hidden" id="image-order" name="image_order" value="">
+      <!-- Hidden input to store combined order (new + existing) -->
+      <input type="hidden" id="combined-image-order" name="combined_image_order" value="">
 
       <% if listing.persisted? && listing.images.attached? %>
-        <% ordered_existing_images = listing.ordered_images %>
-        <% all_images = listing.images.to_a %>
-        <%# Build image map with IDs %>
+        <% ordered_existing_images = listing.ordered_images.to_a %>
+        <%# Build image map with IDs for reference %>
         <% image_map = {} %>
-        <% all_images.each do |img| %>
+        <% ordered_existing_images.each do |img| %>
           <% attachment = listing.images_attachments.find { |a| a.blob_id == img.id } %>
           <% image_id = attachment&.id || img.id %>
           <% image_map[image_id.to_s] = { image: img, attachment: attachment } %>
         <% end %>
-        <%# Get current order %>
+        <%# Get current order for hidden input %>
         <% current_order_ids = ordered_existing_images.map { |img| 
              attachment = listing.images_attachments.find { |a| a.blob_id == img.id }
              attachment&.id
@@ -258,19 +253,21 @@
         <% order_value = current_order_ids.any? ? current_order_ids.join(',') : '' %>
         <input type="hidden" id="existing-image-order-container" name="existing_image_order" value="<%= order_value %>">
         
-        <div class="existing-images" style="margin-top: 1.5rem;">
+        <div class="existing-images" style="margin-top: 1.5rem; display: block;">
           <p class="form-help">Current images (drag to reorder, click × to remove):</p>
           
-          <!-- Compact thumbnail grid at top - draggable -->
-          <div class="image-thumbnails-grid" id="image-thumbnails-grid" data-draggable-container="true">
-            <% all_images.each_with_index do |img, index| %>
+          <!-- Compact thumbnail grid - draggable, always visible -->
+          <div class="image-thumbnails-grid" id="image-thumbnails-grid" data-draggable-container="true" data-accepts-new-images="true" style="display: grid !important; visibility: visible !important;">
+            <% ordered_existing_images.each_with_index do |img, index| %>
               <% attachment = listing.images_attachments.find { |a| a.blob_id == img.id } %>
               <% image_id = attachment&.id || img.id %>
-              <div class="image-thumbnail-item existing-image-item" 
+              <div class="image-thumbnail-item existing-image-item image-item" 
                    data-image-id="<%= image_id %>" 
                    data-image-index="<%= index %>"
-                   draggable="true">
-                <%= image_tag url_for(img), class: "thumbnail-image", draggable: "false" %>
+                   data-is-existing="true"
+                   draggable="true"
+                   style="display: block !important; visibility: visible !important;">
+                <%= image_tag url_for(img), class: "thumbnail-image", draggable: "false", style: "display: block !important;" %>
                 <button type="button" class="remove-thumbnail-image" data-image-id="<%= image_id %>" title="Remove image">×</button>
                 <% if index == 0 %>
                   <span class="main-badge-existing">COVER</span>
@@ -287,7 +284,7 @@
     </div>
 
     <div class="form-actions">
-      <%= form.submit listing.persisted? ? "Update Listing" : "Create Listing", class: "btn-submit" %>
+      <%= form.submit listing.persisted? ? "Update Listing" : "Create Listing", class: "btn-submit", id: "listing-submit-btn" %>
       <%= link_to "Cancel", listing.persisted? ? listing_path(listing) : listings_path, class: "btn-cancel" %>
     </div>
   </div>
@@ -678,9 +675,9 @@
     // Make imageFiles accessible globally for updateUploadZoneVisibility
     window.imageFiles = window.imageFiles || [];
     let imageFiles = window.imageFiles;
-    let draggedElement = null;
     let imageFileIdCounter = 0; // Unique ID counter for each file
     const MAX_IMAGES = 10;
+    window.processingFiles = false; // Global flag to prevent duplicate processing
     
     // Get DOM elements (will be refreshed on Turbo navigation)
     const imagePreviewContainer = document.getElementById('image-preview-container');
@@ -688,11 +685,36 @@
     const imageOrderInput = document.getElementById('image-order');
 
     function processFiles(files) {
+      if (!files || files.length === 0) return;
+      if (window.processingFiles) {
+        console.log('Already processing files, skipping duplicate call');
+        return;
+      }
+      
+      window.processingFiles = true;
+      
       // Limit to MAX_IMAGES
-      const filesToProcess = Array.from(files).slice(0, MAX_IMAGES - imageFiles.length);
+      const filesToProcess = Array.from(files);
       
       // Filter and add unique IDs while preserving the EXACT FileList order
+      // Also check for duplicates by file name and size
       const newFiles = [];
+      // Check both in imageFiles and in existing images grid (for new placeholders)
+      const existingFileNames = new Set(imageFiles.map(f => f.name + '_' + f.size));
+      const existingImageGrid = document.getElementById('image-thumbnails-grid');
+      if (existingImageGrid) {
+        const placeholders = existingImageGrid.querySelectorAll('.new-image-placeholder');
+        placeholders.forEach(function(placeholder) {
+          const fileId = placeholder.dataset.fileId;
+          const file = imageFiles.find(function(f) {
+            return (f._uniqueId || '') === fileId;
+          });
+          if (file) {
+            existingFileNames.add(file.name + '_' + file.size);
+          }
+        });
+      }
+      
       filesToProcess.forEach(function(file, originalIndex) {
         if (file.type.startsWith('image/')) {
           // Check file extension
@@ -700,45 +722,49 @@
           const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
           const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
           
-          if (hasValidExtension) {
+          // Check for duplicates
+          const fileKey = file.name + '_' + file.size;
+          if (hasValidExtension && !existingFileNames.has(fileKey)) {
             file._uniqueId = 'img_' + (imageFileIdCounter++);
             file._originalIndex = originalIndex;
             file._selectionOrder = originalIndex;
             newFiles.push(file);
+            existingFileNames.add(fileKey);
           }
         }
       });
 
       // Add to existing files (up to MAX_IMAGES)
       const remainingSlots = MAX_IMAGES - imageFiles.length;
-      imageFiles = imageFiles.concat(newFiles.slice(0, remainingSlots));
+      const filesToAdd = newFiles.slice(0, remainingSlots);
+      imageFiles = imageFiles.concat(filesToAdd);
       // Update global reference
       window.imageFiles = imageFiles;
+      
+      // Reset processing flag
+      setTimeout(function() {
+        window.processingFiles = false;
+      }, 300);
 
-      // Update preview and file input
-      updateImagePreview();
+      // Add new files directly to bottom grid
+      addNewFilesToGrid(filesToAdd);
       updateImageOrder();
       updateFileInput();
       
       // Get upload zone element
       const imageUploadZone = document.getElementById('image-upload-zone');
       
-      // Hide upload zone only if we've reached max images (10 new images)
-      // But always show it if we're editing and have existing images
-      if (imageFiles.length >= MAX_IMAGES && imageUploadZone) {
-        imageUploadZone.style.display = 'none';
-      } else if (imageUploadZone) {
-        imageUploadZone.style.display = 'flex';
-      }
+      // Upload zone visibility is handled by counting total images in grid
       
       // Always show upload zone when editing (even with existing images)
-      // Count existing images if any
+      // Count existing images if any (including new placeholders)
       const existingThumbnails = document.getElementById('image-thumbnails-grid');
       if (existingThumbnails && imageUploadZone) {
-        const existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([style*="opacity: 0.5"])').length;
-        const totalImages = imageFiles.length + existingCount;
-        if (totalImages < MAX_IMAGES) {
+        const existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([style*="opacity: 0.5"]), .new-image-placeholder:not([style*="opacity: 0.5"])').length;
+        if (existingCount < MAX_IMAGES) {
           imageUploadZone.style.display = 'flex';
+        } else {
+          imageUploadZone.style.display = 'none';
         }
       }
     }
@@ -755,8 +781,9 @@
       
       // Check if already set up to prevent duplicates
       if (imageUploadZone.hasAttribute('data-upload-listeners-setup')) {
-        console.log('Upload listeners already set up, skipping');
-        return;
+        console.log('Upload listeners already set up, removing old ones and re-setting up...');
+        // Remove the flag to allow re-setup
+        imageUploadZone.removeAttribute('data-upload-listeners-setup');
       }
       imageUploadZone.setAttribute('data-upload-listeners-setup', 'true');
       
@@ -779,29 +806,58 @@
       
       // No need for zone click handler - the input handles it directly
       
-      // File input change
-      imageUploadInput.addEventListener('change', function(e) {
+      // File input change - use global flag to prevent duplicate processing
+      const newChangeHandler = function(e) {
+        if (window.processingFiles) {
+          console.log('Already processing files, skipping...');
+          e.target.value = '';
+          return;
+        }
+        
         if (e.target.files && e.target.files.length > 0) {
           processFiles(e.target.files);
           // Clear the input so the same file can be selected again if needed
           e.target.value = '';
         }
-      });
+      };
       
-      // Drag and drop functionality
-      imageUploadZone.addEventListener('dragover', function(e) {
+      // Remove old listener by cloning the input
+      const oldInput = imageUploadInput;
+      const newInput = oldInput.cloneNode(true);
+      oldInput.parentNode.replaceChild(newInput, oldInput);
+      const freshInput = document.getElementById('image-upload-input');
+      
+      // Re-apply styles to the new input
+      if (freshInput) {
+        freshInput.style.position = 'absolute';
+        freshInput.style.top = '0';
+        freshInput.style.left = '0';
+        freshInput.style.width = '100%';
+        freshInput.style.height = '100%';
+        freshInput.style.opacity = '0';
+        freshInput.style.cursor = 'pointer';
+        freshInput.style.zIndex = '10';
+        freshInput.style.display = 'block';
+        
+        // Add the new listener
+        freshInput.addEventListener('change', newChangeHandler);
+      } else {
+        // Fallback if cloning didn't work
+        imageUploadInput.addEventListener('change', newChangeHandler);
+      }
+      
+      // Drag and drop functionality - remove old listeners first
+      const zoneDragOver = function(e) {
         e.preventDefault();
         e.stopPropagation();
         imageUploadZone.classList.add('drag-over');
-      });
-      
-      imageUploadZone.addEventListener('dragleave', function(e) {
+      };
+      const zoneDragLeave = function(e) {
         e.preventDefault();
         e.stopPropagation();
         imageUploadZone.classList.remove('drag-over');
-      });
-      
-      imageUploadZone.addEventListener('drop', function(e) {
+      };
+      const zoneDrop = function(e) {
         e.preventDefault();
         e.stopPropagation();
         imageUploadZone.classList.remove('drag-over');
@@ -809,56 +865,116 @@
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
           processFiles(e.dataTransfer.files);
         }
-      });
+      };
+      
+      // Remove old listeners
+      imageUploadZone.removeEventListener('dragover', zoneDragOver);
+      imageUploadZone.removeEventListener('dragleave', zoneDragLeave);
+      imageUploadZone.removeEventListener('drop', zoneDrop);
+      
+      // Add new listeners
+      imageUploadZone.addEventListener('dragover', zoneDragOver);
+      imageUploadZone.addEventListener('dragleave', zoneDragLeave);
+      imageUploadZone.addEventListener('drop', zoneDrop);
       
       console.log('Image upload listeners set up successfully');
     };
     
-    // Setup listeners initially
-    window.setupImageUploadListeners();
-
-    function updateImagePreview() {
-      if (!imagePreviewGrid) return;
-
-      // Store current dragged element if any
-      const currentDragged = draggedElement;
-      const currentDraggedId = currentDragged ? currentDragged.dataset.fileId : null;
-
-      imagePreviewGrid.innerHTML = '';
-      
-      // Reset dragged element
-      draggedElement = null;
-
-      if (imageFiles.length === 0) {
-        if (imagePreviewContainer) {
-          imagePreviewContainer.style.display = 'none';
+    // Setup listeners initially - wait for DOM to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        if (typeof window.setupImageUploadListeners === 'function') {
+          window.setupImageUploadListeners();
         }
-        const imageUploadZone = document.getElementById('image-upload-zone');
-        if (imageUploadZone) {
-          imageUploadZone.style.display = 'flex';
-        }
+      });
+    } else {
+      // DOM is already ready
+      if (typeof window.setupImageUploadListeners === 'function') {
+        window.setupImageUploadListeners();
+      }
+    }
+
+    // Function to add new files directly to the bottom grid
+    function addNewFilesToGrid(newFiles) {
+      const existingImageGrid = document.getElementById('image-thumbnails-grid');
+      if (!existingImageGrid) {
+        console.error('Existing image grid not found');
         return;
       }
 
-      // Always show the preview container when we have images
-      if (imagePreviewContainer) {
-        imagePreviewContainer.style.display = 'block';
-      }
+      newFiles.forEach(function(file) {
+        // Create placeholder in the existing images grid
+        const placeholder = document.createElement('div');
+        placeholder.className = 'image-thumbnail-item new-image-placeholder image-item';
+        placeholder.setAttribute('draggable', 'true');
+        placeholder.dataset.fileId = file._uniqueId;
+        placeholder.dataset.isNew = 'true';
+        placeholder.dataset.isExisting = 'false';
+        
+        // Create preview from file
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          placeholder.innerHTML = `
+            <img src="${e.target.result}" class="thumbnail-image" draggable="false">
+            <button type="button" class="remove-thumbnail-image" data-file-id="${file._uniqueId}" title="Remove image">×</button>
+            <span class="new-image-badge">NEW</span>
+          `;
+          
+          // Insert at the end of existing images grid
+          existingImageGrid.appendChild(placeholder);
+          
+          // Setup drag handlers for the new placeholder
+          if (typeof setupPlaceholderDragHandlers === 'function') {
+            setupPlaceholderDragHandlers(placeholder, file);
+          }
+          
+          // Update combined order
+          if (typeof updateCombinedImageOrder === 'function') {
+            updateCombinedImageOrder();
+          }
+          
+          // Update existing image indices (for COVER badge)
+          if (typeof updateExistingImageIndices === 'function') {
+            updateExistingImageIndices();
+          }
+          
+          // Update upload zone visibility
+          if (typeof updateUploadZoneVisibility === 'function') {
+            updateUploadZoneVisibility();
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function updateImagePreview() {
+      // This function is no longer needed since we add directly to grid
+      // But keep it for backward compatibility with other code that might call it
+      return;
       
       // Also add dragover handler to the container for better drag handling
-      if (!imagePreviewGrid.hasAttribute('data-container-drag-setup')) {
-        imagePreviewGrid.setAttribute('data-container-drag-setup', 'true');
-        imagePreviewGrid.addEventListener('dragover', function(e) {
-          if (!draggedElement) return;
-          e.preventDefault();
-          e.stopPropagation();
+      // Always re-setup to ensure handlers are fresh
+      imagePreviewGrid.setAttribute('data-container-drag-setup', 'true');
+      
+      const previewContainerDragOver = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (window.draggedElement) {
           e.dataTransfer.dropEffect = 'move';
-        });
-        imagePreviewGrid.addEventListener('drop', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-        });
-      }
+        }
+      };
+      const previewContainerDrop = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      };
+      
+      // Remove old listeners
+      imagePreviewGrid.removeEventListener('dragover', previewContainerDragOver);
+      imagePreviewGrid.removeEventListener('drop', previewContainerDrop);
+      
+      // Add new listeners
+      imagePreviewGrid.addEventListener('dragover', previewContainerDragOver, false);
+      imagePreviewGrid.addEventListener('drop', previewContainerDrop, false);
       
       // Check total images (new + existing) before hiding upload zone
       const imageUploadZone = document.getElementById('image-upload-zone');
@@ -883,12 +999,10 @@
           
           const imageItem = document.createElement('div');
           imageItem.className = 'image-preview-item';
-          imageItem.draggable = true;
           imageItem.setAttribute('draggable', 'true');
           imageItem.dataset.index = index;
           imageItem.dataset.fileId = uniqueId;
           imageItem.title = isMain ? 'Cover Picture (Main) - Drag to reorder' : 'Drag to reorder or click star to set as cover';
-          imageItem.style.cursor = 'move';
           imageItem.innerHTML = `
             <img src="${e.target.result}" alt="Preview ${index + 1}" class="preview-image">
             <div class="preview-overlay">
@@ -903,14 +1017,187 @@
             </div>
           `;
 
-          // Drag and drop handlers - make sure all events are properly attached
-          // Use capture phase to ensure we catch events before they bubble
-          imageItem.addEventListener('dragstart', handleDragStart);
-          imageItem.addEventListener('dragover', handleDragOver);
-          imageItem.addEventListener('dragenter', handleDragEnter);
-          imageItem.addEventListener('dragleave', handleDragLeave);
-          imageItem.addEventListener('drop', handleDrop);
-          imageItem.addEventListener('dragend', handleDragEnd);
+          // Drag and drop handlers - simplified and robust
+          // Make the item draggable
+          imageItem.setAttribute('draggable', 'true');
+          
+          // Store reference to this item for drag handlers
+          const thisItem = imageItem;
+          
+          // Drag start
+          imageItem.addEventListener('dragstart', function(e) {
+            // Don't drag if clicking button
+            if (e.target.closest('button')) {
+              e.preventDefault();
+              return false;
+            }
+            window.draggedElement = thisItem;
+            thisItem.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', thisItem.outerHTML);
+            e.dataTransfer.setData('text/plain', thisItem.dataset.fileId || '');
+            e.dataTransfer.setData('application/json', JSON.stringify({
+              type: 'new-image',
+              fileId: thisItem.dataset.fileId,
+              fileIndex: thisItem.dataset.index
+            }));
+            console.log('Drag start (new image):', thisItem.dataset.fileId);
+          });
+          
+          // Drag over - CRITICAL: must prevent default
+          imageItem.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            if (window.draggedElement && window.draggedElement !== thisItem) {
+              const allItems = Array.from(imagePreviewGrid.querySelectorAll('.image-preview-item'));
+              const draggedIndex = allItems.indexOf(window.draggedElement);
+              const targetIndex = allItems.indexOf(thisItem);
+              
+              if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
+                if (draggedIndex < targetIndex) {
+                  imagePreviewGrid.insertBefore(window.draggedElement, thisItem.nextSibling);
+                } else {
+                  imagePreviewGrid.insertBefore(window.draggedElement, thisItem);
+                }
+                
+                // Update array
+                const draggedFile = imageFiles[draggedIndex];
+                if (draggedFile) {
+                  imageFiles.splice(draggedIndex, 1);
+                  imageFiles.splice(targetIndex, 0, draggedFile);
+                  window.imageFiles = imageFiles;
+                  updateFileInput();
+                  updateImageOrder();
+                }
+              }
+            }
+          });
+          
+          // Drag enter
+          imageItem.addEventListener('dragenter', function(e) {
+            e.preventDefault();
+            if (thisItem !== window.draggedElement) {
+              thisItem.classList.add('drag-over');
+            }
+          });
+          
+          // Drag leave
+          imageItem.addEventListener('dragleave', function(e) {
+            thisItem.classList.remove('drag-over');
+          });
+          
+          // Drop
+          imageItem.addEventListener('drop', function(e) {
+            e.preventDefault();
+            thisItem.classList.remove('drag-over');
+            
+            // Final update
+            if (window.draggedElement && window.draggedElement !== thisItem) {
+              const allItems = Array.from(imagePreviewGrid.querySelectorAll('.image-preview-item'));
+              const draggedIndex = allItems.indexOf(window.draggedElement);
+              const targetIndex = allItems.indexOf(thisItem);
+              
+              if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
+                const draggedFile = imageFiles[draggedIndex];
+                if (draggedFile) {
+                  imageFiles.splice(draggedIndex, 1);
+                  imageFiles.splice(targetIndex, 0, draggedFile);
+                  window.imageFiles = imageFiles;
+                  updateFileInput();
+                  updateImageOrder();
+                }
+              }
+            }
+          });
+          
+          // Drag end
+          imageItem.addEventListener('dragend', function(e) {
+            thisItem.classList.remove('dragging');
+            thisItem.classList.remove('drag-over');
+            const allItems = imagePreviewGrid.querySelectorAll('.image-preview-item');
+            allItems.forEach(function(item) {
+              item.classList.remove('drag-over');
+            });
+            
+            // Rebuild array from DOM order
+            const reorderedFiles = [];
+            const allItemsArray = Array.from(imagePreviewGrid.querySelectorAll('.image-preview-item'));
+            allItemsArray.forEach(function(item) {
+              const fileId = item.dataset.fileId;
+              const file = imageFiles.find(function(f) {
+                return (f._uniqueId || '') === fileId;
+              });
+              if (file) {
+                reorderedFiles.push(file);
+              }
+            });
+            
+            imageFiles = reorderedFiles;
+            window.imageFiles = imageFiles;
+            updateImageOrder();
+            updateFileInput();
+            
+            // Don't call updateImagePreview here - it will recreate elements and lose handlers
+            // Instead, just update the visual indicators
+            setTimeout(function() {
+              const allItemsInTimeout = imagePreviewGrid.querySelectorAll('.image-preview-item');
+              allItemsInTimeout.forEach(function(item, idx) {
+                const leftDiv = item.querySelector('.preview-left');
+                const rightDiv = item.querySelector('.preview-right');
+                const badge = item.querySelector('.main-badge');
+                const setMainBtn = item.querySelector('.set-main-image');
+                const numberSpan = item.querySelector('.preview-number');
+                
+                if (numberSpan) {
+                  numberSpan.textContent = idx + 1;
+                }
+                
+                if (idx === 0) {
+                  // FIRST IMAGE IS ALWAYS THE MAIN/COVER IMAGE
+                  if (!badge && leftDiv) {
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'main-badge';
+                    newBadge.textContent = 'COVER';
+                    leftDiv.insertBefore(newBadge, leftDiv.firstChild);
+                  }
+                  if (setMainBtn) {
+                    setMainBtn.remove();
+                  }
+                } else {
+                  if (badge) {
+                    badge.remove();
+                  }
+                  if (!setMainBtn && rightDiv) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'set-main-image';
+                    btn.setAttribute('data-file-id', item.dataset.fileId || '');
+                    btn.title = 'Set as cover picture';
+                    btn.textContent = '⭐';
+                    btn.style.pointerEvents = 'auto';
+                    btn.style.zIndex = '100';
+                    btn.style.position = 'relative';
+                    btn.addEventListener('click', function(e) {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      e.stopImmediatePropagation();
+                      const fileId = this.getAttribute('data-file-id');
+                      if (fileId) {
+                        setAsMainByFileId(fileId);
+                      }
+                    });
+                    btn.addEventListener('mousedown', function(e) {
+                      e.stopPropagation();
+                    });
+                    rightDiv.insertBefore(btn, rightDiv.querySelector('.remove-preview-image'));
+                  }
+                }
+              });
+            }, 10);
+            
+            window.draggedElement = null;
+          });
           
           // Prevent image drag (browser default) to allow container drag
           const img = imageItem.querySelector('.preview-image');
@@ -1087,7 +1374,19 @@
     }
 
     function updateFileInput() {
-      if (!imageUploadInput) return;
+      // Get the input element dynamically to work with Turbo
+      const imageUploadInput = document.getElementById('image-upload-input');
+      if (!imageUploadInput) {
+        console.warn('imageUploadInput not found in updateFileInput');
+        return;
+      }
+
+      // Ensure imageFiles is defined and is an array
+      if (!imageFiles || !Array.isArray(imageFiles)) {
+        // Clear the input if no files
+        imageUploadInput.files = new DataTransfer().files;
+        return;
+      }
 
       // Create a new DataTransfer object to update the file input
       // CRITICAL: Preserve the exact order from imageFiles array
@@ -1132,229 +1431,12 @@
       }
     }
 
-    // Drag and drop handlers for new/preview images
-    function handleDragStart(e) {
-      // Make sure we're dragging the image item, not a child element
-      const target = e.target.closest('.image-preview-item');
-      if (!target) {
-        e.preventDefault();
-        return false;
-      }
-      
-      // Don't start drag if clicking on a button
-      if (e.target.closest('button')) {
-        e.preventDefault();
-        return false;
-      }
-      
-      draggedElement = target;
-      target.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', target.dataset.fileId || target.dataset.index || '');
-      // Don't prevent default - we want the drag to happen
-      e.stopPropagation();
-      
-      console.log('Drag started on image item:', target.dataset.fileId);
-      return true;
-    }
-
-    function handleDragOver(e) {
-      // Find the image item (might be triggered on child elements)
-      const target = e.target.closest('.image-preview-item');
-      if (!target) {
-        // If not on an item, check if we're over the container
-        if (imagePreviewGrid && imagePreviewGrid.contains(e.target)) {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-        }
-        return false;
-      }
-      
-      e.preventDefault();
-      e.stopPropagation();
-      e.dataTransfer.dropEffect = 'move';
-      
-      if (draggedElement && target !== draggedElement) {
-        const allItemsForDrag = Array.from(imagePreviewGrid.querySelectorAll('.image-preview-item'));
-        const draggedIndex = allItemsForDrag.indexOf(draggedElement);
-        const targetIndex = allItemsForDrag.indexOf(target);
-
-        if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
-          // Move the DOM element immediately for visual feedback
-          if (draggedIndex < targetIndex) {
-            imagePreviewGrid.insertBefore(draggedElement, target.nextSibling);
-          } else {
-            imagePreviewGrid.insertBefore(draggedElement, target);
-          }
-
-          // Reorder the imageFiles array to match DOM order
-          const draggedFile = imageFiles[draggedIndex];
-          if (draggedFile) {
-            imageFiles.splice(draggedIndex, 1);
-            imageFiles.splice(targetIndex, 0, draggedFile);
-            
-            // Update file input and order immediately during drag
-            updateFileInput();
-            updateImageOrder();
-          }
-        }
-      }
-      return false;
-    }
-    
-    function handleDragEnter(e) {
-      // Find the image item (might be triggered on child elements)
-      const target = e.target.closest('.image-preview-item');
-      if (!target) return false;
-      
-      if (e.preventDefault) e.preventDefault();
-      if (target !== draggedElement) {
-        target.classList.add('drag-over');
-      }
-      return false;
-    }
-    
-    function handleDragLeave(e) {
-      // Find the image item (might be triggered on child elements)
-      const target = e.target.closest('.image-preview-item');
-      if (target) {
-        target.classList.remove('drag-over');
-      }
-    }
-
-    function handleDrop(e) {
-      // Find the image item (might be triggered on child elements)
-      const target = e.target.closest('.image-preview-item');
-      if (!target) return false;
-      
-      e.preventDefault();
-      e.stopPropagation();
-      target.classList.remove('drag-over');
-      
-      // Final order update on drop
-      if (draggedElement && target !== draggedElement) {
-        const allItems = Array.from(imagePreviewGrid.querySelectorAll('.image-preview-item'));
-        const draggedIndex = allItems.indexOf(draggedElement);
-        const targetIndex = allItems.indexOf(target);
-        
-        if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
-          // Reorder the imageFiles array
-          const draggedFile = imageFiles[draggedIndex];
-          if (draggedFile) {
-            imageFiles.splice(draggedIndex, 1);
-            imageFiles.splice(targetIndex, 0, draggedFile);
-            window.imageFiles = imageFiles;
-            updateFileInput();
-            updateImageOrder();
-          }
-        }
-      }
-      
-      return false;
-    }
-
-    function handleDragEnd(e) {
-      // Find the image item (might be triggered on child elements)
-      const target = e.target.closest('.image-preview-item') || this;
-      target.classList.remove('dragging');
-      target.classList.remove('drag-over');
-      
-      // Remove drag-over from all items
-      const allItemsList = imagePreviewGrid.querySelectorAll('.image-preview-item');
-      allItemsList.forEach(function(item) {
-        item.classList.remove('drag-over');
-      });
-      
-      draggedElement = null;
-      
-      // Rebuild imageFiles array to match the new DOM order
-      const allItemsArray = Array.from(imagePreviewGrid.querySelectorAll('.image-preview-item'));
-      const reorderedFiles = [];
-      
-      allItemsArray.forEach(function(item) {
-        const fileId = item.dataset.fileId;
-        const file = imageFiles.find(function(f) {
-          return (f._uniqueId || '') === fileId;
-        });
-        if (file) {
-          reorderedFiles.push(file);
-        }
-      });
-      
-      // Update imageFiles array to match the new order
-      // CRITICAL: The first file in the array is ALWAYS the cover/main image
-      imageFiles = reorderedFiles;
-      // Update global reference
-      window.imageFiles = imageFiles;
-      
-      // Update order FIRST to ensure it's saved correctly
-      updateImageOrder();
-      updateFileInput();
-      
-      // Then update preview - this will show the first image as cover
-      updateImagePreview();
-      
-      // Explicitly ensure first image is marked as main after DOM updates
-      setTimeout(function() {
-        const allItemsInTimeout = imagePreviewGrid.querySelectorAll('.image-preview-item');
-        allItemsInTimeout.forEach(function(item, idx) {
-          const leftDiv = item.querySelector('.preview-left');
-          const rightDiv = item.querySelector('.preview-right');
-          const badge = item.querySelector('.main-badge');
-          const setMainBtn = item.querySelector('.set-main-image');
-          
-          if (idx === 0) {
-            // FIRST IMAGE IS ALWAYS THE MAIN/COVER IMAGE
-            // Ensure it has the badge
-            if (!badge && leftDiv) {
-              const newBadge = document.createElement('span');
-              newBadge.className = 'main-badge';
-              newBadge.textContent = 'COVER';
-              leftDiv.insertBefore(newBadge, leftDiv.firstChild);
-            }
-            // Remove set-main button if present
-            if (setMainBtn) {
-              setMainBtn.remove();
-            }
-          } else {
-            // Other images should have the set-main button, not the badge
-            if (badge) {
-              badge.remove();
-            }
-            if (!setMainBtn && rightDiv) {
-              const btn = document.createElement('button');
-              btn.type = 'button';
-              btn.className = 'set-main-image';
-              btn.setAttribute('data-file-id', item.dataset.fileId || '');
-              btn.title = 'Set as cover picture';
-              btn.textContent = '⭐';
-              btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                const fileId = this.getAttribute('data-file-id');
-                if (fileId) {
-                  setAsMainByFileId(fileId);
-                }
-              });
-              btn.addEventListener('mousedown', function(e) {
-                e.stopPropagation();
-              });
-              rightDiv.insertBefore(btn, rightDiv.querySelector('.remove-preview-image'));
-            }
-          }
-        });
-        
-        // Verify order is correct
-        console.log('After drag - First image (main):', imageFiles[0]?.name);
-        console.log('Image order:', imageFiles.map(f => f.name).join(', '));
-      }, 50);
-    }
+    // Drag handlers are now inline in updateImagePreview for better reliability
 
     // Handle existing image removal and reordering (for edit mode)
     // Setup function that works immediately
     function setupExistingImageHandlers() {
-      const existingImageGrid = document.getElementById('image-thumbnails-grid');
+      let existingImageGrid = document.getElementById('image-thumbnails-grid');
       if (!existingImageGrid) {
         // Retry after a short delay if grid not found yet (for dynamically loaded content)
         setTimeout(setupExistingImageHandlers, 100);
@@ -1367,39 +1449,23 @@
       // Check if handlers are already set up to avoid duplicates
       const handlersAlreadySetup = existingImageGrid.hasAttribute('data-drag-handlers-setup');
       if (handlersAlreadySetup) {
-        console.log('Drag handlers already set up, skipping...');
+        console.log('Drag handlers already set up, skipping to prevent duplication');
         return;
       }
       
       // Mark as set up
       existingImageGrid.setAttribute('data-drag-handlers-setup', 'true');
       
-      // Clear any old drag handler flags
-      const existingItemsForCleanup = existingImageGrid.querySelectorAll('.existing-image-item, .image-thumbnail-item');
-      existingItemsForCleanup.forEach(function(item) {
-        item.removeAttribute('data-drag-handlers-attached');
-      });
-      
       // Setup drag and drop for existing images
       const existingItems = existingImageGrid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"])');
       let draggedExistingItem = null;
       
       // Also add container-level drag handlers
-      if (!existingImageGrid.hasAttribute('data-container-drag-setup')) {
-        existingImageGrid.setAttribute('data-container-drag-setup', 'true');
-        existingImageGrid.addEventListener('dragover', function(e) {
-          if (!draggedExistingItem) return;
-          e.preventDefault();
-          e.stopPropagation();
-          e.dataTransfer.dropEffect = 'move';
-        });
-        existingImageGrid.addEventListener('drop', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-        });
-      }
+      existingImageGrid.setAttribute('data-container-drag-setup', 'true');
       
-      existingItems.forEach(function(item) {
+      // Make all items draggable - refresh the list to include any dynamically added items
+      const allDraggableItems = existingImageGrid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"]), .new-image-placeholder:not([style*="opacity: 0.5"])');
+      allDraggableItems.forEach(function(item) {
         item.setAttribute('draggable', 'true');
         
         // Prevent image and button from interfering with drag
@@ -1410,84 +1476,15 @@
         const buttons = item.querySelectorAll('button');
         buttons.forEach(function(btn) {
           btn.setAttribute('draggable', 'false');
-          btn.addEventListener('dragstart', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-          });
         });
-        
-        // Drag start
-        item.addEventListener('dragstart', function(e) {
-          // Don't start drag if clicking on a button
-          if (e.target.closest('button')) {
-            e.preventDefault();
-            return false;
-          }
-          
-          draggedExistingItem = item;
-          item.classList.add('dragging');
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', item.getAttribute('data-image-id') || '');
-          e.stopPropagation();
-        });
-        
-        // Drag over
-        item.addEventListener('dragover', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          e.dataTransfer.dropEffect = 'move';
-          
-          if (draggedExistingItem && draggedExistingItem !== item) {
-            const allItems = Array.from(existingImageGrid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"])'));
-            const draggedIndex = allItems.indexOf(draggedExistingItem);
-            const targetIndex = allItems.indexOf(item);
-            
-            if (draggedIndex !== -1 && targetIndex !== -1 && draggedIndex !== targetIndex) {
-              // Move immediately for visual feedback
-              if (draggedIndex < targetIndex) {
-                existingImageGrid.insertBefore(draggedExistingItem, item.nextSibling);
-              } else {
-                existingImageGrid.insertBefore(draggedExistingItem, item);
-              }
-            }
-          }
-        });
-        
-        // Drag enter
-        item.addEventListener('dragenter', function(e) {
-          e.preventDefault();
-          if (item !== draggedExistingItem) {
-            item.classList.add('drag-over');
-          }
-        });
-        
-        // Drag leave
-        item.addEventListener('dragleave', function(e) {
-          item.classList.remove('drag-over');
-        });
-        
-        // Drop
-        item.addEventListener('drop', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          item.classList.remove('drag-over');
-        });
-        
-        // Drag end
-        item.addEventListener('dragend', function(e) {
-          item.classList.remove('dragging');
-          item.classList.remove('drag-over');
-          const allItems = existingImageGrid.querySelectorAll('.existing-image-item, .image-thumbnail-item');
-          allItems.forEach(function(i) {
-            i.classList.remove('drag-over');
-          });
-          
-          // Update order and indices
-          updateExistingImageOrder();
-          updateExistingImageIndices();
-          
-          draggedExistingItem = null;
-        });
+      });
+      
+      console.log('Set up drag handlers for', allDraggableItems.length, 'items');
+      
+      // Add .image-item class to all items for consistent selection
+      const allItems = existingImageGrid.querySelectorAll('.existing-image-item, .image-thumbnail-item, .new-image-placeholder');
+      allItems.forEach(function(item) {
+        item.classList.add('image-item');
       });
       
       // Container for removed image IDs
@@ -1520,8 +1517,11 @@
           const formField = document.querySelector('.form-field');
           if (formField && formField.parentElement) {
             formField.parentElement.appendChild(imageOrderContainer);
-          } else if (imageUploadInput && imageUploadInput.parentElement) {
-            imageUploadInput.parentElement.appendChild(imageOrderContainer);
+          } else {
+            const imageUploadInput = document.getElementById('image-upload-input');
+            if (imageUploadInput && imageUploadInput.parentElement) {
+              imageUploadInput.parentElement.appendChild(imageOrderContainer);
+            }
           }
         }
       }
@@ -1529,18 +1529,52 @@
       // ALWAYS initialize/update the order from DOM, even if it already has a value
       // This ensures the order matches what's actually displayed
       if (imageOrderContainer && existingImageGrid) {
-        const items = existingImageGrid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"])');
+        const items = existingImageGrid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"]), .new-image-placeholder:not([style*="opacity: 0.5"])');
         if (items.length > 0) {
           const order = Array.from(items).map(function(item) {
-            return item.getAttribute('data-image-id');
+            if (item.classList.contains('new-image-placeholder')) {
+              return 'new:' + (item.dataset.fileId || '');
+            } else {
+              return item.getAttribute('data-image-id');
+            }
           }).filter(function(id) { return id; }).join(',');
           imageOrderContainer.value = order;
           console.log('Initialized/updated existing image order:', order);
         }
       }
       
+      // CRITICAL: Also initialize combined order from existing images on page load
+      // This ensures all existing images are included in the combined order
+      if (typeof updateCombinedImageOrder === 'function') {
+        // Small delay to ensure DOM is ready
+        setTimeout(function() {
+          updateCombinedImageOrder();
+        }, 50);
+      }
+      
       // Initialize indices
       updateExistingImageIndices();
+      
+      // Setup handlers for any existing new-image-placeholder elements
+      const existingPlaceholders = existingImageGrid.querySelectorAll('.new-image-placeholder');
+      existingPlaceholders.forEach(function(placeholder) {
+        const fileId = placeholder.dataset.fileId;
+        const file = imageFiles.find(function(f) {
+          return (f._uniqueId || '') === fileId;
+        });
+        if (file && typeof setupPlaceholderDragHandlers === 'function') {
+          setupPlaceholderDragHandlers(placeholder, file);
+        }
+      });
+      
+      // Initialize combined order - CRITICAL: This must include all existing images
+      if (typeof updateCombinedImageOrder === 'function') {
+        updateCombinedImageOrder();
+        // Also update after a short delay to ensure DOM is fully ready
+        setTimeout(function() {
+          updateCombinedImageOrder();
+        }, 100);
+      }
       
       // Handle remove buttons - use event delegation for reliability
       existingImageGrid.addEventListener('click', function(e) {
@@ -1550,16 +1584,96 @@
         e.preventDefault();
         e.stopPropagation();
         
-        const imageItem = removeBtn.closest('.existing-image-item');
+        const imageItem = removeBtn.closest('.existing-image-item, .image-thumbnail-item, .new-image-placeholder');
         if (!imageItem) {
           console.warn('Could not find image item for remove button');
           return;
+        }
+        
+        const grid = document.getElementById('image-thumbnails-grid');
+        if (!grid) {
+          console.warn('Image grid not found');
+          return;
+        }
+        
+        // Handle removal of new image placeholder
+        if (imageItem.classList.contains('new-image-placeholder')) {
+          const fileId = removeBtn.getAttribute('data-file-id') || imageItem.dataset.fileId;
+          if (fileId) {
+            // DOM-first: remove from DOM immediately
+            imageItem.remove();
+            
+            // Remove from imageFiles array if it exists
+            if (window.imageFiles && Array.isArray(window.imageFiles)) {
+              const fileIndex = window.imageFiles.findIndex(function(f) {
+                return f && (f._uniqueId || '') === fileId;
+              });
+              if (fileIndex !== -1) {
+                window.imageFiles.splice(fileIndex, 1);
+                if (typeof updateFileInput === 'function') {
+                  try {
+                    updateFileInput();
+                  } catch (err) {
+                    console.error('Error in updateFileInput:', err);
+                  }
+                }
+                if (typeof updateImageOrder === 'function') {
+                  try {
+                    updateImageOrder();
+                  } catch (err) {
+                    console.error('Error in updateImageOrder:', err);
+                  }
+                }
+              }
+            }
+            
+            // Recompute order from fresh DOM
+            if (typeof window.updateCombinedImageOrder === 'function') {
+              try {
+                window.updateCombinedImageOrder();
+              } catch (err) {
+                console.error('Error in updateCombinedImageOrder:', err);
+              }
+            }
+            if (typeof window.updateExistingImageIndices === 'function') {
+              try {
+                window.updateExistingImageIndices();
+              } catch (err) {
+                console.error('Error in updateExistingImageIndices:', err);
+              }
+            }
+            if (typeof updateUploadZoneVisibility === 'function') {
+              try {
+                updateUploadZoneVisibility();
+              } catch (err) {
+                console.error('Error in updateUploadZoneVisibility:', err);
+              }
+            }
+            return;
+          }
         }
         
         const imageId = removeBtn.getAttribute('data-image-id');
         if (!imageId) {
           console.warn('No image ID found for remove button');
           return;
+        }
+        
+        // DOM-first: show as deleted but keep visible
+        imageItem.style.opacity = '0.3';
+        imageItem.style.pointerEvents = 'none';
+        imageItem.style.filter = 'grayscale(100%)';
+        imageItem.setAttribute('data-removed', 'true');
+        
+        // Add "DELETED" badge
+        let deletedBadge = imageItem.querySelector('.deleted-badge');
+        if (!deletedBadge) {
+          deletedBadge = document.createElement('span');
+          deletedBadge.className = 'deleted-badge';
+          deletedBadge.textContent = 'DELETED';
+          deletedBadge.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(239, 68, 68, 0.9); color: white; padding: 8px 16px; border-radius: 4px; font-weight: bold; font-size: 14px; z-index: 10; pointer-events: none;';
+          imageItem.style.position = 'relative';
+          imageItem.appendChild(deletedBadge);
         }
         
         // Get or create removed images container
@@ -1571,47 +1685,49 @@
           const formField = document.querySelector('.form-field');
           if (formField && formField.parentElement) {
             formField.parentElement.appendChild(container);
-          } else if (imageUploadInput && imageUploadInput.parentElement) {
-            imageUploadInput.parentElement.appendChild(container);
+          } else {
+            const imageUploadInput = document.getElementById('image-upload-input');
+            if (imageUploadInput && imageUploadInput.parentElement) {
+              imageUploadInput.parentElement.appendChild(container);
+            }
           }
         }
         
-        if (!container) {
-          console.error('Could not create removed images container');
-          return;
+        if (container && !container.querySelector(`input[value="${imageId}"]`)) {
+          const removedInput = document.createElement('input');
+          removedInput.type = 'hidden';
+          removedInput.name = 'removed_image_ids[]';
+          removedInput.value = imageId;
+          removedInput.setAttribute('data-removed-id', imageId);
+          container.appendChild(removedInput);
         }
         
-        // Check if this image is already marked for removal
-        const existingInput = container.querySelector(`input[value="${imageId}"]`);
-        if (existingInput) {
-          // Already marked for removal
-          return;
-        }
-        
-        // Create a new hidden input for this removed image
-        const removedInput = document.createElement('input');
-        removedInput.type = 'hidden';
-        removedInput.name = 'removed_image_ids[]';
-        removedInput.value = imageId;
-        removedInput.setAttribute('data-removed-id', imageId);
-        container.appendChild(removedInput);
-        
-        // Hide the image item visually (but keep in DOM for order tracking)
-        imageItem.style.opacity = '0.5';
-        imageItem.style.pointerEvents = 'none';
-        imageItem.setAttribute('data-removed', 'true');
-        
-        // Update order if function exists
-        const orderContainer = document.getElementById('existing-image-order-container');
-        if (orderContainer) {
-          const grid = document.getElementById('image-thumbnails-grid');
-          if (grid) {
-            const items = grid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"])');
-            const order = Array.from(items).map(function(item) {
-              return item.getAttribute('data-image-id');
-            }).filter(function(id) { return id; }).join(',');
-            orderContainer.value = order;
+        // Recompute order from fresh DOM
+        if (typeof window.updateCombinedImageOrder === 'function') {
+          try {
+            window.updateCombinedImageOrder();
+          } catch (err) {
+            console.error('Error in updateCombinedImageOrder:', err);
           }
+        }
+        if (typeof window.updateExistingImageOrder === 'function') {
+          try {
+            window.updateExistingImageOrder();
+          } catch (err) {
+            console.error('Error in updateExistingImageOrder:', err);
+          }
+        }
+        if (typeof window.updateExistingImageIndices === 'function') {
+          try {
+            window.updateExistingImageIndices();
+          } catch (err) {
+            console.error('Error in updateExistingImageIndices:', err);
+          }
+        }
+        
+        // Update upload zone visibility
+        if (typeof updateUploadZoneVisibility === 'function') {
+          updateUploadZoneVisibility();
         }
       });
       
@@ -1620,16 +1736,143 @@
       existingImageGrid.setAttribute('data-drag-handlers-setup', 'true');
       console.log('✓ Drag handlers setup complete for', existingItems.length, 'items');
       
+      // Function to setup drag handlers for new image placeholders
+      // Since we use event delegation on the grid, we just need to make it draggable
+      function setupPlaceholderDragHandlers(placeholder, file) {
+        // Make sure it's draggable
+        placeholder.setAttribute('draggable', 'true');
+        
+        // Prevent image and button from interfering
+        const img = placeholder.querySelector('img');
+        if (img) {
+          img.setAttribute('draggable', 'false');
+        }
+        const buttons = placeholder.querySelectorAll('button');
+        buttons.forEach(function(btn) {
+          btn.setAttribute('draggable', 'false');
+        });
+        
+        // Store placeholder reference in dragstart (handled by grid-level handler)
+        // The grid-level dragstart handler will set window.draggedPlaceholder
+        
+        // Remove button handler
+        const removeBtn = placeholder.querySelector('.remove-thumbnail-image');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const fileId = this.getAttribute('data-file-id');
+            
+            // Remove from existing images grid
+            placeholder.remove();
+            
+            // Remove from imageFiles array
+            const fileIndex = imageFiles.findIndex(function(f) {
+              return (f._uniqueId || '') === fileId;
+            });
+            if (fileIndex !== -1) {
+              imageFiles.splice(fileIndex, 1);
+              window.imageFiles = imageFiles;
+              updateFileInput();
+              updateImageOrder();
+            }
+            
+            // Update combined order and indices
+            if (typeof updateCombinedImageOrder === 'function') {
+              updateCombinedImageOrder();
+            }
+            if (typeof updateExistingImageIndices === 'function') {
+              updateExistingImageIndices();
+            }
+            
+            // Update upload zone visibility
+            if (typeof updateUploadZoneVisibility === 'function') {
+              updateUploadZoneVisibility();
+            }
+          });
+        }
+      }
+      
+      // Function to update combined image order (new + existing)
+      // MUST be defensive - check all containers and arrays before accessing
+      function updateCombinedImageOrder() {
+        const grid = document.getElementById('image-thumbnails-grid');
+        if (!grid) {
+          console.warn('Image grid not found');
+          return;
+        }
+        
+        const items = Array.from(grid.querySelectorAll('.existing-image-item, .image-thumbnail-item, .new-image-placeholder')).filter(function(item) {
+          // Exclude removed items (check data-removed attribute)
+          return item && !item.hasAttribute('data-removed');
+        });
+        if (!items || items.length === 0) {
+          // No items, clear the order
+          const combinedOrderInput = document.getElementById('combined-image-order');
+          if (combinedOrderInput) {
+            combinedOrderInput.value = '';
+          }
+          return;
+        }
+        
+        const order = [];
+        
+        // Process items in DOM order (left to right, top to bottom)
+        items.forEach(function(item) {
+          if (!item) return;
+          
+          if (item.classList.contains('new-image-placeholder') || item.dataset.isNew === 'true') {
+            // New image placeholder
+            const fileId = item.dataset.fileId;
+            if (fileId) {
+              order.push('new:' + fileId);
+            }
+          } else if (item.classList.contains('existing-image-item') || item.dataset.isExisting === 'true') {
+            // Existing image - get the data-image-id attribute
+            const imageId = item.getAttribute('data-image-id');
+            if (imageId) {
+              order.push('existing:' + imageId);
+            }
+          } else {
+            // Fallback: try to get ID from any available attribute
+            const imageId = item.getAttribute('data-image-id');
+            const fileId = item.dataset.fileId;
+            if (imageId) {
+              order.push('existing:' + imageId);
+            } else if (fileId) {
+              order.push('new:' + fileId);
+            }
+          }
+        });
+        
+        // Guard: ensure order is an array before using
+        if (!Array.isArray(order)) {
+          console.warn('Order array missing, aborting update');
+          return;
+        }
+        
+        const combinedOrderInput = document.getElementById('combined-image-order');
+        if (!combinedOrderInput) {
+          console.warn('Hidden order input missing');
+          return;
+        }
+        
+        const orderString = order.join(',');
+        combinedOrderInput.value = orderString;
+      }
+      
       // Make functions globally accessible
       window.setupExistingImageHandlers = setupExistingImageHandlers;
       window.updateExistingImageOrder = updateExistingImageOrder;
       window.updateExistingImageIndices = updateExistingImageIndices;
+      window.updateCombinedImageOrder = updateCombinedImageOrder;
+      window.setupPlaceholderDragHandlers = setupPlaceholderDragHandlers;
       
       // Make setupExistingImageHandlers globally accessible
       window.setupExistingImageHandlers = setupExistingImageHandlers;
       
       function updateExistingImageIndices() {
-        const items = existingImageGrid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"])');
+        const items = existingImageGrid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"]), .new-image-placeholder:not([style*="opacity: 0.5"])');
         
         // First, remove ALL main badges to start fresh
         items.forEach(function(item) {
@@ -1643,10 +1886,21 @@
         items.forEach(function(item, index) {
           item.setAttribute('data-image-index', index);
           
+          // FIRST IMAGE IS ALWAYS THE MAIN/COVER IMAGE (whether new or existing)
           if (index === 0) {
-            // FIRST IMAGE IS ALWAYS THE MAIN/COVER IMAGE
+            // Check if it's a new placeholder or existing image
+            const isNewPlaceholder = item.classList.contains('new-image-placeholder');
+            const badgeClass = isNewPlaceholder ? 'new-image-badge cover-badge' : 'main-badge-existing';
+            
+            // Remove any existing badges first
+            const existingBadge = item.querySelector('.main-badge-existing, .cover-badge');
+            if (existingBadge) {
+              existingBadge.remove();
+            }
+            
+            // Create COVER badge
             const badge = document.createElement('span');
-            badge.className = 'main-badge-existing';
+            badge.className = badgeClass;
             badge.textContent = 'COVER';
             badge.style.cssText = 'position: absolute; top: 4px; left: 4px; background: #22C55E; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; z-index: 10;';
             item.style.position = 'relative';
@@ -1662,18 +1916,23 @@
           console.warn('Cannot update existing image order: container or grid not found');
           return;
         }
-        const items = grid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"])');
+        const items = grid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"]), .new-image-placeholder:not([style*="opacity: 0.5"])');
         if (items.length === 0) {
           container.value = '';
           console.log('No existing images to order');
           return;
         }
         const order = Array.from(items).map(function(item) {
-          const imageId = item.getAttribute('data-image-id');
-          if (!imageId) {
-            console.warn('Image item missing data-image-id:', item);
+          // For new placeholders, use fileId; for existing, use image-id
+          if (item.classList.contains('new-image-placeholder')) {
+            return 'new:' + (item.dataset.fileId || '');
+          } else {
+            const imageId = item.getAttribute('data-image-id');
+            if (!imageId) {
+              console.warn('Image item missing data-image-id:', item);
+            }
+            return imageId || '';
           }
-          return imageId;
         }).filter(function(id) { return id; }).join(',');
         container.value = order;
         console.log('Updated existing image order:', order, 'Item count:', items.length);
@@ -1690,76 +1949,137 @@
       if (form) {
         // Function to sync all orders before submission
         function syncAllImageOrders() {
-          // Update new/preview images order
-          if (typeof updateImageOrder === 'function') {
-            updateImageOrder();
-          }
-          
-          // Rebuild imageFiles array from DOM to ensure order is correct
-          const allItemsForSync = imagePreviewGrid ? Array.from(imagePreviewGrid.querySelectorAll('.image-preview-item')) : [];
-          if (allItemsForSync.length > 0 && typeof imageFiles !== 'undefined') {
+          // CRITICAL: Rebuild imageFiles array from new-image-placeholder elements in the grid
+          // This ensures all new files are included in the submission in the correct order
+          const existingImageGrid = document.getElementById('image-thumbnails-grid');
+          if (existingImageGrid && typeof window.imageFiles !== 'undefined' && window.imageFiles.length > 0) {
+            const newPlaceholders = existingImageGrid.querySelectorAll('.new-image-placeholder:not([style*="opacity: 0.5"])');
             const reorderedFiles = [];
-            allItemsForSync.forEach(function(item) {
-              const fileId = item.dataset.fileId;
-              const file = imageFiles.find(function(f) {
+            
+            // Get files from placeholders in the order they appear in the grid
+            newPlaceholders.forEach(function(placeholder) {
+              const fileId = placeholder.dataset.fileId;
+              const file = window.imageFiles.find(function(f) {
                 return (f._uniqueId || '') === fileId;
               });
               if (file) {
                 reorderedFiles.push(file);
               }
             });
+            
+            // Update imageFiles with the ordered files (preserve any files not in placeholders)
             if (reorderedFiles.length > 0) {
+              window.imageFiles = reorderedFiles;
               imageFiles = reorderedFiles;
-              // Update global reference
-              window.imageFiles = imageFiles;
-              if (typeof updateFileInput === 'function') {
-                updateFileInput();
-              }
-              if (typeof updateImageOrder === 'function') {
-                updateImageOrder();
-              }
+              console.log('Rebuilt imageFiles from placeholders in grid order:', reorderedFiles.length, 'files');
             }
           }
           
-          // ALWAYS update existing image order - even if user didn't drag
-          // This ensures the current order is preserved
+          // CRITICAL: Update file input with current imageFiles (so files are submitted)
+          if (typeof updateFileInput === 'function') {
+            updateFileInput();
+            console.log('Updated file input before submission, file count:', imageFiles ? imageFiles.length : 0);
+          }
+          
+          // Update combined image order (this includes both new and existing) - MOST IMPORTANT
+          if (typeof window.updateCombinedImageOrder === 'function') {
+            window.updateCombinedImageOrder();
+          }
+          
+          // Also update existing image order for backward compatibility
           if (typeof window.updateExistingImageOrder === 'function') {
             window.updateExistingImageOrder();
+          }
+          
+          // Update image indices to show COVER badge on first image
+          if (typeof window.updateExistingImageIndices === 'function') {
+            window.updateExistingImageIndices();
+          }
+          
+          // Update new/preview images order (if any remain in preview)
+          if (typeof updateImageOrder === 'function') {
+            updateImageOrder();
           }
         }
         
         // Update order on form submit (capture phase to run early)
         form.addEventListener('submit', function(e) {
+          // Sync all orders and files FIRST
           syncAllImageOrders();
           
-          // Double-check that existing image order is set
+          // Force update file input one more time to ensure files are included
+          if (typeof updateFileInput === 'function') {
+            updateFileInput();
+          }
+          
+          // CRITICAL: Force update combined image order multiple times to ensure it's set
+          if (typeof window.updateCombinedImageOrder === 'function') {
+            window.updateCombinedImageOrder();
+            // Update again immediately
+            window.updateCombinedImageOrder();
+          }
+          
+          // Force update indices to ensure COVER badge is shown
+          if (typeof window.updateExistingImageIndices === 'function') {
+            window.updateExistingImageIndices();
+          }
+          
+          // Also update existing image order as backup
+          if (typeof window.updateExistingImageOrder === 'function') {
+            window.updateExistingImageOrder();
+          }
+          
+          // Log everything for debugging
+          const combinedOrderInput = document.getElementById('combined-image-order');
           const existingOrderContainer = document.getElementById('existing-image-order-container');
-          if (existingOrderContainer && !existingOrderContainer.value) {
-            // If still empty, get it from DOM
-            const grid = document.getElementById('existing-images-grid');
-            if (grid) {
-              const items = grid.querySelectorAll('.existing-image-item:not([data-removed="true"])');
-              if (items.length > 0) {
-                const order = Array.from(items).map(function(item) {
-                  return item.getAttribute('data-image-id');
-                }).filter(function(id) { return id; }).join(',');
-                existingOrderContainer.value = order;
-                console.log('Set existing image order on submit:', order);
+          const newOrderContainer = document.getElementById('image-order');
+          const fileInput = document.getElementById('image-upload-input');
+          
+          console.log('=== FORM SUBMISSION DEBUG ===');
+          if (fileInput && fileInput.files) {
+            console.log('File input has', fileInput.files.length, 'files');
+            for (let i = 0; i < fileInput.files.length; i++) {
+              console.log('  File', i, ':', fileInput.files[i].name);
+            }
+          }
+          if (combinedOrderInput) {
+            console.log('Combined image order:', combinedOrderInput.value);
+            // If it's still empty, try one more time
+            if (!combinedOrderInput.value) {
+              console.warn('Combined order is empty! Trying to update again...');
+              if (typeof window.updateCombinedImageOrder === 'function') {
+                window.updateCombinedImageOrder();
               }
             }
           }
-          
-          // Log orders for debugging
-          const newOrderContainer = document.getElementById('image-order');
           if (existingOrderContainer) {
-            console.log('Form submitting with existing image order:', existingOrderContainer.value);
+            console.log('Existing image order:', existingOrderContainer.value);
           }
           if (newOrderContainer) {
-            console.log('Form submitting with new image order:', newOrderContainer.value);
+            console.log('New image order:', newOrderContainer.value);
           }
+          console.log('imageFiles array length:', window.imageFiles ? window.imageFiles.length : 0);
+          console.log('===========================');
         }, true);
         
         // Also update order when submit button is clicked (as a backup)
+        const submitBtn = document.getElementById('listing-submit-btn');
+        if (submitBtn) {
+          submitBtn.addEventListener('click', function(e) {
+            // Update orders immediately
+            syncAllImageOrders();
+            if (typeof updateFileInput === 'function') {
+              updateFileInput();
+            }
+            if (typeof window.updateCombinedImageOrder === 'function') {
+              window.updateCombinedImageOrder();
+              // Update again after a tiny delay
+              setTimeout(function() {
+                window.updateCombinedImageOrder();
+              }, 5);
+            }
+          }, true); // Use capture phase
+        }
         const submitButton = form.querySelector('input[type="submit"], button[type="submit"]');
         if (submitButton) {
           submitButton.addEventListener('click', function(e) {
@@ -1858,10 +2178,14 @@
     const thumbnailsGrid = document.getElementById('image-thumbnails-grid');
     if (!thumbnailsGrid) return;
     
-    // Remove old listeners to prevent duplicates
-    const newGrid = thumbnailsGrid.cloneNode(true);
-    thumbnailsGrid.parentNode.replaceChild(newGrid, thumbnailsGrid);
-    const freshGrid = document.getElementById('image-thumbnails-grid');
+    // Check if already set up to prevent duplication
+    if (thumbnailsGrid.hasAttribute('data-remove-buttons-setup')) {
+      return;
+    }
+    thumbnailsGrid.setAttribute('data-remove-buttons-setup', 'true');
+    
+    // Don't clone the grid - just set up event delegation
+    const freshGrid = thumbnailsGrid;
     
     freshGrid.addEventListener('click', function(e) {
       const removeBtn = e.target.closest('.remove-thumbnail-image');
@@ -1870,19 +2194,96 @@
       e.preventDefault();
       e.stopPropagation();
       
+      // Get the image item
+      const imageItem = removeBtn.closest('.existing-image-item, .image-thumbnail-item, .new-image-placeholder');
+      if (!imageItem) {
+        console.warn('Could not find image item for remove button');
+        return;
+      }
+      
+      const grid = document.getElementById('image-thumbnails-grid');
+      if (!grid) {
+        console.warn('Image grid not found');
+        return;
+      }
+      
+      // Check if it's a new placeholder (has data-file-id)
+      const fileId = removeBtn.getAttribute('data-file-id');
+      if (fileId) {
+        // DOM-first: remove from DOM immediately
+        imageItem.remove();
+        
+        // Remove from imageFiles array if it exists
+        if (window.imageFiles && Array.isArray(window.imageFiles)) {
+          const fileIndex = window.imageFiles.findIndex(function(f) {
+            return f && (f._uniqueId || '') === fileId;
+          });
+          if (fileIndex !== -1) {
+            window.imageFiles.splice(fileIndex, 1);
+            if (typeof updateFileInput === 'function') {
+              try {
+                updateFileInput();
+              } catch (err) {
+                console.error('Error in updateFileInput:', err);
+              }
+            }
+            if (typeof updateImageOrder === 'function') {
+              try {
+                updateImageOrder();
+              } catch (err) {
+                console.error('Error in updateImageOrder:', err);
+              }
+            }
+          }
+        }
+        
+        // Recompute order from fresh DOM
+        if (typeof window.updateCombinedImageOrder === 'function') {
+          try {
+            window.updateCombinedImageOrder();
+          } catch (err) {
+            console.error('Error in updateCombinedImageOrder:', err);
+          }
+        }
+        if (typeof window.updateExistingImageIndices === 'function') {
+          try {
+            window.updateExistingImageIndices();
+          } catch (err) {
+            console.error('Error in updateExistingImageIndices:', err);
+          }
+        }
+        if (typeof updateUploadZoneVisibility === 'function') {
+          try {
+            updateUploadZoneVisibility();
+          } catch (err) {
+            console.error('Error in updateUploadZoneVisibility:', err);
+          }
+        }
+        return;
+      }
+      
+      // Handle existing image removal (has data-image-id)
       const imageId = removeBtn.getAttribute('data-image-id');
       if (!imageId) {
         console.warn('No image ID found for remove button');
         return;
       }
       
-      console.log('Removing thumbnail with ID:', imageId);
+      // DOM-first: show as deleted but keep visible
+      imageItem.style.opacity = '0.3';
+      imageItem.style.pointerEvents = 'none';
+      imageItem.style.filter = 'grayscale(100%)';
+      imageItem.setAttribute('data-removed', 'true');
       
-      // Remove thumbnail visually
-      const thumbnailItem = removeBtn.closest('.image-thumbnail-item');
-      if (thumbnailItem) {
-        thumbnailItem.style.opacity = '0.5';
-        thumbnailItem.style.pointerEvents = 'none';
+      // Add "DELETED" badge
+      let deletedBadge = imageItem.querySelector('.deleted-badge');
+      if (!deletedBadge) {
+        deletedBadge = document.createElement('span');
+        deletedBadge.className = 'deleted-badge';
+        deletedBadge.textContent = 'DELETED';
+        deletedBadge.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(239, 68, 68, 0.9); color: white; padding: 8px 16px; border-radius: 4px; font-weight: bold; font-size: 14px; z-index: 10; pointer-events: none;';
+        imageItem.style.position = 'relative';
+        imageItem.appendChild(deletedBadge);
       }
       
       // Add hidden input for removed image
@@ -1902,18 +2303,42 @@
         }
       }
       
-      if (!removedContainer.querySelector(`input[value="${imageId}"]`)) {
+      if (removedContainer && !removedContainer.querySelector(`input[value="${imageId}"]`)) {
         const removedInput = document.createElement('input');
         removedInput.type = 'hidden';
         removedInput.name = 'removed_image_ids[]';
         removedInput.value = imageId;
         removedContainer.appendChild(removedInput);
-        console.log('Added removed image ID to form:', imageId);
       }
       
-      // Update upload zone visibility after removal
+      // Recompute order from fresh DOM
+      if (typeof window.updateCombinedImageOrder === 'function') {
+        try {
+          window.updateCombinedImageOrder();
+        } catch (err) {
+          console.error('Error in updateCombinedImageOrder:', err);
+        }
+      }
+      if (typeof window.updateExistingImageOrder === 'function') {
+        try {
+          window.updateExistingImageOrder();
+        } catch (err) {
+          console.error('Error in updateExistingImageOrder:', err);
+        }
+      }
+      if (typeof window.updateExistingImageIndices === 'function') {
+        try {
+          window.updateExistingImageIndices();
+        } catch (err) {
+          console.error('Error in updateExistingImageIndices:', err);
+        }
+      }
       if (typeof updateUploadZoneVisibility === 'function') {
-        updateUploadZoneVisibility();
+        try {
+          updateUploadZoneVisibility();
+        } catch (err) {
+          console.error('Error in updateUploadZoneVisibility:', err);
+        }
       }
     }, true); // Use capture phase for better reliability
   }
@@ -1922,29 +2347,17 @@
   function updateUploadZoneVisibility() {
     const imageUploadZone = document.getElementById('image-upload-zone');
     if (!imageUploadZone) return;
-    
-    // Count new images - check if imageFiles exists (global or local)
-    let newImageCount = 0;
-    const imagePreviewGrid = document.getElementById('image-preview-grid');
-    if (imagePreviewGrid) {
-      // Count from DOM for reliability
-      newImageCount = imagePreviewGrid.querySelectorAll('.image-preview-item').length;
-    } else if (typeof window.imageFiles !== 'undefined' && window.imageFiles) {
-      // Fallback to global imageFiles if DOM not available
-      newImageCount = window.imageFiles.length;
-    }
-    
-    // Count existing images (not marked for removal)
+
+    // Count all images in the bottom grid (existing + new placeholders)
     const existingThumbnails = document.getElementById('image-thumbnails-grid');
-    let existingCount = 0;
+    let totalCount = 0;
     if (existingThumbnails) {
-      existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([style*="opacity: 0.5"])').length;
+      totalCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([style*="opacity: 0.5"]), .new-image-placeholder:not([style*="opacity: 0.5"])').length;
     }
-    
-    const totalImages = newImageCount + existingCount;
+
     const MAX_IMAGES = 10;
     
-    if (totalImages >= MAX_IMAGES) {
+    if (totalCount >= MAX_IMAGES) {
       imageUploadZone.style.display = 'none';
     } else {
       imageUploadZone.style.display = 'flex';
@@ -1953,20 +2366,51 @@
   
   // Initialize on Turbo events
   document.addEventListener('turbo:load', function() {
+    // Reset setup flags to allow re-initialization on navigation
+    const thumbnailsGrid = document.getElementById('image-thumbnails-grid');
+    if (thumbnailsGrid) {
+      thumbnailsGrid.removeAttribute('data-remove-buttons-setup');
+    }
     setupThumbnailRemoveButtons();
     // Re-setup image upload listeners on Turbo navigation
-    if (typeof window.setupImageUploadListeners === 'function') {
-      // Remove the setup flag to allow re-initialization
-      const imageUploadZone = document.getElementById('image-upload-zone');
-      if (imageUploadZone) {
-        imageUploadZone.removeAttribute('data-upload-listeners-setup');
+    // Use setTimeout to ensure DOM is fully loaded
+    setTimeout(function() {
+      if (typeof window.setupImageUploadListeners === 'function') {
+        // Remove the setup flag to allow re-initialization
+        const imageUploadZone = document.getElementById('image-upload-zone');
+        const imageUploadInput = document.getElementById('image-upload-input');
+        if (imageUploadZone && imageUploadInput) {
+          imageUploadZone.removeAttribute('data-upload-listeners-setup');
+          window.setupImageUploadListeners();
+        } else {
+          console.warn('Image upload elements not found on turbo:load');
+        }
       }
-      window.setupImageUploadListeners();
+    }, 50);
+    // Reset imageFiles if needed
+    if (!window.imageFiles || !Array.isArray(window.imageFiles)) {
+      window.imageFiles = [];
     }
     // Setup existing image drag handlers
-    if (typeof setupExistingImageHandlers === 'function') {
+    if (typeof window.setupExistingImageHandlers === 'function') {
+      // Remove setup flag to allow re-initialization
+      let existingImageGrid = document.getElementById('image-thumbnails-grid');
+      if (existingImageGrid) {
+        existingImageGrid.removeAttribute('data-drag-handlers-setup');
+        existingImageGrid.removeAttribute('data-container-drag-setup');
+      }
       setTimeout(function() {
-        setupExistingImageHandlers();
+        window.setupExistingImageHandlers();
+        // After handlers are set up, initialize combined order with all existing images
+        if (typeof window.updateCombinedImageOrder === 'function') {
+          // Update immediately
+          window.updateCombinedImageOrder();
+          // And again after a delay to ensure it's set
+          setTimeout(function() {
+            window.updateCombinedImageOrder();
+            console.log('Initialized combined order on page load');
+          }, 150);
+        }
       }, 100);
     }
     // Update upload zone visibility on page load
@@ -1974,20 +2418,51 @@
   });
   
   document.addEventListener('turbo:render', function() {
+    // Reset setup flags to allow re-initialization on render
+    const thumbnailsGrid = document.getElementById('image-thumbnails-grid');
+    if (thumbnailsGrid) {
+      thumbnailsGrid.removeAttribute('data-remove-buttons-setup');
+    }
     setupThumbnailRemoveButtons();
     // Re-setup image upload listeners on Turbo render
-    if (typeof window.setupImageUploadListeners === 'function') {
-      // Remove the setup flag to allow re-initialization
-      const imageUploadZone = document.getElementById('image-upload-zone');
-      if (imageUploadZone) {
-        imageUploadZone.removeAttribute('data-upload-listeners-setup');
+    // Use setTimeout to ensure DOM is fully loaded
+    setTimeout(function() {
+      if (typeof window.setupImageUploadListeners === 'function') {
+        // Remove the setup flag to allow re-initialization
+        const imageUploadZone = document.getElementById('image-upload-zone');
+        const imageUploadInput = document.getElementById('image-upload-input');
+        if (imageUploadZone && imageUploadInput) {
+          imageUploadZone.removeAttribute('data-upload-listeners-setup');
+          window.setupImageUploadListeners();
+        } else {
+          console.warn('Image upload elements not found on turbo:render');
+        }
       }
-      window.setupImageUploadListeners();
+    }, 50);
+    // Reset imageFiles if needed
+    if (!window.imageFiles || !Array.isArray(window.imageFiles)) {
+      window.imageFiles = [];
     }
     // Setup existing image drag handlers
-    if (typeof setupExistingImageHandlers === 'function') {
+    if (typeof window.setupExistingImageHandlers === 'function') {
+      // Remove setup flag to allow re-initialization
+      let existingImageGrid = document.getElementById('image-thumbnails-grid');
+      if (existingImageGrid) {
+        existingImageGrid.removeAttribute('data-drag-handlers-setup');
+        existingImageGrid.removeAttribute('data-container-drag-setup');
+      }
       setTimeout(function() {
-        setupExistingImageHandlers();
+        window.setupExistingImageHandlers();
+        // After handlers are set up, initialize combined order with all existing images
+        if (typeof window.updateCombinedImageOrder === 'function') {
+          // Update immediately
+          window.updateCombinedImageOrder();
+          // And again after a delay to ensure it's set
+          setTimeout(function() {
+            window.updateCombinedImageOrder();
+            console.log('Initialized combined order on turbo render');
+          }, 150);
+        }
       }, 100);
     }
     // Update upload zone visibility on render
@@ -2001,7 +2476,7 @@
   
   // Global function for setting up existing image handlers (can be called from anywhere)
   window.setupExistingImageRemoveHandlers = function() {
-    const existingImageGrid = document.getElementById('existing-images-grid');
+    const existingImageGrid = document.getElementById('image-thumbnails-grid');
     if (!existingImageGrid || existingImageGrid.hasAttribute('data-remove-handlers-setup')) {
       return;
     }
@@ -2058,4 +2533,280 @@
   
   // Final fallback - call after a delay
   setTimeout(window.setupExistingImageRemoveHandlers, 200);
+  
+  // Hard-lock initialization guard (CRITICAL)
+  // Reset on Turbo navigation to allow re-initialization
+  let dragInitialized = false;
+  
+  // Initialize image drag swap functionality
+  let draggedItem = null;
+  
+  // Store handlers so we can remove them on re-init
+  let dragHandlers = {
+    dragstart: null,
+    dragover: null,
+    drop: null,
+    dragend: null
+  };
+  
+  function swapByIndex(container, a, b) {
+    const items = Array.from(container.children);
+    
+    const aIndex = items.indexOf(a);
+    const bIndex = items.indexOf(b);
+    
+    if (aIndex === -1 || bIndex === -1) return;
+    
+    // Swap in array
+    [items[aIndex], items[bIndex]] = [items[bIndex], items[aIndex]];
+    
+    // Atomic DOM rebuild - clear and rebuild to prevent partial state
+    container.innerHTML = '';
+    items.forEach(function(item) {
+      container.appendChild(item);
+    });
+    
+    // Update order after swap
+    if (typeof updateImageOrder === 'function') {
+      updateImageOrder();
+    }
+    if (typeof window.updateCombinedImageOrder === 'function') {
+      window.updateCombinedImageOrder();
+    }
+    if (typeof window.updateExistingImageOrder === 'function') {
+      window.updateExistingImageOrder();
+    }
+    if (typeof window.updateExistingImageIndices === 'function') {
+      window.updateExistingImageIndices();
+    }
+  }
+  
+  function initImageDragSwap() {
+    const grid = document.getElementById('image-thumbnails-grid');
+    if (!grid) {
+      // Grid not ready yet, will retry
+      return false;
+    }
+    
+    // Check if already initialized on this grid instance
+    if (grid.hasAttribute('data-drag-initialized')) {
+      // Remove old handlers if they exist
+      if (dragHandlers.dragstart) {
+        grid.removeEventListener('dragstart', dragHandlers.dragstart);
+      }
+      if (dragHandlers.dragover) {
+        grid.removeEventListener('dragover', dragHandlers.dragover);
+      }
+      if (dragHandlers.drop) {
+        grid.removeEventListener('drop', dragHandlers.drop);
+      }
+      if (dragHandlers.dragend) {
+        grid.removeEventListener('dragend', dragHandlers.dragend);
+      }
+    }
+    
+    // Mark as initialized
+    grid.setAttribute('data-drag-initialized', 'true');
+    
+    // Add .image-item class to all items for consistent selection
+    const allItems = grid.querySelectorAll('.existing-image-item, .image-thumbnail-item, .new-image-placeholder');
+    allItems.forEach(function(item) {
+      item.classList.add('image-item');
+    });
+    
+    // Create handler functions
+    dragHandlers.dragstart = function(e) {
+      // Don't start drag if clicking on a button
+      if (e.target.closest('button')) {
+        e.preventDefault();
+        return false;
+      }
+      
+      const item = e.target.closest('.image-item');
+      if (!item) return;
+      
+      draggedItem = item;
+      e.dataTransfer.setData('text/plain', '');
+    };
+    
+    dragHandlers.dragover = function(e) {
+      e.preventDefault();
+    };
+    
+    dragHandlers.drop = function(e) {
+      e.preventDefault();
+      
+      // Sanity guard: ensure draggedItem is still in the grid
+      if (!grid.contains(draggedItem)) {
+        draggedItem = null;
+        return;
+      }
+      
+      // Handle drop of new image from top section first
+      if (window.draggedElement && window.draggedElement.classList && window.draggedElement.classList.contains('image-preview-item')) {
+        try {
+          const dragData = e.dataTransfer.getData('application/json');
+          if (dragData) {
+            const data = JSON.parse(dragData);
+            if (data.type === 'new-image') {
+              const fileId = data.fileId;
+              const file = window.imageFiles ? window.imageFiles.find(function(f) {
+                return (f._uniqueId || '') === fileId;
+              }) : null;
+              
+              if (file) {
+                const targetItem = e.target.closest('.image-item');
+                
+                // Create placeholder
+                const placeholder = document.createElement('div');
+                placeholder.className = 'image-thumbnail-item new-image-placeholder image-item';
+                placeholder.setAttribute('draggable', 'true');
+                placeholder.dataset.fileId = fileId;
+                placeholder.dataset.isNew = 'true';
+                placeholder.dataset.isExisting = 'false';
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                  placeholder.innerHTML = `
+                    <img src="${e.target.result}" class="thumbnail-image" draggable="false">
+                    <button type="button" class="remove-thumbnail-image" data-file-id="${fileId}" title="Remove image">×</button>
+                    <span class="new-image-badge">NEW</span>
+                  `;
+                  
+                  // Insert before the target item if found, otherwise append
+                  if (targetItem) {
+                    grid.insertBefore(placeholder, targetItem);
+                  } else {
+                    grid.appendChild(placeholder);
+                  }
+                  
+                  // Remove from new images
+                  if (window.draggedElement && window.draggedElement.remove) {
+                    window.draggedElement.remove();
+                  }
+                  
+                  // Update arrays
+                  if (window.imageFiles) {
+                    const fileIndex = window.imageFiles.findIndex(function(f) {
+                      return (f._uniqueId || '') === fileId;
+                    });
+                    if (fileIndex !== -1) {
+                      window.imageFiles.splice(fileIndex, 1);
+                      if (typeof updateFileInput === 'function') {
+                        updateFileInput();
+                      }
+                      if (typeof updateImageOrder === 'function') {
+                        updateImageOrder();
+                      }
+                    }
+                  }
+                  
+                  // Update combined order
+                  if (typeof window.updateCombinedImageOrder === 'function') {
+                    window.updateCombinedImageOrder();
+                  }
+                  
+                  // Setup handlers
+                  if (typeof window.setupPlaceholderDragHandlers === 'function') {
+                    window.setupPlaceholderDragHandlers(placeholder, file);
+                  }
+                  
+                  // Update preview visibility
+                  const imagePreviewContainer = document.getElementById('image-preview-container');
+                  if (window.imageFiles && window.imageFiles.length === 0 && imagePreviewContainer) {
+                    imagePreviewContainer.style.display = 'none';
+                  }
+                };
+                reader.readAsDataURL(file);
+                
+                if (window.draggedElement) {
+                  window.draggedElement = null;
+                }
+                
+                // Update order
+                if (typeof window.updateCombinedImageOrder === 'function') {
+                  window.updateCombinedImageOrder();
+                }
+                if (typeof window.updateExistingImageIndices === 'function') {
+                  window.updateExistingImageIndices();
+                }
+                
+                return;
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error handling drop:', err);
+        }
+      }
+      
+      // Handle swap of existing images
+      const target = e.target.closest('.image-item');
+      if (!draggedItem || !target || draggedItem === target) return;
+      
+      // Sanity guard: ensure both items are still in the grid
+      if (!grid.contains(draggedItem) || !grid.contains(target)) {
+        draggedItem = null;
+        return;
+      }
+      
+      swapByIndex(grid, draggedItem, target);
+    };
+    
+    dragHandlers.dragend = function() {
+      draggedItem = null;
+    };
+    
+    // Add event listeners
+    grid.addEventListener('dragstart', dragHandlers.dragstart);
+    grid.addEventListener('dragover', dragHandlers.dragover);
+    grid.addEventListener('drop', dragHandlers.drop);
+    grid.addEventListener('dragend', dragHandlers.dragend);
+    
+    return true; // Successfully initialized
+  }
+  
+  // Reset initialization flag on Turbo navigation
+  document.addEventListener('turbo:before-cache', function() {
+    dragInitialized = false;
+    draggedItem = null;
+  });
+  
+  // Initialize on page load with retry logic
+  function tryInitImageDragSwap(retries = 3) {
+    if (initImageDragSwap()) {
+      return true;
+    }
+    if (retries > 0) {
+      setTimeout(function() {
+        tryInitImageDragSwap(retries - 1);
+      }, 100);
+    }
+    return false;
+  }
+  
+  document.addEventListener('turbo:load', function() {
+    dragInitialized = false; // Reset on Turbo load
+    setTimeout(function() {
+      tryInitImageDragSwap(5);
+    }, 50);
+  });
+  
+  document.addEventListener('turbo:render', function() {
+    dragInitialized = false; // Reset on Turbo render
+    setTimeout(function() {
+      tryInitImageDragSwap(5);
+    }, 50);
+  });
+  
+  document.addEventListener('DOMContentLoaded', function() {
+    tryInitImageDragSwap(5);
+  });
+  
+  // Also call immediately if DOM is ready
+  if (document.readyState !== 'loading') {
+    setTimeout(function() {
+      tryInitImageDragSwap(5);
+    }, 50);
+  }
 </script>

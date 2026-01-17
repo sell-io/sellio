@@ -10,7 +10,8 @@
     <div class="listing-main-content">
       <!-- Images and Details on the Left -->
       <div class="listing-images-section">
-        <% ordered_images = @listing.ordered_images %>
+        <% ordered_images = @listing.ordered_images.to_a %>
+        <% Rails.logger.info "Listing #{@listing.id} - ordered_images count: #{ordered_images.count}, image_order: #{@listing.extra_fields&.dig('image_order').inspect}, total attachments: #{@listing.images_attachments.count}" %>
         <% if ordered_images.any? %>
           <div class="image-gallery-container">
             <!-- Small thumbnails on the left side -->
@@ -36,8 +37,10 @@
             <!-- Hidden images for JavaScript to access all images -->
             <div style="display: none;" id="all-images-data">
               <% ordered_images.each_with_index do |image, index| %>
-                <%= image_tag image, class: "hidden-gallery-image", 
-                              data: { image_index: index, image_url: url_for(image) } %>
+                <% if image.present? %>
+                  <%= image_tag image, class: "hidden-gallery-image", 
+                                data: { image_index: index, image_url: url_for(image) } %>
+                <% end %>
               <% end %>
             </div>
           </div>
