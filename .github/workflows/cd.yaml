@@ -1,0 +1,27 @@
+name: CD
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+      - v*.*.*
+
+jobs:
+    integration:
+      if: github.event.pull_request.merged == true
+      uses: ./.github/workflows/ci.yaml
+      secrets: inherit
+      permissions:
+        checks: write
+        contents: read
+
+    docker:
+      needs: [integration]
+      if: github.event.pull_request.merged == true
+      permissions:
+        contents: read
+        packages: write
+      uses: ./.github/workflows/docker-image.yaml
+      secrets: inherit
