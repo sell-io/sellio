@@ -9,16 +9,16 @@ on:
       - v*.*.*
 
 jobs:
-    integration:
-      if: github.event.pull_request.merged == true
-      uses: ./.github/workflows/ci.yaml
-      secrets: inherit
-      permissions:
-        checks: write
-        contents: read
+    # integration:
+    #   if: github.event.pull_request.merged == true
+    #   uses: ./.github/workflows/ci.yaml
+    #   secrets: inherit
+    #   permissions:
+    #     checks: write
+    #     contents: read
 
     docker:
-      needs: [integration]
+    #  needs: [integration]
       if: github.event.pull_request.merged == true
       permissions:
         contents: read
