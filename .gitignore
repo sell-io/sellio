@@ -28,6 +28,9 @@
 !/tmp/storage/
 !/tmp/storage/.keep
 
+/vendor
+!/vendor/.keep
+
 /public/assets
 
 # Ignore key files for decrypting credentials and more.
