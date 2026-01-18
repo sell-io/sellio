@@ -1,32 +1,20 @@
 default: &default
   adapter: postgresql
   encoding: unicode
+  database: <%= ENV.fetch("DB_NAME") { "sellio" } %>
+  username: <%= ENV.fetch("DB_USER") { "postgres" } %>
+  password: <%= ENV.fetch("DB_PASS") { "test" } %>
   port: 5432
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
 
 development:
-  adapter: postgresql
-  encoding: unicode
-  database: sellio
-  username: postgres
-  password: test
-  host: localhost
-  port: 5432
+  <<: *default
+  host: <%= ENV.fetch("DB_HOST") { "127.0.0.1" } %>
 
 test:
-  adapter: postgresql
-  encoding: unicode
-  database: sellio_test
-  username: postgres
-  password: test
-  host: localhost
-  port: 5432
+  <<: *default
+  host: <%= ENV.fetch("DB_HOST") { "127.0.0.1" } %>
 
 production:
   <<: *default
-  adapter: postgresql
-  encoding: unicode
-  host: postgres
-  password: <%= ENV['DB_PASS'] %>
-  database: <%= ENV['DB_NAME'] %>
-  username: <%= ENV['DB_USER'] %>
+  host: <%= ENV.fetch("DB_HOST") { "postgres" } %>
