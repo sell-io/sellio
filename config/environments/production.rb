@@ -24,6 +24,9 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
+  # Action Cable is not used in this app; explicitly disable mounting in production.
+  config.action_cable.mount_path = nil
+
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   # config.assume_ssl = true
 
