@@ -236,28 +236,28 @@
       <!-- Hidden input to store combined order (new + existing) -->
       <input type="hidden" id="combined-image-order" name="combined_image_order" value="">
 
-      <% if listing.persisted? && listing.images.attached? %>
-        <% ordered_existing_images = listing.ordered_images.to_a %>
-        <%# Build image map with IDs for reference %>
-        <% image_map = {} %>
-        <% ordered_existing_images.each do |img| %>
-          <% attachment = listing.images_attachments.find { |a| a.blob_id == img.id } %>
-          <% image_id = attachment&.id || img.id %>
-          <% image_map[image_id.to_s] = { image: img, attachment: attachment } %>
-        <% end %>
-        <%# Get current order for hidden input %>
-        <% current_order_ids = ordered_existing_images.map { |img| 
-             attachment = listing.images_attachments.find { |a| a.blob_id == img.id }
-             attachment&.id
-           }.compact.reject(&:nil?) %>
-        <% order_value = current_order_ids.any? ? current_order_ids.join(',') : '' %>
-        <input type="hidden" id="existing-image-order-container" name="existing_image_order" value="<%= order_value %>">
-        
-        <div class="existing-images" style="margin-top: 1.5rem; display: block;">
+      <%# Always render the thumbnails grid so selected photos can preview reliably on mobile/desktop %>
+      <div class="existing-images" style="margin-top: 1.5rem; display: block;">
+        <% if listing.persisted? && listing.images.attached? %>
           <p class="form-help">Current images (drag to reorder, click × to remove):</p>
-          
-          <!-- Compact thumbnail grid - draggable, always visible -->
-          <div class="image-thumbnails-grid" id="image-thumbnails-grid" data-draggable-container="true" data-accepts-new-images="true" style="display: grid !important; visibility: visible !important;">
+        <% else %>
+          <p class="form-help">Selected images (drag to reorder, click × to remove):</p>
+        <% end %>
+
+        <% if listing.persisted? %>
+          <% ordered_existing_images = listing.ordered_images.to_a %>
+          <%# Get current order for hidden input (existing attachments) %>
+          <% current_order_ids = ordered_existing_images.map { |img|
+               attachment = listing.images_attachments.find { |a| a.blob_id == img.id }
+               attachment&.id
+             }.compact.reject(&:nil?) %>
+          <% order_value = current_order_ids.any? ? current_order_ids.join(',') : '' %>
+          <input type="hidden" id="existing-image-order-container" name="existing_image_order" value="<%= order_value %>">
+        <% end %>
+        
+        <!-- Compact thumbnail grid - draggable, always visible -->
+        <div class="image-thumbnails-grid" id="image-thumbnails-grid" data-draggable-container="true" data-accepts-new-images="true" style="display: grid !important; visibility: visible !important;">
+          <% if listing.persisted? && listing.images.attached? %>
             <% ordered_existing_images.each_with_index do |img, index| %>
               <% attachment = listing.images_attachments.find { |a| a.blob_id == img.id } %>
               <% image_id = attachment&.id || img.id %>
@@ -274,13 +274,13 @@
                 <% end %>
               </div>
             <% end %>
-          </div>
-          
-          <p class="form-help" style="margin-top: 0.75rem; color: #6b7280; font-size: 0.875rem;">
-            You can add more images using the upload zone above.
-          </p>
+          <% end %>
         </div>
-      <% end %>
+        
+        <p class="form-help" style="margin-top: 0.75rem; color: #6b7280; font-size: 0.875rem;">
+          You can add more images using the upload zone above.
+        </p>
+      </div>
     </div>
 
     <div class="form-actions">
@@ -1024,7 +1024,7 @@
           // Store reference to this item for drag handlers
           const thisItem = imageItem;
           
-          // Drag start
+          // Desktop drag start
           imageItem.addEventListener('dragstart', function(e) {
             // Don't drag if clicking button
             if (e.target.closest('button')) {
@@ -1044,7 +1044,7 @@
             console.log('Drag start (new image):', thisItem.dataset.fileId);
           });
           
-          // Drag over - CRITICAL: must prevent default
+          // Desktop drag over - CRITICAL: must prevent default
           imageItem.addEventListener('dragover', function(e) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
@@ -1074,7 +1074,7 @@
             }
           });
           
-          // Drag enter
+          // Desktop drag enter
           imageItem.addEventListener('dragenter', function(e) {
             e.preventDefault();
             if (thisItem !== window.draggedElement) {
@@ -1082,12 +1082,12 @@
             }
           });
           
-          // Drag leave
+          // Desktop drag leave
           imageItem.addEventListener('dragleave', function(e) {
             thisItem.classList.remove('drag-over');
           });
           
-          // Drop
+          // Desktop drop
           imageItem.addEventListener('drop', function(e) {
             e.preventDefault();
             thisItem.classList.remove('drag-over');
@@ -1111,15 +1111,8 @@
             }
           });
           
-          // Drag end
-          imageItem.addEventListener('dragend', function(e) {
-            thisItem.classList.remove('dragging');
-            thisItem.classList.remove('drag-over');
-            const allItems = imagePreviewGrid.querySelectorAll('.image-preview-item');
-            allItems.forEach(function(item) {
-              item.classList.remove('drag-over');
-            });
-            
+          // Desktop drag end
+          function finalizeOrderFromDom() {
             // Rebuild array from DOM order
             const reorderedFiles = [];
             const allItemsArray = Array.from(imagePreviewGrid.querySelectorAll('.image-preview-item'));
@@ -1195,9 +1188,70 @@
                 }
               });
             }, 10);
-            
+          }
+
+          imageItem.addEventListener('dragend', function(e) {
+            thisItem.classList.remove('dragging');
+            thisItem.classList.remove('drag-over');
+            const allItems = imagePreviewGrid.querySelectorAll('.image-preview-item');
+            allItems.forEach(function(item) {
+              item.classList.remove('drag-over');
+            });
+            finalizeOrderFromDom();
             window.draggedElement = null;
           });
+
+          // --- Touch support for mobile drag-reorder on new images ---
+          let isTouchDraggingPreview = false;
+
+          imageItem.addEventListener('touchstart', function(e) {
+            const touch = e.touches && e.touches[0];
+            if (!touch) return;
+            if (e.target.closest('button')) return;
+            window.draggedElement = thisItem;
+            isTouchDraggingPreview = true;
+            thisItem.classList.add('dragging');
+          }, { passive: true });
+
+          imageItem.addEventListener('touchmove', function(e) {
+            if (!isTouchDraggingPreview || !window.draggedElement) return;
+            // prevent page scroll while reordering
+            e.preventDefault();
+            const touch = e.touches && e.touches[0];
+            if (!touch) return;
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (!target) return;
+            const overItem = target.closest('.image-preview-item');
+            if (!overItem || overItem === thisItem) return;
+
+            const allItems = Array.from(imagePreviewGrid.querySelectorAll('.image-preview-item'));
+            const draggedIndex = allItems.indexOf(thisItem);
+            const targetIndex = allItems.indexOf(overItem);
+            if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) return;
+
+            if (draggedIndex < targetIndex) {
+              imagePreviewGrid.insertBefore(thisItem, overItem.nextSibling);
+            } else {
+              imagePreviewGrid.insertBefore(thisItem, overItem);
+            }
+
+            finalizeOrderFromDom();
+          }, { passive: false });
+
+          function endTouchPreviewDrag() {
+            if (!isTouchDraggingPreview) return;
+            isTouchDraggingPreview = false;
+            thisItem.classList.remove('dragging');
+            thisItem.classList.remove('drag-over');
+          }
+
+          imageItem.addEventListener('touchend', function() {
+            endTouchPreviewDrag();
+          }, { passive: true });
+
+          imageItem.addEventListener('touchcancel', function() {
+            endTouchPreviewDrag();
+          }, { passive: true });
           
           // Prevent image drag (browser default) to allow container drag
           const img = imageItem.querySelector('.preview-image');
@@ -1478,6 +1532,73 @@
           btn.setAttribute('draggable', 'false');
         });
       });
+
+      // --- Touch support for mobile drag-reorder on existing images ---
+      let touchDragItem = null;
+      let isTouchDragging = false;
+
+      function reorderItemsForTouch(dragItem, overItem) {
+        if (!dragItem || !overItem || dragItem === overItem) return;
+        const items = Array.from(existingImageGrid.querySelectorAll('.existing-image-item:not([data-removed="true"]), .image-thumbnail-item:not([data-removed="true"]), .new-image-placeholder:not([data-removed="true"])'));
+        const draggedIndex = items.indexOf(dragItem);
+        const targetIndex = items.indexOf(overItem);
+        if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) return;
+
+        if (draggedIndex < targetIndex) {
+          existingImageGrid.insertBefore(dragItem, overItem.nextSibling);
+        } else {
+          existingImageGrid.insertBefore(dragItem, overItem);
+        }
+
+        // Update order/indices after DOM change
+        if (typeof window.updateCombinedImageOrder === 'function') {
+          window.updateCombinedImageOrder();
+        }
+        if (typeof window.updateExistingImageOrder === 'function') {
+          window.updateExistingImageOrder();
+        }
+        if (typeof window.updateExistingImageIndices === 'function') {
+          window.updateExistingImageIndices();
+        }
+      }
+
+      existingImageGrid.addEventListener('touchstart', function(e) {
+        const item = e.target.closest('.existing-image-item, .image-thumbnail-item, .new-image-placeholder');
+        if (!item || item.hasAttribute('data-removed')) return;
+        if (e.target.closest('button')) return;
+        touchDragItem = item;
+        isTouchDragging = true;
+        item.classList.add('dragging');
+      }, { passive: true });
+
+      existingImageGrid.addEventListener('touchmove', function(e) {
+        if (!isTouchDragging || !touchDragItem) return;
+        // We need to prevent default to stop the page from scrolling while reordering
+        e.preventDefault();
+        const touch = e.touches && e.touches[0];
+        if (!touch) return;
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (!target) return;
+        const overItem = target.closest('.existing-image-item, .image-thumbnail-item, .new-image-placeholder');
+        if (!overItem || overItem === touchDragItem) return;
+        reorderItemsForTouch(touchDragItem, overItem);
+      }, { passive: false });
+
+      function endTouchDrag() {
+        if (touchDragItem) {
+          touchDragItem.classList.remove('dragging');
+        }
+        touchDragItem = null;
+        isTouchDragging = false;
+      }
+
+      existingImageGrid.addEventListener('touchend', function() {
+        endTouchDrag();
+      }, { passive: true });
+
+      existingImageGrid.addEventListener('touchcancel', function() {
+        endTouchDrag();
+      }, { passive: true });
       
       console.log('Set up drag handlers for', allDraggableItems.length, 'items');
       
@@ -1947,6 +2068,9 @@
       // Ensure order is ALWAYS updated before form submission
       const form = document.querySelector('form');
       if (form) {
+        // Guard against double-submits (which can duplicate images on the server)
+        let isListingFormSubmitting = false;
+
         // Function to sync all orders before submission
         function syncAllImageOrders() {
           // CRITICAL: Rebuild imageFiles array from new-image-placeholder elements in the grid
@@ -2004,6 +2128,13 @@
         
         // Update order on form submit (capture phase to run early)
         form.addEventListener('submit', function(e) {
+          if (isListingFormSubmitting) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+          isListingFormSubmitting = true;
+
           // Sync all orders and files FIRST
           syncAllImageOrders();
           
@@ -2066,6 +2197,16 @@
         const submitBtn = document.getElementById('listing-submit-btn');
         if (submitBtn) {
           submitBtn.addEventListener('click', function(e) {
+            if (isListingFormSubmitting) {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }
+            isListingFormSubmitting = true;
+            // Visually disable the button to make it obvious it's processing
+            submitBtn.disabled = true;
+            submitBtn.classList.add('btn-disabled');
+
             // Update orders immediately
             syncAllImageOrders();
             if (typeof updateFileInput === 'function') {
