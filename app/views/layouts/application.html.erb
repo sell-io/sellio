@@ -22,7 +22,54 @@
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
+      function initAccountDropdown() {
+        // Account dropdown toggle (click to open/close, stays open until click outside)
+        const accountToggle = document.getElementById('accountDropdown');
+        const accountMenu = document.getElementById('accountDropdownMenu');
+        const dropdownContainer = accountToggle ? accountToggle.closest('.dropdown') : null;
+
+        if (!accountToggle || !accountMenu || !dropdownContainer) return;
+
+        // Guard: avoid attaching duplicate listeners across Turbo navigations
+        if (dropdownContainer.hasAttribute('data-dropdown-initialized')) return;
+        dropdownContainer.setAttribute('data-dropdown-initialized', 'true');
+
+        accountToggle.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const isOpen = dropdownContainer.classList.contains('open');
+
+          // Close any other open dropdowns
+          document.querySelectorAll('.dropdown.open').forEach(function(drop) {
+            if (drop !== dropdownContainer) {
+              drop.classList.remove('open');
+            }
+          });
+
+          if (isOpen) {
+            dropdownContainer.classList.remove('open');
+          } else {
+            dropdownContainer.classList.add('open');
+          }
+        });
+
+        // Close on click outside
+        document.addEventListener('click', function(e) {
+          if (!dropdownContainer.contains(e.target)) {
+            dropdownContainer.classList.remove('open');
+          }
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape') {
+            dropdownContainer.classList.remove('open');
+          }
+        });
+      }
+
+      function initGlobalUiHandlers() {
         // Handle favorite button clicks (both heart icon and save button)
         document.addEventListener('click', function(e) {
           const favoriteBtn = e.target.closest('.favorite-heart-btn, .btn-favorite');
@@ -125,7 +172,20 @@
             });
           }
         });
-      });
+
+        initAccountDropdown();
+      }
+
+      // First full page load
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initGlobalUiHandlers);
+      } else {
+        initGlobalUiHandlers();
+      }
+
+      // Turbo navigations (Rails 7)
+      document.addEventListener('turbo:load', initAccountDropdown);
+      document.addEventListener('turbo:render', initAccountDropdown);
     </script>
   </head>
 

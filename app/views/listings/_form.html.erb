@@ -696,24 +696,10 @@
       // Limit to MAX_IMAGES
       const filesToProcess = Array.from(files);
       
-      // Filter and add unique IDs while preserving the EXACT FileList order
-      // Also check for duplicates by file name and size
+      // Filter and add files while preserving the EXACT FileList order.
+      // IMPORTANT: we no longer block "duplicates" by name/size so the user can
+      // re-upload the same photo in the SAME edit session and still see it in the preview.
       const newFiles = [];
-      // Check both in imageFiles and in existing images grid (for new placeholders)
-      const existingFileNames = new Set(imageFiles.map(f => f.name + '_' + f.size));
-      const existingImageGrid = document.getElementById('image-thumbnails-grid');
-      if (existingImageGrid) {
-        const placeholders = existingImageGrid.querySelectorAll('.new-image-placeholder');
-        placeholders.forEach(function(placeholder) {
-          const fileId = placeholder.dataset.fileId;
-          const file = imageFiles.find(function(f) {
-            return (f._uniqueId || '') === fileId;
-          });
-          if (file) {
-            existingFileNames.add(file.name + '_' + file.size);
-          }
-        });
-      }
       
       filesToProcess.forEach(function(file, originalIndex) {
         if (file.type.startsWith('image/')) {
@@ -722,14 +708,11 @@
           const validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
           const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
           
-          // Check for duplicates
-          const fileKey = file.name + '_' + file.size;
-          if (hasValidExtension && !existingFileNames.has(fileKey)) {
+          if (hasValidExtension) {
             file._uniqueId = 'img_' + (imageFileIdCounter++);
             file._originalIndex = originalIndex;
             file._selectionOrder = originalIndex;
             newFiles.push(file);
-            existingFileNames.add(fileKey);
           }
         }
       });
@@ -760,7 +743,7 @@
       // Count existing images if any (including new placeholders)
       const existingThumbnails = document.getElementById('image-thumbnails-grid');
       if (existingThumbnails && imageUploadZone) {
-        const existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([style*="opacity: 0.5"]), .new-image-placeholder:not([style*="opacity: 0.5"])').length;
+        const existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([data-removed="true"]):not([style*="opacity: 0.5"]), .new-image-placeholder:not([data-removed="true"]):not([style*="opacity: 0.5"])').length;
         if (existingCount < MAX_IMAGES) {
           imageUploadZone.style.display = 'flex';
         } else {
@@ -981,7 +964,7 @@
       const existingThumbnails = document.getElementById('image-thumbnails-grid');
       let existingCount = 0;
       if (existingThumbnails) {
-        existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([style*="opacity: 0.5"])').length;
+        existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([data-removed="true"]):not([style*="opacity: 0.5"])').length;
       }
       const totalImages = imageFiles.length + existingCount;
       
@@ -1361,7 +1344,7 @@
       const existingThumbnails = document.getElementById('image-thumbnails-grid');
       let existingCount = 0;
       if (existingThumbnails) {
-        existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([style*="opacity: 0.5"])').length;
+        existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([data-removed="true"]):not([style*="opacity: 0.5"])').length;
       }
       const totalImages = imageFiles.length + existingCount;
       
@@ -1384,7 +1367,7 @@
         const existingThumbnails = document.getElementById('image-thumbnails-grid');
         let existingCount = 0;
         if (existingThumbnails) {
-          existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([style*="opacity: 0.5"])').length;
+          existingCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([data-removed="true"]):not([style*="opacity: 0.5"])').length;
         }
         const totalImages = imageFiles.length + existingCount;
         
@@ -1614,11 +1597,16 @@
         removedImagesContainer = document.createElement('div');
         removedImagesContainer.id = 'removed-images-container';
         removedImagesContainer.style.display = 'none';
-        const formField = document.querySelector('.form-field');
-        if (formField && formField.parentElement) {
-          formField.parentElement.appendChild(removedImagesContainer);
-        } else if (imageUploadInput && imageUploadInput.parentElement) {
-          imageUploadInput.parentElement.appendChild(removedImagesContainer);
+        const formEl = document.querySelector('form');
+        if (formEl) {
+          formEl.appendChild(removedImagesContainer);
+        } else {
+          const formField = document.querySelector('.form-field');
+          if (formField && formField.parentElement) {
+            formField.parentElement.appendChild(removedImagesContainer);
+          } else if (imageUploadInput && imageUploadInput.parentElement) {
+            imageUploadInput.parentElement.appendChild(removedImagesContainer);
+          }
         }
       }
       
@@ -1803,6 +1791,10 @@
           container = document.createElement('div');
           container.id = 'removed-images-container';
           container.style.display = 'none';
+        const formEl = document.querySelector('form');
+        if (formEl) {
+          formEl.appendChild(container);
+        } else {
           const formField = document.querySelector('.form-field');
           if (formField && formField.parentElement) {
             formField.parentElement.appendChild(container);
@@ -1812,6 +1804,7 @@
               imageUploadInput.parentElement.appendChild(container);
             }
           }
+        }
         }
         
         if (container && !container.querySelector(`input[value="${imageId}"]`)) {
@@ -1993,7 +1986,11 @@
       window.setupExistingImageHandlers = setupExistingImageHandlers;
       
       function updateExistingImageIndices() {
-        const items = existingImageGrid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"]), .new-image-placeholder:not([style*="opacity: 0.5"])');
+        const items = existingImageGrid.querySelectorAll(
+          '.existing-image-item:not([data-removed="true"]):not([style*="opacity: 0.5"]), ' +
+          '.image-thumbnail-item:not([data-removed="true"]):not([style*="opacity: 0.5"]), ' +
+          '.new-image-placeholder:not([data-removed="true"]):not([style*="opacity: 0.5"])'
+        );
         
         // First, remove ALL main badges to start fresh
         items.forEach(function(item) {
@@ -2037,7 +2034,11 @@
           console.warn('Cannot update existing image order: container or grid not found');
           return;
         }
-        const items = grid.querySelectorAll('.existing-image-item:not([style*="opacity: 0.5"]), .image-thumbnail-item:not([style*="opacity: 0.5"]), .new-image-placeholder:not([style*="opacity: 0.5"])');
+        const items = grid.querySelectorAll(
+          '.existing-image-item:not([data-removed="true"]):not([style*="opacity: 0.5"]), ' +
+          '.image-thumbnail-item:not([data-removed="true"]):not([style*="opacity: 0.5"]), ' +
+          '.new-image-placeholder:not([data-removed="true"]):not([style*="opacity: 0.5"])'
+        );
         if (items.length === 0) {
           container.value = '';
           console.log('No existing images to order');
@@ -2194,6 +2195,8 @@
         }, true);
         
         // Also update order when submit button is clicked (as a backup)
+        // IMPORTANT: do NOT mark submitting here; the submit event is the source of truth.
+        // Otherwise we can block the real submit in some Turbo/drag flows.
         const submitBtn = document.getElementById('listing-submit-btn');
         if (submitBtn) {
           submitBtn.addEventListener('click', function(e) {
@@ -2202,12 +2205,8 @@
               e.stopPropagation();
               return false;
             }
-            isListingFormSubmitting = true;
-            // Visually disable the button to make it obvious it's processing
-            submitBtn.disabled = true;
-            submitBtn.classList.add('btn-disabled');
 
-            // Update orders immediately
+            // Update orders immediately (pre-submit)
             syncAllImageOrders();
             if (typeof updateFileInput === 'function') {
               updateFileInput();
@@ -2219,6 +2218,14 @@
                 window.updateCombinedImageOrder();
               }, 5);
             }
+
+            // Disable after the click has triggered submission to avoid double clicks,
+            // without interfering with the submit event itself.
+            setTimeout(function() {
+              if (!isListingFormSubmitting) return;
+              submitBtn.disabled = true;
+              submitBtn.classList.add('btn-disabled');
+            }, 0);
           }, true); // Use capture phase
         }
         const submitButton = form.querySelector('input[type="submit"], button[type="submit"]');
@@ -2493,7 +2500,7 @@
     const existingThumbnails = document.getElementById('image-thumbnails-grid');
     let totalCount = 0;
     if (existingThumbnails) {
-      totalCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([style*="opacity: 0.5"]), .new-image-placeholder:not([style*="opacity: 0.5"])').length;
+      totalCount = existingThumbnails.querySelectorAll('.image-thumbnail-item:not([data-removed="true"]):not([style*="opacity: 0.5"]), .new-image-placeholder:not([data-removed="true"]):not([style*="opacity: 0.5"])').length;
     }
 
     const MAX_IMAGES = 10;
@@ -2528,9 +2535,24 @@
         }
       }
     }, 50);
-    // Reset imageFiles if needed
-    if (!window.imageFiles || !Array.isArray(window.imageFiles)) {
-      window.imageFiles = [];
+    // Reset client-side image selection state on each Turbo load.
+    // This prevents "can't re-upload the same file" issues caused by stale window.imageFiles
+    // (Turbo can preserve JS globals across navigations).
+    window.imageFiles = [];
+    imageFiles = window.imageFiles;
+    window.processingFiles = false;
+    imageFileIdCounter = 0;
+
+    // If Turbo restored cached DOM, remove any stale "new image" placeholders from a previous visit
+    const grid = document.getElementById('image-thumbnails-grid');
+    if (grid) {
+      grid.querySelectorAll('.new-image-placeholder').forEach(function(el) { el.remove(); });
+    }
+
+    // Clear any stale removed image inputs from cached DOM
+    const removedContainer = document.getElementById('removed-images-container');
+    if (removedContainer) {
+      removedContainer.innerHTML = '';
     }
     // Setup existing image drag handlers
     if (typeof window.setupExistingImageHandlers === 'function') {
@@ -2580,9 +2602,22 @@
         }
       }
     }, 50);
-    // Reset imageFiles if needed
-    if (!window.imageFiles || !Array.isArray(window.imageFiles)) {
-      window.imageFiles = [];
+    // Reset client-side image selection state on each Turbo render (same reason as turbo:load)
+    window.imageFiles = [];
+    imageFiles = window.imageFiles;
+    window.processingFiles = false;
+    imageFileIdCounter = 0;
+
+    // Remove any stale placeholders from cached DOM
+    const grid = document.getElementById('image-thumbnails-grid');
+    if (grid) {
+      grid.querySelectorAll('.new-image-placeholder').forEach(function(el) { el.remove(); });
+    }
+
+    // Clear any stale removed image inputs from cached DOM
+    const removedContainer = document.getElementById('removed-images-container');
+    if (removedContainer) {
+      removedContainer.innerHTML = '';
     }
     // Setup existing image drag handlers
     if (typeof window.setupExistingImageHandlers === 'function') {
@@ -2640,9 +2675,14 @@
         container = document.createElement('div');
         container.id = 'removed-images-container';
         container.style.display = 'none';
-        const formField = document.querySelector('.form-field');
-        if (formField && formField.parentElement) {
-          formField.parentElement.appendChild(container);
+        const formEl = document.querySelector('form');
+        if (formEl) {
+          formEl.appendChild(container);
+        } else {
+          const formField = document.querySelector('.form-field');
+          if (formField && formField.parentElement) {
+            formField.parentElement.appendChild(container);
+          }
         }
       }
       
