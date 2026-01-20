@@ -206,12 +206,21 @@ class ListingsController < ApplicationController
         Rails.logger.info "Removing #{removed_ids.length} image(s) explicitly marked for removal: #{removed_ids.inspect}"
         removed_ids.each do |image_id|
           begin
+            # First try by attachment ID (normal case)
             attachment = @listing.images_attachments.find_by(id: image_id)
+
+            # Fallback: some older UI code may have sent the blob_id instead.
+            # In that case, match on blob_id so the delete still works.
+            if attachment.nil?
+              attachment = @listing.images_attachments.find_by(blob_id: image_id)
+              Rails.logger.info "Fallback matched blob_id #{image_id} to attachment #{attachment&.id}" if attachment
+            end
+
             if attachment
               attachment.purge
-              Rails.logger.info "Removed image attachment #{image_id}"
+              Rails.logger.info "Removed image attachment #{attachment.id} (requested id #{image_id})"
             else
-              Rails.logger.warn "Image attachment #{image_id} not found for removal"
+              Rails.logger.warn "Image attachment with id/blob_id #{image_id} not found for removal on listing #{@listing.id}"
             end
           rescue => e
             Rails.logger.error "Error removing image #{image_id}: #{e.message}"
