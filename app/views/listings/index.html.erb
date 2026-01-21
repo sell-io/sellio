@@ -151,7 +151,7 @@
       'Lexus': ['IS', 'ES', 'GS', 'LS', 'NX', 'RX', 'UX', 'GX', 'LX', 'LC', 'RC', 'CT'],
       'Porsche': ['911', '718', 'Panamera', 'Macan', 'Cayenne', 'Taycan', 'Boxster', 'Cayman'],
       'Tesla': ['Model 3', 'Model S', 'Model X', 'Model Y', 'Roadster', 'Cybertruck'],
-      'Mini': ['Hatch', 'Clubman', 'Countryman', 'Convertible', 'Paceman', 'Coupe', 'Roadster'],
+      'Mini': ['Hatch', 'Clubman', 'Countryman', 'Convertible', 'Paceman', 'Coupe', 'Roadster', 'One'],
       'Smart': ['Fortwo', 'Forfour', 'EQ Fortwo', 'EQ Forfour'],
       'Dacia': ['Sandero', 'Duster', 'Logan', 'Lodgy', 'Dokker', 'Spring'],
       'Chevrolet': ['Spark', 'Cruze', 'Malibu', 'Equinox', 'Tahoe', 'Silverado', 'Traverse', 'Blazer', 'Camaro', 'Corvette', 'Bolt'],
@@ -200,23 +200,8 @@
           option.textContent = model;
           modelSelect.appendChild(option);
         });
-      } else if (!selectedMake) {
-        // If no make selected, show all models
-        const allModels = [];
-        Object.values(carModels).forEach(function(models) {
-          models.forEach(function(model) {
-            if (!allModels.includes(model)) {
-              allModels.push(model);
-            }
-          });
-        });
-        allModels.sort().forEach(function(model) {
-          const option = document.createElement('option');
-          option.value = model;
-          option.textContent = model;
-          modelSelect.appendChild(option);
-        });
       }
+      // If no make selected, just show "All Models" (already set above)
     }
 
     // Initialize when DOM is ready
@@ -317,49 +302,220 @@
   </section>
   <% end %>
 
-  <!-- Vehicle Type Filter Section (show when Motors category is selected, but not when car filters are applied from homepage) -->
+  <!-- Filters Button (show when Motors category is selected) -->
   <% motors_category = Category.find_by("name ILIKE ?", "%motor%") || Category.find_by("name ILIKE ?", "%car%") %>
-  <% if motors_category && (@selected_category&.id == motors_category.id || params[:category_id].to_i == motors_category.id) && !has_filters %>
-  <section class="vehicle-type-filter-section">
+  <% if motors_category && (is_browse_page || @selected_category&.id == motors_category.id || params[:category_id].to_i == motors_category.id) && !has_filters %>
+  <section class="filters-button-container">
     <div class="container">
-      <div class="vehicle-type-filter-box">
-        <h2 class="vehicle-type-filter-title">Filter by Vehicle Type</h2>
-        <%= form_with url: listings_path, method: :get, local: true, class: "vehicle-type-filter-form" do |f| %>
+      <button type="button" class="btn-show-filters" id="toggleFiltersBtn">Show Filters</button>
+    </div>
+  </section>
+  
+  <!-- Car Filter Section (hidden by default, shown when Filters button is clicked) -->
+  <section class="car-filter-section" id="carFiltersSection">
+    <div class="container">
+      <div class="car-filter-box">
+        <h2 class="car-filter-title">Filter Motors</h2>
+        <%= form_with url: listings_path, method: :get, local: true, class: "car-filter-form" do |f| %>
           <%= f.hidden_field :category_id, value: motors_category.id %>
-          <div class="vehicle-type-filter-grid">
-            <% vehicle_types = [
-              ['Car', '🚗'],
-              ['Van', '🚐'],
-              ['Truck', '🚚'],
-              ['Tractor', '🚜'],
-              ['Motorcycle', '🏍️'],
-              ['Scooter', '🛵'],
-              ['Quad', '🏎️'],
-              ['Caravan', '🚐'],
-              ['Trailer', '🚛'],
-              ['Boat', '⛵'],
-              ['Other', '🚙']
-            ] %>
-            <% vehicle_types.each do |type, icon| %>
-              <% count = Listing.where(category_id: motors_category.id).where("extra_fields->>'subcategory' = ?", type).count %>
-              <label class="vehicle-type-option <%= 'active' if params[:subcategory] == type %>">
-                <%= f.radio_button :subcategory, type, checked: (params[:subcategory] == type), onchange: "this.form.submit();" %>
-                <div class="vehicle-type-content">
-                  <span class="vehicle-type-icon"><%= icon %></span>
-                  <span class="vehicle-type-label"><%= type %></span>
-                  <span class="vehicle-type-count">(<%= count %>)</span>
-                </div>
-              </label>
-            <% end %>
+          <div class="car-filter-grid">
+            <div class="car-filter-field">
+              <%= f.label :subcategory, "Vehicle Type" %>
+              <%= f.select :subcategory, options_for_select([
+                ['All Types', ''],
+                ['Car', 'Car'],
+                ['Van', 'Van'],
+                ['Truck', 'Truck'],
+                ['Tractor', 'Tractor'],
+                ['Motorcycle', 'Motorcycle'],
+                ['Scooter', 'Scooter'],
+                ['Quad', 'Quad'],
+                ['Caravan', 'Caravan'],
+                ['Trailer', 'Trailer'],
+                ['Boat', 'Boat'],
+                ['Other', 'Other']
+              ], params[:subcategory]), {}, { class: "car-filter-select" } %>
+            </div>
+            <div class="car-filter-field">
+              <%= f.label :make, "All Makes" %>
+              <%= f.select :make, options_for_select([
+                ['All Makes', ''],
+                ['Alfa Romeo', 'Alfa Romeo'],
+                ['Aston Martin', 'Aston Martin'],
+                ['Audi', 'Audi'],
+                ['Bentley', 'Bentley'],
+                ['BMW', 'BMW'],
+                ['Chevrolet', 'Chevrolet'],
+                ['Chrysler', 'Chrysler'],
+                ['Citroen', 'Citroen'],
+                ['Dacia', 'Dacia'],
+                ['Dodge', 'Dodge'],
+                ['Ferrari', 'Ferrari'],
+                ['Fiat', 'Fiat'],
+                ['Ford', 'Ford'],
+                ['Honda', 'Honda'],
+                ['Hyundai', 'Hyundai'],
+                ['Infiniti', 'Infiniti'],
+                ['Jaguar', 'Jaguar'],
+                ['Jeep', 'Jeep'],
+                ['Kia', 'Kia'],
+                ['Lamborghini', 'Lamborghini'],
+                ['Land Rover', 'Land Rover'],
+                ['Lexus', 'Lexus'],
+                ['Maserati', 'Maserati'],
+                ['Mazda', 'Mazda'],
+                ['McLaren', 'McLaren'],
+                ['Mercedes-Benz', 'Mercedes-Benz'],
+                ['Mini', 'Mini'],
+                ['Mitsubishi', 'Mitsubishi'],
+                ['Nissan', 'Nissan'],
+                ['Opel', 'Opel'],
+                ['Peugeot', 'Peugeot'],
+                ['Porsche', 'Porsche'],
+                ['Renault', 'Renault'],
+                ['Rolls-Royce', 'Rolls-Royce'],
+                ['Seat', 'Seat'],
+                ['Skoda', 'Skoda'],
+                ['Smart', 'Smart'],
+                ['Subaru', 'Subaru'],
+                ['Suzuki', 'Suzuki'],
+                ['Tesla', 'Tesla'],
+                ['Toyota', 'Toyota'],
+                ['Vauxhall', 'Vauxhall'],
+                ['Volkswagen', 'Volkswagen'],
+                ['Volvo', 'Volvo']
+              ], params[:make]), {}, { class: "car-filter-select", id: "car_make_select_buy" } %>
+            </div>
+            <div class="car-filter-field">
+              <%= f.label :model, "All Models" %>
+              <%= f.select :model, options_for_select([['All Models', '']], params[:model]), {}, { class: "car-filter-select", id: "car_model_select_buy" } %>
+            </div>
+            <div class="car-filter-field">
+              <%= f.label :min_year, "Min Year" %>
+              <%= f.select :min_year, options_for_select([['Min Year', '']] + (1990..Date.current.year).to_a.reverse.map { |y| [y, y] }, params[:min_year]), {}, { class: "car-filter-select" } %>
+            </div>
+            <div class="car-filter-field">
+              <%= f.label :max_year, "Max Year" %>
+              <%= f.select :max_year, options_for_select([['Max Year', '']] + (1990..Date.current.year).to_a.reverse.map { |y| [y, y] }, params[:max_year]), {}, { class: "car-filter-select" } %>
+            </div>
+            <div class="car-filter-field">
+              <%= f.label :min_price, "Min Price" %>
+              <%= f.number_field :min_price, placeholder: "Min Price", class: "car-filter-input", min: 0, step: 100, value: params[:min_price] %>
+            </div>
+            <div class="car-filter-field">
+              <%= f.label :max_price, "Max Price" %>
+              <%= f.number_field :max_price, placeholder: "Max Price", class: "car-filter-input", min: 0, step: 100, value: params[:max_price] %>
+            </div>
           </div>
           <div class="form-actions">
-            <%= link_to "Show All", listings_path(category_id: motors_category.id), class: "btn-clear-vehicle-filters" %>
+            <% motors_count = Listing.where(category_id: motors_category.id).count %>
+            <%= f.submit "Search #{number_with_delimiter(motors_count)} Motors", class: "car-filter-button" %>
           </div>
         <% end %>
       </div>
     </div>
   </section>
+  
+  <script>
+    // Car make-model relationships for Buy page
+    const carModelsBuy = {
+      'Audi': ['A1', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q2', 'Q3', 'Q5', 'Q7', 'Q8', 'TT', 'R8', 'e-tron', 'e-tron GT', 'RS3', 'RS4', 'RS5', 'RS6', 'RS7', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8'],
+      'BMW': ['1 Series', '2 Series', '3 Series', '4 Series', '5 Series', '6 Series', '7 Series', '8 Series', 'X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'Z4', 'i3', 'i4', 'iX', 'iX3', 'M2', 'M3', 'M4', 'M5', 'M8', 'X3 M', 'X4 M', 'X5 M', 'X6 M'],
+      'Mercedes-Benz': ['A-Class', 'B-Class', 'C-Class', 'E-Class', 'S-Class', 'CLA', 'CLS', 'GLA', 'GLB', 'GLC', 'GLE', 'GLS', 'SL', 'AMG GT', 'EQC', 'EQS', 'EQE', 'C63 AMG', 'E63 AMG', 'S63 AMG', 'G63 AMG'],
+      'Volkswagen': ['Golf', 'Polo', 'Passat', 'Jetta', 'Tiguan', 'Touareg', 'Arteon', 'T-Cross', 'T-Roc', 'ID.3', 'ID.4', 'ID.5', 'ID.Buzz', 'Beetle', 'Up!', 'Scirocco', 'Sharan', 'Touran', 'Amarok', 'Caddy'],
+      'Ford': ['Fiesta', 'Focus', 'Mondeo', 'Kuga', 'Edge', 'Explorer', 'Mustang', 'Puma', 'EcoSport', 'Ranger', 'Transit', 'S-Max', 'Galaxy', 'Tourneo', 'Fusion', 'Escape', 'Expedition', 'F-150'],
+      'Toyota': ['Aygo', 'Yaris', 'Corolla', 'Camry', 'Prius', 'C-HR', 'RAV4', 'Highlander', 'Land Cruiser', 'Hilux', 'Proace', 'Avensis', 'Auris', 'Verso', 'GT86', 'Supra', 'bZ4X'],
+      'Honda': ['Civic', 'Accord', 'CR-V', 'HR-V', 'Pilot', 'Fit', 'Insight', 'Ridgeline', 'Passport', 'Odyssey', 'e', 'CR-Z', 'NSX'],
+      'Hyundai': ['i10', 'i20', 'i30', 'Elantra', 'Sonata', 'Tucson', 'Santa Fe', 'Kona', 'Ioniq', 'Palisade', 'Venue', 'Nexo', 'IONIQ 5', 'IONIQ 6', 'Genesis', 'Veloster', 'Accent'],
+      'Nissan': ['Micra', 'Sentra', 'Altima', 'Maxima', 'Juke', 'Qashqai', 'X-Trail', 'Pathfinder', 'Armada', 'Leaf', 'Ariya', '370Z', 'GT-R', 'Navara', 'Note', 'Pulsar'],
+      'Renault': ['Clio', 'Megane', 'Scenic', 'Kadjar', 'Captur', 'Koleos', 'Talisman', 'Zoe', 'Twingo', 'Kangoo', 'Trafic', 'Master', 'Arkana', 'Austral'],
+      'Peugeot': ['108', '208', '308', '508', '2008', '3008', '5008', 'Partner', 'Expert', 'Boxer', 'Rifter', 'Traveller', 'e-208', 'e-2008'],
+      'Citroen': ['C1', 'C3', 'C4', 'C5', 'Berlingo', 'Cactus', 'C4 Picasso', 'Grand C4 Picasso', 'SpaceTourer', 'Jumper', 'e-C4', 'Ami'],
+      'Skoda': ['Fabia', 'Octavia', 'Superb', 'Kodiaq', 'Karoq', 'Kamiq', 'Scala', 'Enyaq', 'Rapid', 'Yeti'],
+      'Seat': ['Ibiza', 'Leon', 'Ateca', 'Tarraco', 'Arona', 'Formentor', 'Alhambra', 'Altea', 'Toledo', 'Cupra Born', 'Cupra Formentor'],
+      'Mazda': ['Mazda2', 'Mazda3', 'Mazda6', 'CX-3', 'CX-5', 'CX-9', 'CX-30', 'MX-5', 'MX-30', 'BT-50'],
+      'Kia': ['Picanto', 'Rio', 'Ceed', 'Optima', 'Sportage', 'Sorento', 'Stonic', 'Niro', 'EV6', 'Soul', 'Seltos', 'Telluride', 'Carnival', 'Stinger'],
+      'Volvo': ['V40', 'V60', 'V90', 'XC40', 'XC60', 'XC90', 'S60', 'S90', 'C30', 'C70', 'XC70', 'EX30', 'EX90'],
+      'Opel': ['Corsa', 'Astra', 'Insignia', 'Crossland', 'Grandland', 'Mokka', 'Adam', 'Karl', 'Combo', 'Vivaro', 'Movano', 'Corsa-e', 'Mokka-e'],
+      'Vauxhall': ['Corsa', 'Astra', 'Insignia', 'Crossland', 'Grandland', 'Mokka', 'Adam', 'Karl', 'Combo', 'Vivaro', 'Movano', 'Corsa-e', 'Mokka-e'],
+      'Fiat': ['500', 'Panda', 'Punto', 'Tipo', '500X', '500L', 'Doblo', 'Qubo', 'Talento', 'Ducato', '500e'],
+      'Suzuki': ['Swift', 'Vitara', 'S-Cross', 'Jimny', 'Ignis', 'SX4', 'Baleno', 'Celerio', 'Across'],
+      'Mitsubishi': ['Mirage', 'Lancer', 'Outlander', 'ASX', 'Eclipse Cross', 'Shogun', 'Pajero', 'i-MiEV'],
+      'Subaru': ['Impreza', 'Legacy', 'Outback', 'Forester', 'XV', 'BRZ', 'Ascent', 'WRX', 'Levorg'],
+      'Jaguar': ['XE', 'XF', 'XJ', 'F-Pace', 'E-Pace', 'I-Pace', 'F-Type', 'XK', 'X-Type'],
+      'Land Rover': ['Discovery', 'Discovery Sport', 'Range Rover', 'Range Rover Sport', 'Range Rover Evoque', 'Defender', 'Range Rover Velar'],
+      'Lexus': ['IS', 'ES', 'GS', 'LS', 'NX', 'RX', 'UX', 'GX', 'LX', 'LC', 'RC', 'CT'],
+      'Porsche': ['911', '718', 'Panamera', 'Macan', 'Cayenne', 'Taycan', 'Boxster', 'Cayman'],
+      'Tesla': ['Model 3', 'Model S', 'Model X', 'Model Y', 'Roadster', 'Cybertruck'],
+      'Mini': ['Hatch', 'Clubman', 'Countryman', 'Convertible', 'Paceman', 'Coupe', 'Roadster', 'One'],
+      'Smart': ['Fortwo', 'Forfour', 'EQ Fortwo', 'EQ Forfour'],
+      'Dacia': ['Sandero', 'Duster', 'Logan', 'Lodgy', 'Dokker', 'Spring'],
+      'Chevrolet': ['Spark', 'Cruze', 'Malibu', 'Equinox', 'Tahoe', 'Silverado', 'Traverse', 'Blazer', 'Camaro', 'Corvette', 'Bolt'],
+      'Chrysler': ['300', 'Pacifica', 'Voyager', 'Grand Caravan'],
+      'Dodge': ['Charger', 'Challenger', 'Durango', 'Journey', 'Grand Caravan', 'Ram'],
+      'Jeep': ['Renegade', 'Compass', 'Cherokee', 'Grand Cherokee', 'Wrangler', 'Gladiator', 'Wagoneer'],
+      'Alfa Romeo': ['Giulia', 'Stelvio', '4C', 'Giulietta', 'Mito', '159', 'Brera'],
+      'Aston Martin': ['DB11', 'Vantage', 'DBS', 'DBX', 'Rapide', 'Vanquish'],
+      'Bentley': ['Continental', 'Flying Spur', 'Bentayga', 'Mulsanne'],
+      'Ferrari': ['488', 'F8', 'Roma', 'Portofino', 'SF90', '812', 'GTC4Lusso', 'LaFerrari'],
+      'Lamborghini': ['Huracan', 'Aventador', 'Urus', 'Gallardo'],
+      'Maserati': ['Ghibli', 'Quattroporte', 'Levante', 'GranTurismo', 'MC20'],
+      'McLaren': ['540C', '570S', '720S', 'GT', 'Artura', 'P1', '650S'],
+      'Rolls-Royce': ['Ghost', 'Wraith', 'Dawn', 'Cullinan', 'Phantom'],
+      'Infiniti': ['Q30', 'Q50', 'Q60', 'QX30', 'QX50', 'QX60', 'QX80', 'Q70']
+    };
+
+    function updateCarModelsBuy() {
+      const makeSelect = document.getElementById('car_make_select_buy');
+      const modelSelect = document.getElementById('car_model_select_buy');
+      
+      if (!makeSelect || !modelSelect) {
+        return;
+      }
+      
+      const selectedMake = makeSelect.value;
+      const previousMake = makeSelect.getAttribute('data-previous-make') || '';
+      
+      modelSelect.innerHTML = '<option value="">All Models</option>';
+      
+      if (selectedMake !== previousMake) {
+        modelSelect.value = '';
+      }
+      
+      makeSelect.setAttribute('data-previous-make', selectedMake);
+      
+      if (selectedMake && carModelsBuy[selectedMake]) {
+        carModelsBuy[selectedMake].forEach(function(model) {
+          const option = document.createElement('option');
+          option.value = model;
+          option.textContent = model;
+          modelSelect.appendChild(option);
+        });
+      }
+      // If no make selected, just show "All Models" (already set above)
+    }
+
+    function initCarModelFilterBuy() {
+      const makeSelect = document.getElementById('car_make_select_buy');
+      const modelSelect = document.getElementById('car_model_select_buy');
+      
+      if (makeSelect && modelSelect) {
+        makeSelect.setAttribute('data-previous-make', makeSelect.value || '');
+        updateCarModelsBuy();
+        makeSelect.addEventListener('change', function() {
+          updateCarModelsBuy();
+        });
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initCarModelFilterBuy);
+    } else {
+      initCarModelFilterBuy();
+    }
+  </script>
   <% end %>
+
 
   <!-- Featured Listings Section -->
   <section class="listings-section">
@@ -382,6 +538,30 @@
               <%= link_to "View All >", listings_path, class: "view-all-link" %>
             <% end %>
           </div>
+
+          <% if is_browse_page %>
+            <div class="mobile-filters-bar">
+              <%= form_with url: listings_path, method: :get, local: true, class: "mobile-filters-form" do |f| %>
+                <div class="mobile-filters-row">
+                  <%= f.select :category_id,
+                               options_from_collection_for_select(@categories, :id, :name, params[:category_id]),
+                               { include_blank: "All categories" },
+                               class: "mobile-filter-select" %>
+                  <%= f.text_field :location,
+                                   placeholder: "Location",
+                                   value: params[:location],
+                                   class: "mobile-filter-input" %>
+                </div>
+                <div class="mobile-filters-row">
+                  <%= f.text_field :search,
+                                   placeholder: "What are you looking for?",
+                                   value: params[:search],
+                                   class: "mobile-filter-input" %>
+                  <%= f.submit "Filter", class: "mobile-filter-button" %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
       
       <% if @listings.any? %>
         <% if @selected_category || params[:category_id].present? || params[:search].present? || has_filters %>
@@ -401,12 +581,13 @@
             <% end %>
           </p>
         <% end %>
-        <div class="listings-grid">
-          <% listings_to_show = if @selected_category || params[:category_id].present? || params[:search].present? || has_filters || is_browse_page
-                                   @listings
-                                 else
-                                   (@featured_listings || @listings.order(Arel.sql('RANDOM()')).limit(4))
-                                 end %>
+        <% listings_to_show = if @selected_category || params[:category_id].present? || params[:search].present? || has_filters || is_browse_page
+                                 @listings
+                               else
+                                 (@featured_listings || @listings.order(Arel.sql('RANDOM()')).limit(4))
+                               end %>
+        <% is_homepage_grid = !is_browse_page && !params[:category_id].present? && !params[:search].present? && !has_filters %>
+        <div class="listings-grid <%= 'homepage-grid' if is_homepage_grid %>">
           <% listings_to_show.each do |listing| %>
             <div class="listing-card">
               <%= link_to listing, class: "listing-card-link" do %>
@@ -517,3 +698,42 @@
   </section>
   <% end %>
 </div>
+
+<script>
+  // Toggle car filters visibility
+  function initFiltersToggle() {
+    const toggleBtn = document.getElementById('toggleFiltersBtn');
+    const filtersSection = document.getElementById('carFiltersSection');
+    
+    if (!toggleBtn || !filtersSection) return;
+    
+    // Guard: avoid duplicate listeners
+    if (toggleBtn.hasAttribute('data-filters-initialized')) return;
+    toggleBtn.setAttribute('data-filters-initialized', 'true');
+    
+    toggleBtn.addEventListener('click', function() {
+      const isVisible = filtersSection.classList.contains('show');
+      
+      if (isVisible) {
+        filtersSection.classList.remove('show');
+        toggleBtn.textContent = 'Show Filters';
+        toggleBtn.classList.remove('hide');
+      } else {
+        filtersSection.classList.add('show');
+        toggleBtn.textContent = 'Hide Filters';
+        toggleBtn.classList.add('hide');
+      }
+    });
+  }
+  
+  // Initialize on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFiltersToggle);
+  } else {
+    initFiltersToggle();
+  }
+  
+  // Re-initialize on Turbo navigation
+  document.addEventListener('turbo:load', initFiltersToggle);
+  document.addEventListener('turbo:render', initFiltersToggle);
+</script>

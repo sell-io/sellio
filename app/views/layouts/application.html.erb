@@ -14,9 +14,11 @@
     <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
     <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
 
-    <link rel="icon" href="/icon.png" type="image/png">
-    <link rel="icon" href="/icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/icon.png">
+    <%# Favicon: Should be 32x32 with ~20% padding, PNG transparent background %>
+    <%# For best results, provide a properly sized 32x32 favicon.ico or favicon-32x32.png %>
+    <link rel="icon" type="image/png" sizes="32x32" href="/TabIcon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/TabIcon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/TabIcon.png">
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
@@ -176,16 +178,72 @@
         initAccountDropdown();
       }
 
+      function initBuyDropdown() {
+        const buyDropdown = document.querySelector('.buy-dropdown');
+        if (!buyDropdown) return;
+
+        const toggleButton = buyDropdown.querySelector('.dropdown-toggle');
+        if (!toggleButton) return;
+
+        // Guard: avoid attaching duplicate listeners
+        if (buyDropdown.hasAttribute('data-buy-dropdown-initialized')) return;
+        buyDropdown.setAttribute('data-buy-dropdown-initialized', 'true');
+
+        toggleButton.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const isOpen = buyDropdown.classList.contains('open');
+          
+          // Close all other dropdowns
+          document.querySelectorAll('.dropdown.open').forEach(function(dropdown) {
+            if (dropdown !== buyDropdown) {
+              dropdown.classList.remove('open');
+            }
+          });
+
+          if (isOpen) {
+            buyDropdown.classList.remove('open');
+          } else {
+            buyDropdown.classList.add('open');
+          }
+        });
+
+        // Close on click outside
+        document.addEventListener('click', function(e) {
+          if (!buyDropdown.contains(e.target)) {
+            buyDropdown.classList.remove('open');
+          }
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape') {
+            buyDropdown.classList.remove('open');
+          }
+        });
+      }
+
       // First full page load
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initGlobalUiHandlers);
+        document.addEventListener('DOMContentLoaded', function() {
+          initGlobalUiHandlers();
+          initBuyDropdown();
+        });
       } else {
         initGlobalUiHandlers();
+        initBuyDropdown();
       }
 
       // Turbo navigations (Rails 7)
-      document.addEventListener('turbo:load', initAccountDropdown);
-      document.addEventListener('turbo:render', initAccountDropdown);
+      document.addEventListener('turbo:load', function() {
+        initAccountDropdown();
+        initBuyDropdown();
+      });
+      document.addEventListener('turbo:render', function() {
+        initAccountDropdown();
+        initBuyDropdown();
+      });
     </script>
   </head>
 
@@ -214,7 +272,15 @@
               <path d="M9 22V12H15V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           <% end %>
-          <%= link_to "Buy", listings_path, class: "nav-link" %>
+          <div class="dropdown buy-dropdown">
+            <%= link_to "Buy", listings_path, class: "nav-link dropdown-toggle", id: "buyDropdown", role: "button", data: { toggle: "dropdown" } %>
+            <div class="dropdown-menu buy-dropdown-menu" aria-labelledby="buyDropdown">
+              <%= link_to "All Categories", listings_path, class: "dropdown-item" %>
+              <% Category.all.order(:name).each do |category| %>
+                <%= link_to category.name, listings_path(category_id: category.id), class: "dropdown-item" %>
+              <% end %>
+            </div>
+          </div>
           <%= link_to "Sell", new_listing_path, class: "nav-link" %>
           <% if user_signed_in? %>
             <%= link_to my_messages_path, class: "nav-link messages-icon-link" do %>

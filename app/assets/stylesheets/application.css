@@ -104,6 +104,7 @@ body {
   align-items: center;
   flex: 1;
   justify-content: center;
+  height: 100%;
 }
 
 .nav-link {
@@ -114,6 +115,16 @@ body {
   font-weight: 600;
   transition: color 0.3s;
   border-bottom: 2px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Lower Sell button slightly - target the nav-link that comes after buy-dropdown */
+.buy-dropdown+.nav-link {
+  margin-top: 0.125rem;
 }
 
 .nav-link:hover {
@@ -126,6 +137,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 0.5rem;
+  margin-top: 0.125rem;
 }
 
 .home-icon {
@@ -157,6 +169,17 @@ body {
   align-items: center;
   justify-content: center;
   padding: 0.5rem;
+  color: #2B2F33;
+  text-decoration: none;
+  transition: color 0.3s;
+  border-bottom: 2px solid transparent;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.messages-icon-link:hover {
+  color: #4FD1A5;
+  border-bottom-color: #4FD1A5;
 }
 
 .messages-icon {
@@ -334,10 +357,154 @@ body {
   color: #2FA37A;
 }
 
+/* Buy dropdown specific styles */
+.buy-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  margin-top: 0.125rem;
+}
+
+.buy-dropdown .dropdown-toggle {
+  position: relative;
+  /* Match nav-link styling exactly - override general dropdown-toggle styles */
+  color: #2B2F33;
+  text-decoration: none;
+  padding: 0.5rem 0.75rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  transition: color 0.3s;
+  border-bottom: 2px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  box-sizing: border-box;
+  /* Override general dropdown-toggle button styles */
+  background: none;
+  border: none;
+  border-radius: 0;
+  min-width: auto;
+  margin-top: 0;
+  white-space: normal;
+}
+
+.buy-dropdown .dropdown-toggle:hover {
+  color: #4FD1A5;
+  border-bottom-color: #4FD1A5;
+  background: none;
+}
+
+.buy-dropdown.open .dropdown-toggle {
+  color: #2B2F33;
+  background: none;
+  border-bottom: 2px solid transparent;
+}
+
+.buy-dropdown.open .dropdown-toggle:hover {
+  color: #4FD1A5;
+  border-bottom-color: #4FD1A5;
+}
+
+.buy-dropdown .dropdown-toggle::after {
+  content: '';
+  position: absolute;
+  right: -0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  transition: transform 0.2s ease;
+  margin-left: 0.5rem;
+}
+
+.buy-dropdown.open .dropdown-toggle::after {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.buy-dropdown-menu {
+  left: 0;
+  right: auto;
+  min-width: 200px;
+  max-width: 280px;
+  max-height: 500px;
+  overflow-y: auto;
+  margin-top: 0.75rem;
+  border: 1px solid #E0E0E0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.buy-dropdown-menu .dropdown-item {
+  padding: 0.875rem 1.25rem;
+  font-size: 0.9375rem;
+  border-bottom: 1px solid #F5F5F5;
+}
+
+.buy-dropdown-menu .dropdown-item:first-child {
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  font-weight: 600;
+  color: #22C55E;
+  background-color: #F0FDF4;
+}
+
+.buy-dropdown-menu .dropdown-item:last-child {
+  border-bottom: none;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.buy-dropdown-menu .dropdown-item:hover {
+  background-color: #E8FBF4;
+  color: #2FA37A;
+}
+
+.buy-dropdown-menu .dropdown-item:first-child:hover {
+  background-color: #DCFCE7;
+  color: #16A34A;
+}
+
+/* Scrollbar styling for dropdown */
+.buy-dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.buy-dropdown-menu::-webkit-scrollbar-track {
+  background: #F5F5F5;
+  border-radius: 3px;
+}
+
+.buy-dropdown-menu::-webkit-scrollbar-thumb {
+  background: #D0D0D0;
+  border-radius: 3px;
+}
+
+.buy-dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: #B0B0B0;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .buy-dropdown-menu {
+    min-width: 180px;
+    max-width: 240px;
+    max-height: 400px;
+  }
+
+  .buy-dropdown-menu .dropdown-item {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+}
+
 /* Logout button should look like the other dropdown links */
 .dropdown-logout-form {
   margin: 0;
 }
+
 .dropdown-logout-form .dropdown-logout-btn {
   width: 100%;
   text-align: left;
@@ -349,6 +516,7 @@ body {
   cursor: pointer;
   font: inherit;
 }
+
 .dropdown-logout-form .dropdown-logout-btn:hover {
   background-color: #E8FBF4;
   color: #2FA37A;
@@ -364,8 +532,55 @@ body {
   border-radius: 6px;
   margin-right: 0.5rem;
 }
+
 .back-nav-btn:hover {
   background: rgba(0, 0, 0, 0.05);
+}
+
+/* Mobile filters on All Listings page */
+.mobile-filters-bar {
+  display: none;
+  margin-bottom: 1.5rem;
+}
+
+.mobile-filters-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mobile-filters-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mobile-filter-select,
+.mobile-filter-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  font-size: 0.9rem;
+}
+
+.mobile-filter-button {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: none;
+  background: #22C55E;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .mobile-filters-bar {
+    display: block;
+  }
+
+  .mobile-filters-row {
+    flex-direction: column;
+  }
 }
 
 .dropdown-divider {
@@ -381,13 +596,13 @@ body {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0 1.5rem;
 }
 
 .listings-container {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 2rem 1.5rem;
 }
@@ -558,6 +773,47 @@ body {
 .car-filter-section {
   padding: 1.5rem 0;
   background: #F7F9FB;
+  display: block;
+  /* Visible by default for homepage */
+}
+
+/* Hide by default only when it has the ID (Buy page filters) */
+.car-filter-section#carFiltersSection {
+  display: none;
+}
+
+.car-filter-section#carFiltersSection.show {
+  display: block;
+}
+
+.filters-button-container {
+  padding: 1rem 0;
+  text-align: center;
+}
+
+.btn-show-filters {
+  background: #22C55E;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease-out, transform 0.15s ease-out;
+}
+
+.btn-show-filters:hover {
+  background: #16A34A;
+  transform: translateY(-2px);
+}
+
+.btn-show-filters.hide {
+  background: #6B7280;
+}
+
+.btn-show-filters.hide:hover {
+  background: #4B5563;
 }
 
 .car-filter-box {
@@ -587,9 +843,15 @@ body {
 
 .car-filter-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.875rem;
   margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .car-filter-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .car-filter-form .form-actions {
@@ -1110,6 +1372,11 @@ select[name*="year"]:focus {
   width: 100%;
 }
 
+/* When there's only the listings column (e.g. All Listings page), let it span full width */
+.homepage-main-content>.featured-listings-column:only-child {
+  grid-column: 1 / -1;
+}
+
 .sell-box-column {
   width: 100%;
 }
@@ -1216,14 +1483,34 @@ select[name*="year"]:focus {
   transform: translateX(4px);
 }
 
+/* Default: Buy/All Listings page uses 5 columns */
 .listings-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 1400px) {
+  .listings-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1100px) {
+  .listings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Homepage featured listings: 3 columns */
+.listings-grid.homepage-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.5rem;
 }
 
 @media (max-width: 1100px) {
-  .listings-grid {
+  .listings-grid.homepage-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1252,7 +1539,7 @@ select[name*="year"]:focus {
 
 .listing-image {
   width: 100%;
-  height: 200px;
+  height: 280px;
   background: #f0f0f0;
   overflow: hidden;
   position: relative;
@@ -1260,7 +1547,7 @@ select[name*="year"]:focus {
 
 .listing-image-container {
   width: 100%;
-  height: 200px;
+  height: 280px;
   overflow: hidden;
   position: relative;
 }
@@ -1277,7 +1564,7 @@ select[name*="year"]:focus {
 
 .listing-card-image {
   width: 100%;
-  height: 200px;
+  height: 280px;
   object-fit: cover;
 }
 
