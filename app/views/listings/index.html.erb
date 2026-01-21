@@ -402,10 +402,10 @@
           </p>
         <% end %>
         <div class="listings-grid">
-          <% listings_to_show = if @selected_category || params[:category_id].present? || params[:search].present? || is_browse_page
+          <% listings_to_show = if @selected_category || params[:category_id].present? || params[:search].present? || has_filters || is_browse_page
                                    @listings
                                  else
-                                   @listings.limit(12)
+                                   (@featured_listings || @listings.order(Arel.sql('RANDOM()')).limit(4))
                                  end %>
           <% listings_to_show.each do |listing| %>
             <div class="listing-card">
