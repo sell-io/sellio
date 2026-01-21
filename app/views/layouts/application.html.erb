@@ -14,11 +14,18 @@
     <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
     <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
 
-    <%# Favicon: Should be 32x32 with ~20% padding, PNG transparent background %>
-    <%# For best results, provide a properly sized 32x32 favicon.ico or favicon-32x32.png %>
-    <link rel="icon" type="image/png" sizes="32x32" href="/TabIcon.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/TabIcon.png">
+    <%# Favicon: Maximum size optimization - browsers display at fixed sizes but we use largest sources %>
+    <%# Priority order: ICO (can contain multiple sizes) > 32x32 PNG > SVG > others %>
+    <link rel="icon" type="image/x-icon" sizes="32x32 16x16" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <%# Also provide larger sources - browser may use these for better quality when scaling %>
+    <link rel="icon" type="image/png" sizes="64x64" href="/TabIcon.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/TabIcon.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/TabIcon.png">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="shortcut icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
