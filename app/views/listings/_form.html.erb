@@ -26,19 +26,10 @@
             { class: "form-select", required: true, id: "listing_category_id", onchange: "showCategoryFields()" } %>
       </div>
 
-      <div class="form-field">
-        <%= form.label :description, "Description *" %>
-        <%= form.text_area :description, rows: 6, placeholder: "Describe your item in detail..." %>
-      </div>
-    </div>
-
-    <!-- Category-Specific Fields (Motors/Cars) -->
-    <% is_motors_category = listing.category&.name&.downcase&.include?('motor') || listing.category&.name&.downcase&.include?('car') || (listing.persisted? && listing.category_id && Category.find_by(id: listing.category_id)&.name&.downcase&.include?('motor')) %>
-    <div class="form-section" id="motors-fields" style="<%= 'display: block;' if is_motors_category %>">
-      <h2>Vehicle Details</h2>
-      
-      <div class="form-field">
-        <label for="listing_subcategory">Subcategories *</label>
+      <!-- Motors subcategory should sit directly under Category -->
+      <% is_motors_category = listing.category&.name&.downcase&.include?('motor') || listing.category&.name&.downcase&.include?('car') || (listing.persisted? && listing.category_id && Category.find_by(id: listing.category_id)&.name&.downcase&.include?('motor')) %>
+      <div class="form-field" id="motors-subcategory-field" style="<%= 'display: block;' if is_motors_category %>">
+        <label for="listing_subcategory">Subcategory *</label>
         <select name="listing[subcategory]" id="listing_subcategory" class="form-select">
           <option value="">Select subcategory</option>
           <option value="Car" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Car' %>>Car</option>
@@ -54,6 +45,16 @@
           <option value="Other" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Other' %>>Other</option>
         </select>
       </div>
+
+      <div class="form-field">
+        <%= form.label :description, "Description *" %>
+        <%= form.text_area :description, rows: 6, placeholder: "Describe your item in detail..." %>
+      </div>
+    </div>
+
+    <!-- Category-Specific Fields (Motors/Cars) -->
+    <div class="form-section" id="motors-fields" style="<%= 'display: block;' if is_motors_category %>">
+      <h2>Vehicle Details</h2>
       
       <div class="form-field">
         <label for="vehicle_registration_lookup">Vehicle Registration (Auto-fill details)</label>
@@ -182,7 +183,7 @@
         </div>
         
         <div class="form-field">
-          <label for="listing_previous_owners">Previous Owners</label>
+          <label for="listing_previous_owners">Total Owners</label>
           <input type="number" name="listing[previous_owners]" id="listing_previous_owners" value="<%= listing.extra_fields&.dig('previous_owners') %>" placeholder="e.g., 2" min="0" class="form-input">
         </div>
       </div>
@@ -299,6 +300,7 @@
   function showCategoryFields() {
     const categorySelect = document.getElementById('listing_category_id');
     const motorsFields = document.getElementById('motors-fields');
+    const motorsSubcategoryField = document.getElementById('motors-subcategory-field');
     
     if (!categorySelect || !motorsFields) return;
     
@@ -312,6 +314,7 @@
     
     if (isMotors) {
       motorsFields.style.display = 'block';
+      if (motorsSubcategoryField) motorsSubcategoryField.style.display = 'block';
       // Trigger model update when motors fields are shown
       if (window.updateListingModels) {
         setTimeout(function() {
@@ -320,6 +323,7 @@
       }
     } else {
       motorsFields.style.display = 'none';
+      if (motorsSubcategoryField) motorsSubcategoryField.style.display = 'none';
     }
   }
   

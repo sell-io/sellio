@@ -193,6 +193,14 @@
     <header class="main-header">
       <div class="header-container">
         <div class="header-left">
+          <% unless current_page?(root_path) %>
+            <button type="button"
+                    class="back-nav-btn"
+                    aria-label="Go back"
+                    onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href = '<%= root_path %>'; }">
+              ← Back
+            </button>
+          <% end %>
           <div class="logo">
           <%= link_to root_path, class: "logo-link" do %>
             <%= image_tag "/Dealo.ielogodesign.png", alt: "Dealo", class: "logo-image" %>
