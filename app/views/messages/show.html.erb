@@ -20,11 +20,11 @@
   <!-- Header -->
   <div class="chat-header">
     <div class="left">
-      <%= link_to my_messages_path, { class: "chat-back-button", title: "Back to messages", "aria-label" => "Back to messages" } do %>
+      <button type="button" class="chat-back-button" onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href = '<%= my_messages_path %>'; }" title="Back" aria-label="Back">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M19 12H5M12 19l-7-7 7-7"/>
         </svg>
-      <% end %>
+      </button>
       <div class="avatar">
         <% if other_user.avatar.attached? %>
           <%= image_tag other_user.avatar, class: "chat-avatar-image", alt: other_user.name || other_user.email %>
