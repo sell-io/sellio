@@ -24,7 +24,7 @@ module MyWebsite
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
     
-    # Increase max file upload size to handle multiple images (50MB total)
-    config.action_dispatch.parameter_size_limit = 50.megabytes
+    # Increase max file upload size to handle multiple images (200MB total)
+    config.action_dispatch.parameter_size_limit = 200.megabytes
   end
 end
