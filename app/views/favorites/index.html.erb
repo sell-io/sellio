@@ -14,7 +14,16 @@
           <%= link_to listing_path(listing), class: "listing-card-link" do %>
             <div class="listing-image-container">
               <% if listing.images.attached? %>
-                <%= image_tag listing.ordered_images.first, class: "listing-image", alt: listing.title %>
+                <% first_image = listing.ordered_images.first %>
+                <%= image_tag listing.image_listing(first_image), 
+                              class: "listing-image",
+                              srcset: {
+                                listing.image_thumb(first_image) => "400w",
+                                listing.image_listing(first_image) => "800w"
+                              },
+                              sizes: "(max-width: 768px) 50vw, 300px",
+                              loading: "lazy",
+                              alt: listing.title %>
               <% else %>
                 <div class="image-placeholder">
                   <span>📷</span>

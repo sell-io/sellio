@@ -18,8 +18,9 @@
             <div class="thumbnail-images-sidebar">
               <% max_thumbnails = 5 %>
               <% ordered_images.first(max_thumbnails).each_with_index do |image, index| %>
-                <%= image_tag image, class: "thumbnail-image #{'thumbnail-active' if index == 0}", 
-                              data: { image_index: index, image_url: url_for(image) } %>
+                <%= image_tag @listing.image_thumb(image), 
+                              class: "thumbnail-image #{'thumbnail-active' if index == 0}", 
+                              data: { image_index: index, image_url: url_for(@listing.image_zoom(image)) } %>
               <% end %>
               <% if ordered_images.count > max_thumbnails %>
                 <div class="view-all-photos-thumbnail" id="view-all-photos-btn">
@@ -31,15 +32,26 @@
               <% end %>
             </div>
             <div class="main-image" id="main-image-container">
-              <%= image_tag ordered_images.first, class: "listing-main-image", id: "main-listing-image", data: { image_url: url_for(ordered_images.first) } %>
+              <% main_image = ordered_images.first %>
+              <%= image_tag @listing.image_detail(main_image), 
+                            class: "listing-main-image", 
+                            id: "main-listing-image",
+                            srcset: {
+                              @listing.image_listing(main_image) => "800w",
+                              @listing.image_detail(main_image) => "1600w",
+                              @listing.image_zoom(main_image) => "2400w"
+                            },
+                            sizes: "(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px",
+                            data: { image_url: url_for(@listing.image_zoom(main_image)) },
+                            alt: @listing.title %>
             </div>
             
             <!-- Hidden images for JavaScript to access all images -->
             <div style="display: none;" id="all-images-data">
               <% ordered_images.each_with_index do |image, index| %>
                 <% if image.present? %>
-                  <%= image_tag image, class: "hidden-gallery-image", 
-                                data: { image_index: index, image_url: url_for(image) } %>
+                  <%= image_tag @listing.image_zoom(image), class: "hidden-gallery-image", 
+                                data: { image_index: index, image_url: url_for(@listing.image_zoom(image)) } %>
                 <% end %>
               <% end %>
             </div>
