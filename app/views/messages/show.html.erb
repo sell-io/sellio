@@ -94,8 +94,33 @@
     // Initial scroll
     scrollToBottom();
     
-    // Send on Enter
+    // Handle input focus for mobile - scroll input into view
     if (chatInput) {
+      chatInput.addEventListener('focus', function() {
+        // Scroll input into view when focused
+        setTimeout(function() {
+          chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Also scroll chat body to show input area
+          if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+          }
+        }, 100);
+      });
+
+      // Handle keyboard appearance on mobile
+      let viewportHeight = window.innerHeight;
+      window.addEventListener('resize', function() {
+        const newHeight = window.innerHeight;
+        // If height decreased significantly, keyboard likely appeared
+        if (newHeight < viewportHeight - 150) {
+          setTimeout(function() {
+            chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 300);
+        }
+        viewportHeight = newHeight;
+      });
+
+      // Send on Enter
       chatInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -106,8 +131,8 @@
         }
       });
       
-      // Focus input on load
-      chatInput.focus();
+      // Don't auto-focus on load to prevent keyboard popup
+      // chatInput.focus();
     }
     
     // Scroll to bottom when new messages are added (for future real-time updates)
