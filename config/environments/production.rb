@@ -24,8 +24,8 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
   
-  # Increase max file upload size for multiple images (200MB total)
-  config.action_dispatch.parameter_size_limit = 200.megabytes
+  # Increase max file upload size for multiple images (50MB total)
+  config.action_dispatch.parameter_size_limit = 50.megabytes
 
   # Action Cable is not used in this app; explicitly disable mounting in production.
   config.action_cable.mount_path = nil
