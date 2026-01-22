@@ -434,13 +434,17 @@
 
   <!-- Car Filter Section (hidden by default, shown when Filters button is clicked) -->
   <% motors_category = Category.find_by("name ILIKE ?", "%motor%") || Category.find_by("name ILIKE ?", "%car%") %>
-  <% if motors_category && (is_browse_page || @selected_category&.id == motors_category.id || params[:category_id].to_i == motors_category.id) && !has_filters %>
+  <% is_motors_page = motors_category && (is_browse_page || @selected_category&.id == motors_category.id || params[:category_id].to_i == motors_category.id) %>
+  <% is_search_results = params[:search].present? || params[:location].present? %>
+  <% if motors_category && (is_motors_page || has_filters || is_search_results) %>
   <section class="car-filter-section" id="carFiltersSection">
     <div class="container">
       <div class="car-filter-box">
         <h2 class="car-filter-title">Filter Motors</h2>
         <%= form_with url: listings_path, method: :get, local: true, class: "car-filter-form" do |f| %>
           <%= f.hidden_field :category_id, value: motors_category.id %>
+          <%= f.hidden_field :search, value: params[:search] if params[:search].present? %>
+          <%= f.hidden_field :location, value: params[:location] if params[:location].present? %>
           <div class="car-filter-grid">
             <div class="car-filter-field">
               <%= f.label :subcategory, "Vehicle Type" %>
