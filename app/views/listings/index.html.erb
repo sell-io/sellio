@@ -532,7 +532,7 @@
             <div class="car-filter-field">
               <%= f.label :max_price, "Max Price" %>
               <%= f.number_field :max_price, placeholder: "Max Price", class: "car-filter-input", min: 0, step: 100, value: params[:max_price] %>
-                </div>
+            </div>
           </div>
           <div class="form-actions">
             <% motors_count = Listing.where(category_id: motors_category.id).count %>
@@ -558,7 +558,7 @@
         <div class="featured-listings-column">
           <% unless params[:category_id].present? || params[:search].present? || is_browse_page %>
           <div class="section-header">
-              <h2 class="section-title">Featured Listings</h2>
+            <h2 class="section-title">Featured Listings</h2>
             <% unless is_browse_page || has_filters %>
               <%= link_to "View All >", listings_path, class: "view-all-link" %>
             <% end %>
@@ -615,10 +615,10 @@
           </p>
         <% end %>
         <% listings_to_show = if @selected_category || params[:category_id].present? || params[:search].present? || has_filters || is_browse_page
-                                   @listings
-                                 else
+                                 @listings
+                               else
                                  (@featured_listings || @listings.order(Arel.sql('RANDOM()')).limit(4))
-                                 end %>
+                               end %>
         <% is_homepage_grid = !is_browse_page && !params[:category_id].present? && !params[:search].present? && !has_filters %>
         <div class="listings-grid <%= 'homepage-grid' if is_homepage_grid %>">
           <% listings_to_show.each do |listing| %>
@@ -626,16 +626,7 @@
               <%= link_to listing, class: "listing-card-link" do %>
                 <div class="listing-image">
                   <% if listing.images.attached? %>
-                    <% first_image = listing.ordered_images.first %>
-                    <%= image_tag listing.image_listing(first_image), 
-                                  class: "listing-card-image",
-                                  srcset: {
-                                    listing.image_thumb(first_image) => "400w",
-                                    listing.image_listing(first_image) => "800w"
-                                  },
-                                  sizes: "(max-width: 768px) 50vw, 300px",
-                                  loading: "lazy",
-                                  alt: listing.title %>
+                    <%= image_tag listing.ordered_images.first, class: "listing-card-image" %>
                   <% else %>
                     <div class="image-placeholder">
                       <span>📷</span>

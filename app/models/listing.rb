@@ -9,10 +9,6 @@ class Listing < ApplicationRecord
   validates :description, presence: true
   validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
   
-  # Validate image uploads - store originals, resize at serve-time with variants
-  validates :images, content_type: { in: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], message: 'must be a valid image format' },
-                     size: { less_than: 10.megabytes, message: 'must be less than 10MB' }
-  
   # Helper methods for car-specific fields
   def license_plate
     extra_fields&.dig('license_plate')
@@ -48,27 +44,6 @@ class Listing < ApplicationRecord
   
   def transmission
     extra_fields&.dig('transmission')
-  end
-  
-  # Helper methods for image variants (serve-time resizing)
-  def image_thumb(image)
-    return nil unless image
-    image.variant(resize_to_limit: [400, nil])
-  end
-  
-  def image_listing(image)
-    return nil unless image
-    image.variant(resize_to_limit: [800, nil])
-  end
-  
-  def image_detail(image)
-    return nil unless image
-    image.variant(resize_to_limit: [1600, nil])
-  end
-  
-  def image_zoom(image)
-    return nil unless image
-    image.variant(resize_to_limit: [2400, nil])
   end
   
   # Get images in the correct order (as stored in extra_fields or by created_at)

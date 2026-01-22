@@ -1,49 +1,37 @@
-# Nginx Configuration for Large File Uploads - FIX 413 ERROR
+# Nginx Configuration for Large File Uploads
 
-The Rails application has been configured to accept uploads up to 200MB. However, **nginx MUST be configured** to allow larger uploads, otherwise you'll get a "413 Request Entity Too Large" error.
-
-## URGENT: Fix the 413 Error
-
-The 413 error occurs because nginx has a default limit of 1MB for uploads. You MUST increase this in your nginx configuration.
+The Rails application has been configured to accept uploads up to 50MB. However, if you're using nginx as a reverse proxy, you also need to configure nginx to allow larger uploads.
 
 ## Required nginx configuration:
 
-**Option 1: Global configuration (recommended)**
-
-Edit `/etc/nginx/nginx.conf` and add inside the `http` block:
+Add or update the following in your nginx configuration file (usually `/etc/nginx/sites-available/your-site` or `/etc/nginx/nginx.conf`):
 
 ```nginx
 http {
-    # Increase client body size limit to 200MB (for multiple image uploads)
-    client_max_body_size 200M;
+    # Increase client body size limit to 50MB (for multiple image uploads)
+    client_max_body_size 50M;
     
     # Increase buffer sizes for large requests
-    client_body_buffer_size 256k;
+    client_body_buffer_size 128k;
     
     # Increase timeouts for large uploads
-    client_body_timeout 120s;
-    client_header_timeout 120s;
-    send_timeout 120s;
+    client_body_timeout 60s;
+    client_header_timeout 60s;
     
     # ... rest of your nginx config
 }
 ```
 
-**Option 2: Server block configuration (if you can't edit global config)**
-
-Edit your site-specific nginx config (usually `/etc/nginx/sites-available/your-site` or `/etc/nginx/conf.d/your-site.conf`):
+Or if you only want to apply it to a specific server block:
 
 ```nginx
 server {
-    listen 80;
-    server_name dealo.ie www.dealo.ie;
+    # ... other server config ...
     
-    # CRITICAL: Increase client body size limit to 200MB
-    client_max_body_size 200M;
-    client_body_buffer_size 256k;
-    client_body_timeout 120s;
-    client_header_timeout 120s;
-    send_timeout 120s;
+    # Increase client body size limit to 50MB
+    client_max_body_size 50M;
+    client_body_buffer_size 128k;
+    client_body_timeout 60s;
     
     # ... rest of server config ...
 }
@@ -51,33 +39,12 @@ server {
 
 ## After updating nginx config:
 
-1. **Test the configuration:**
-   ```bash
-   sudo nginx -t
-   ```
+1. Test the configuration: `sudo nginx -t`
+2. Reload nginx: `sudo systemctl reload nginx` or `sudo service nginx reload`
 
-2. **If test passes, reload nginx:**
-   ```bash
-   sudo systemctl reload nginx
-   ```
-   OR
-   ```bash
-   sudo service nginx reload
-   ```
-
-3. **If reload doesn't work, restart nginx:**
-   ```bash
-   sudo systemctl restart nginx
-   ```
-
-## Current Rails Configuration:
+## Note:
 
 The Rails application has been configured with:
-- `config.action_dispatch.parameter_size_limit = 200.megabytes` in both `config/application.rb` and `config/environments/production.rb`
+- `config.action_dispatch.parameter_size_limit = 50.megabytes` in both `config/application.rb` and `config/environments/production.rb`
 
-## Important Notes:
-
-- **The nginx configuration MUST be updated** - Rails settings alone won't fix the 413 error
-- The default nginx limit is 1MB, which is why you're getting the error
-- After updating nginx, restart your Rails application if needed
-- Test with a few large images to verify it works
+This should handle multiple image uploads without nginx errors.

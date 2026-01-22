@@ -13,16 +13,7 @@
         <h3>About this listing:</h3>
         <div class="preview-content">
           <% if @listing.images.attached? %>
-            <% first_image = @listing.ordered_images.first %>
-            <%= image_tag @listing.image_listing(first_image), 
-                          class: "preview-image",
-                          srcset: {
-                            @listing.image_thumb(first_image) => "400w",
-                            @listing.image_listing(first_image) => "800w"
-                          },
-                          sizes: "(max-width: 768px) 100vw, 400px",
-                          loading: "lazy",
-                          alt: @listing.title %>
+            <%= image_tag @listing.ordered_images.first, class: "preview-image" %>
           <% end %>
           <div class="preview-details">
             <strong><%= @listing.title %></strong>
