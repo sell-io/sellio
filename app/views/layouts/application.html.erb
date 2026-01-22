@@ -242,15 +242,133 @@
         initBuyDropdown();
       }
 
+      // Hamburger Menu Toggle
+      function initHamburgerMenu() {
+        const hamburgerBtn = document.getElementById('hamburgerMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+        const mobileMenuClose = document.getElementById('mobileMenuClose');
+        const mobileBuyToggle = document.getElementById('mobileBuyToggle');
+        const mobileBuySubmenu = document.getElementById('mobileBuySubmenu');
+
+        if (!hamburgerBtn || !mobileMenu) return;
+
+        function openMenu() {
+          mobileMenu.classList.add('open');
+          mobileMenu.style.pointerEvents = 'auto';
+          if (mobileMenuOverlay) {
+            mobileMenuOverlay.classList.add('open');
+            mobileMenuOverlay.style.pointerEvents = 'auto';
+          }
+          if (hamburgerBtn) {
+            hamburgerBtn.style.opacity = '0';
+            hamburgerBtn.style.pointerEvents = 'none';
+          }
+          document.body.style.overflow = 'hidden';
+        }
+
+        function closeMenu() {
+          mobileMenu.classList.remove('open');
+          mobileMenu.style.pointerEvents = 'none';
+          if (mobileMenuOverlay) {
+            mobileMenuOverlay.classList.remove('open');
+            mobileMenuOverlay.style.pointerEvents = 'none';
+          }
+          if (hamburgerBtn) {
+            hamburgerBtn.style.opacity = '1';
+            hamburgerBtn.style.pointerEvents = 'auto';
+          }
+          document.body.style.overflow = '';
+          if (mobileBuySubmenu) {
+            mobileBuySubmenu.classList.remove('open');
+          }
+          if (mobileBuyToggle) {
+            mobileBuyToggle.classList.remove('open');
+          }
+        }
+
+        // Always close menu on page load/navigation (important for login redirects)
+        closeMenu();
+
+        hamburgerBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (mobileMenu.classList.contains('open')) {
+            closeMenu();
+          } else {
+            openMenu();
+          }
+        });
+
+        if (mobileMenuClose) {
+          mobileMenuClose.addEventListener('click', closeMenu);
+        }
+
+        if (mobileMenuOverlay) {
+          mobileMenuOverlay.addEventListener('click', closeMenu);
+        }
+
+        if (mobileBuyToggle && mobileBuySubmenu) {
+          mobileBuyToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            mobileBuySubmenu.classList.toggle('open');
+            mobileBuyToggle.classList.toggle('open');
+          });
+        }
+
+        // Close menu when clicking on a menu item (navigation)
+        const menuItems = mobileMenu.querySelectorAll('.mobile-menu-item:not(.mobile-menu-toggle)');
+        menuItems.forEach(function(item) {
+          item.addEventListener('click', function() {
+            // Close immediately for better UX
+            closeMenu();
+          });
+        });
+      }
+
+      // Ensure menu is closed and body overflow is reset on any navigation
+      function resetMobileMenuState() {
+        const mobileMenu = document.getElementById('mobileMenu');
+        const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+        if (mobileMenu) {
+          mobileMenu.classList.remove('open');
+          mobileMenu.style.pointerEvents = 'none';
+        }
+        if (mobileMenuOverlay) {
+          mobileMenuOverlay.classList.remove('open');
+          mobileMenuOverlay.style.pointerEvents = 'none';
+        }
+        document.body.style.overflow = '';
+      }
+
       // Turbo navigations (Rails 7)
       document.addEventListener('turbo:load', function() {
+        resetMobileMenuState();
         initAccountDropdown();
         initBuyDropdown();
+        initHamburgerMenu();
       });
       document.addEventListener('turbo:render', function() {
+        resetMobileMenuState();
         initAccountDropdown();
         initBuyDropdown();
+        initHamburgerMenu();
       });
+      document.addEventListener('turbo:before-visit', function() {
+        resetMobileMenuState();
+      });
+
+      // Initial load
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          resetMobileMenuState();
+          initHamburgerMenu();
+        });
+      } else {
+        resetMobileMenuState();
+        initHamburgerMenu();
+      }
     </script>
   </head>
 
@@ -272,6 +390,11 @@
           <% end %>
           </div>
         </div>
+        <button class="hamburger-menu-btn" id="hamburgerMenuBtn" aria-label="Toggle menu">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
         <nav class="main-nav">
           <%= link_to root_path, class: "nav-link home-icon-link", title: "Home" do %>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="home-icon">
@@ -300,6 +423,58 @@
               <% end %>
             <% end %>
           <% end %>
+        </nav>
+        <!-- Mobile Menu Overlay -->
+        <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+        <nav class="mobile-menu" id="mobileMenu">
+          <div class="mobile-menu-header">
+            <h3>Menu</h3>
+            <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu">×</button>
+          </div>
+          <div class="mobile-menu-content">
+            <%= link_to root_path, class: "mobile-menu-item" do %>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 22V12H15V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Home</span>
+            <% end %>
+            <div class="mobile-menu-dropdown">
+              <button class="mobile-menu-item mobile-menu-toggle" id="mobileBuyToggle">
+                <span>Buy</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="mobile-menu-arrow">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <div class="mobile-menu-submenu" id="mobileBuySubmenu">
+                <%= link_to "All Categories", listings_path, class: "mobile-menu-subitem" %>
+                <% Category.all.order(:name).each do |category| %>
+                  <%= link_to category.name, listings_path(category_id: category.id), class: "mobile-menu-subitem" %>
+                <% end %>
+              </div>
+            </div>
+            <%= link_to "Sell", new_listing_path, class: "mobile-menu-item" %>
+            <% if user_signed_in? %>
+              <%= link_to "Place Ad", new_listing_path, class: "mobile-menu-item mobile-menu-primary" %>
+              <%= link_to my_messages_path, class: "mobile-menu-item" do %>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>My Messages</span>
+                <% unread_count = current_user.unread_messages_count %>
+                <% if unread_count > 0 %>
+                  <span class="mobile-menu-badge"><%= unread_count %></span>
+                <% end %>
+              <% end %>
+              <%= link_to "My Listings", my_listings_path, class: "mobile-menu-item" %>
+              <%= link_to "My Saved Ads", my_saved_ads_path, class: "mobile-menu-item" %>
+              <%= link_to "Account Settings", edit_user_registration_path, class: "mobile-menu-item" %>
+              <hr class="mobile-menu-divider">
+              <%= button_to "Logout", destroy_user_session_path, method: :delete, form: { data: { turbo: "false" } }, class: "mobile-menu-item mobile-menu-logout" %>
+            <% else %>
+              <%= link_to "Sign up or Login", new_user_session_path, class: "mobile-menu-item" %>
+            <% end %>
+          </div>
         </nav>
         <div class="header-right">
           <% if user_signed_in? %>
@@ -341,7 +516,6 @@
               </ul>
             </div>
           <% else %>
-            <%= link_to "Place Ad", new_listing_path, class: "btn-place-ad" %>
             <%= link_to "Sign up or Login", new_user_session_path, class: "nav-link nav-login" %>
           <% end %>
         </div>

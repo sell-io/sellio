@@ -542,11 +542,16 @@
           <% if is_browse_page %>
             <div class="mobile-filters-bar">
               <%= form_with url: listings_path, method: :get, local: true, class: "mobile-filters-form" do |f| %>
+                <% if params[:category_id].present? %>
+                  <%= f.hidden_field :category_id, value: params[:category_id] %>
+                <% end %>
                 <div class="mobile-filters-row">
-                  <%= f.select :category_id,
-                               options_from_collection_for_select(@categories, :id, :name, params[:category_id]),
-                               { include_blank: "All categories" },
-                               class: "mobile-filter-select" %>
+                  <% unless params[:category_id].present? %>
+                    <%= f.select :category_id,
+                                 options_from_collection_for_select(@categories, :id, :name, params[:category_id]),
+                                 { include_blank: "All categories" },
+                                 class: "mobile-filter-select" %>
+                  <% end %>
                   <%= f.text_field :location,
                                    placeholder: "Location",
                                    value: params[:location],
