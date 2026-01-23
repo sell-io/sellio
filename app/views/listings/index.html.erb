@@ -416,6 +416,7 @@
           <h2 class="section-title">All Listings</h2>
         <% end %>
       </div>
+      <!-- Desktop search box (hidden on mobile) -->
       <div class="search-box-results">
         <%= form_with url: listings_path, method: :get, local: true, class: "search-form-results" do |f| %>
           <% if params[:category_id].present? %>
@@ -428,14 +429,69 @@
           </div>
         <% end %>
       </div>
+      <!-- Mobile search bar (simple search input) -->
+      <div class="mobile-search-bar">
+        <%= form_with url: listings_path, method: :get, local: true, class: "mobile-search-form" do |f| %>
+          <% if params[:category_id].present? %>
+            <%= f.hidden_field :category_id, value: params[:category_id] %>
+          <% end %>
+          <div class="mobile-search-input-wrapper">
+            <%= f.text_field :search, placeholder: "Search...", class: "mobile-search-input", value: params[:search] %>
+            <button type="submit" class="mobile-search-icon-button" aria-label="Search">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </section>
+  <% end %>
+
+  <!-- General Filter Section (hidden by default, shown when Filters button is clicked) -->
+  <% motors_category = Category.find_by("name ILIKE ?", "%motor%") || Category.find_by("name ILIKE ?", "%car%") %>
+  <% is_motors_page = motors_category && (is_browse_page || @selected_category&.id == motors_category.id || params[:category_id].to_i == motors_category.id) %>
+  <% is_search_results = params[:search].present? || params[:location].present? %>
+  <% show_general_filters = (params[:category_id].present? || params[:search].present? || params[:location].present? || is_browse_page) && !(motors_category && (is_motors_page || has_filters || is_search_results)) %>
+  <% if show_general_filters %>
+  <section class="general-filter-section" id="generalFiltersSection">
+    <div class="container">
+      <div class="general-filter-box">
+        <h2 class="general-filter-title">Filters</h2>
+        <%= form_with url: listings_path, method: :get, local: true, class: "general-filter-form" do |f| %>
+          <%= f.hidden_field :search, value: params[:search] if params[:search].present? %>
+          <div class="general-filter-grid">
+            <div class="general-filter-field">
+              <%= f.label :category_id, "Category" %>
+              <%= f.select :category_id,
+                           options_from_collection_for_select([Category.new(id: nil, name: "All categories")] + @categories, :id, :name, params[:category_id]),
+                           { include_blank: false },
+                           class: "general-filter-select" %>
+            </div>
+            <div class="general-filter-field">
+              <%= f.label :location, "Location" %>
+              <%= f.text_field :location, placeholder: "Location (e.g., Dublin)", class: "general-filter-input", value: params[:location] %>
+            </div>
+          </div>
+          <div class="form-actions">
+            <%= f.submit "Apply Filters", class: "general-filter-button" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Filters Button (show on all search results pages) -->
+  <section class="filters-button-container">
+    <div class="container">
+      <button type="button" class="btn-show-filters" id="toggleGeneralFiltersBtn">Show Filters</button>
     </div>
   </section>
   <% end %>
 
   <!-- Car Filter Section (hidden by default, shown when Filters button is clicked) -->
-  <% motors_category = Category.find_by("name ILIKE ?", "%motor%") || Category.find_by("name ILIKE ?", "%car%") %>
-  <% is_motors_page = motors_category && (is_browse_page || @selected_category&.id == motors_category.id || params[:category_id].to_i == motors_category.id) %>
-  <% is_search_results = params[:search].present? || params[:location].present? %>
   <% if motors_category && (is_motors_page || has_filters || is_search_results) %>
   <section class="car-filter-section" id="carFiltersSection">
     <div class="container">
@@ -444,8 +500,11 @@
         <%= form_with url: listings_path, method: :get, local: true, class: "car-filter-form" do |f| %>
           <%= f.hidden_field :category_id, value: motors_category.id %>
           <%= f.hidden_field :search, value: params[:search] if params[:search].present? %>
-          <%= f.hidden_field :location, value: params[:location] if params[:location].present? %>
           <div class="car-filter-grid">
+            <div class="car-filter-field">
+              <%= f.label :location, "Location" %>
+              <%= f.text_field :location, placeholder: "Location (e.g., Dublin)", class: "car-filter-input", value: params[:location] %>
+            </div>
             <div class="car-filter-field">
               <%= f.label :subcategory, "Vehicle Type" %>
               <%= f.select :subcategory, options_for_select([
@@ -543,7 +602,7 @@
     </div>
   </section>
   
-  <!-- Filters Button (show when Motors category is selected) -->
+  <!-- Filters Button for Motors (show when Motors category is selected) -->
   <section class="filters-button-container">
     <div class="container">
       <button type="button" class="btn-show-filters" id="toggleFiltersBtn">Show Filters</button>
@@ -565,36 +624,6 @@
           </div>
           <% end %>
 
-          <% if is_browse_page %>
-            <div class="mobile-filters-bar">
-              <%= form_with url: listings_path, method: :get, local: true, class: "mobile-filters-form" do |f| %>
-                <% if params[:category_id].present? %>
-                  <%= f.hidden_field :category_id, value: params[:category_id] %>
-                <% end %>
-                <div class="mobile-filters-row">
-                  <% unless params[:category_id].present? %>
-                    <%= f.select :category_id,
-                                 options_from_collection_for_select(@categories, :id, :name, params[:category_id]),
-                                 { include_blank: "All categories" },
-                                 class: "mobile-filter-select" %>
-                  <% end %>
-                  <%= f.text_field :location,
-                                   placeholder: "Location",
-                                   value: params[:location],
-                                   class: "mobile-filter-input" %>
-                </div>
-                <div class="mobile-filters-row">
-                  <%= f.text_field :search,
-                                   placeholder: "What are you looking for?",
-                                   value: params[:search],
-                                   class: "mobile-filter-input" %>
-                </div>
-                <div class="mobile-filters-row">
-                  <%= f.submit "Search", class: "mobile-filter-button" %>
-                </div>
-              <% end %>
-            </div>
-          <% end %>
       
       <% if @listings.any? %>
         <% if @selected_category || params[:category_id].present? || params[:search].present? || has_filters %>
@@ -733,6 +762,32 @@
 </div>
 
 <script>
+  // Toggle general filters visibility
+  function initGeneralFiltersToggle() {
+    const toggleBtn = document.getElementById('toggleGeneralFiltersBtn');
+    const filtersSection = document.getElementById('generalFiltersSection');
+    
+    if (!toggleBtn || !filtersSection) return;
+    
+    // Guard: avoid duplicate listeners
+    if (toggleBtn.hasAttribute('data-filters-initialized')) return;
+    toggleBtn.setAttribute('data-filters-initialized', 'true');
+    
+    toggleBtn.addEventListener('click', function() {
+      const isVisible = filtersSection.classList.contains('show');
+      
+      if (isVisible) {
+        filtersSection.classList.remove('show');
+        toggleBtn.textContent = 'Show Filters';
+        toggleBtn.classList.remove('hide');
+      } else {
+        filtersSection.classList.add('show');
+        toggleBtn.textContent = 'Hide Filters';
+        toggleBtn.classList.add('hide');
+      }
+    });
+  }
+  
   // Toggle car filters visibility
   function initFiltersToggle() {
     const toggleBtn = document.getElementById('toggleFiltersBtn');
@@ -761,12 +816,22 @@
   
   // Initialize on page load
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initFiltersToggle);
+    document.addEventListener('DOMContentLoaded', function() {
+      initGeneralFiltersToggle();
+      initFiltersToggle();
+    });
   } else {
+    initGeneralFiltersToggle();
     initFiltersToggle();
   }
   
   // Re-initialize on Turbo navigation
-  document.addEventListener('turbo:load', initFiltersToggle);
-  document.addEventListener('turbo:render', initFiltersToggle);
+  document.addEventListener('turbo:load', function() {
+    initGeneralFiltersToggle();
+    initFiltersToggle();
+  });
+  document.addEventListener('turbo:render', function() {
+    initGeneralFiltersToggle();
+    initFiltersToggle();
+  });
 </script>
