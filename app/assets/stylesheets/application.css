@@ -836,6 +836,8 @@ body:has(.mobile-menu.open) .hamburger-menu-btn {
 @media (max-width: 768px) {
   .mobile-filters-bar {
     display: block;
+    margin-bottom: 1rem;
+    margin-top: 0;
   }
 
   .mobile-filters-row {
@@ -1054,6 +1056,161 @@ body:has(.mobile-menu.open) .hamburger-menu-btn {
   padding: 0.75rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile Search Bar */
+.mobile-search-bar {
+  display: none;
+}
+
+.mobile-search-form {
+  width: 100%;
+}
+
+.mobile-search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  margin: 0 auto;
+  background: white;
+  padding: 0.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-search-input {
+  flex: 1;
+  padding: 0.875rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  line-height: 1.5;
+  outline: none;
+  box-sizing: border-box;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.mobile-search-icon-button {
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5F6368;
+  transition: color 0.2s, background-color 0.2s;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.mobile-search-icon-button:hover {
+  color: #22C55E;
+  background-color: rgba(34, 197, 94, 0.1);
+}
+
+.mobile-search-icon-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* General Filter Section */
+.general-filter-section {
+  padding: 1.5rem 0;
+  background: #F7F9FB;
+  display: none;
+}
+
+.general-filter-section.show {
+  display: block;
+}
+
+.general-filter-box {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.general-filter-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2B2F33;
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+
+.general-filter-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.general-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.875rem;
+  margin-bottom: 0;
+}
+
+.general-filter-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.general-filter-field label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #5F6368;
+  margin-bottom: 0.375rem;
+}
+
+.general-filter-input,
+.general-filter-select {
+  width: 100%;
+  padding: 0.625rem;
+  border: 1px solid #E0E0E0;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  color: #2B2F33;
+  background: #FFFFFF;
+  transition: border-color 0.3s;
+}
+
+.general-filter-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235F6368' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  padding-right: 2rem;
+}
+
+.general-filter-button {
+  padding: 0.875rem 2rem;
+  background-color: #4FD1A5;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.general-filter-button:hover {
+  background-color: #2FA37A;
 }
 
 .search-button {
@@ -6511,6 +6668,13 @@ select[name*="year"]:focus {
     font-size: 1rem;
   }
 
+  /* Add separator line between search and location inputs on mobile homepage */
+  .search-input-group .search-input:first-of-type {
+    border-bottom: 1px solid #E0E0E0;
+    padding-bottom: 0.875rem;
+    margin-bottom: 0.5rem;
+  }
+
   .location-input {
     max-width: 100%;
   }
@@ -6523,17 +6687,76 @@ select[name*="year"]:focus {
 
   /* Search Results Header */
   .search-results-header {
-    padding: 1rem 0;
+    padding: 0.5rem 0;
+  }
+
+  .search-results-header .section-header {
+    margin-bottom: 0.5rem;
   }
 
   .search-results-header .section-title {
     font-size: 1.5rem;
     padding: 0 1rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
   }
 
   .search-box-results {
     padding: 0 1rem;
+    display: none; /* Hide top search box on mobile */
+  }
+
+  /* Mobile Search Bar - Show on mobile */
+  .mobile-search-bar {
+    display: block;
+    padding: 0 1rem;
+    margin-top: 0.5rem;
+  }
+
+  .mobile-search-input-wrapper {
+    padding: 0.5rem;
+    align-items: center;
+  }
+
+  .mobile-search-input {
+    padding: 0.875rem 1rem;
+    font-size: 1rem;
+  }
+
+  .mobile-search-icon-button {
+    padding: 0.5rem;
+  }
+
+  /* General Filter Section */
+  .general-filter-section {
+    padding: 1rem 0;
+  }
+
+  .general-filter-box {
+    padding: 1rem;
+    margin: 0 1rem;
+  }
+
+  .general-filter-title {
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+  }
+
+  .general-filter-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .general-filter-input,
+  .general-filter-select {
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+
+  .general-filter-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    width: 100%;
+    max-width: 100%;
   }
 
   /* Listings Grid */
@@ -6574,6 +6797,11 @@ select[name*="year"]:focus {
 
   .listing-card-location {
     font-size: 0.875rem;
+  }
+
+  /* Filters Button Container */
+  .filters-button-container {
+    padding: 0.5rem 0;
   }
 
   /* Car Filters */
