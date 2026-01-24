@@ -135,6 +135,10 @@ class ListingsController < ApplicationController
 
   # GET /listings/new
   def new
+    unless user_signed_in?
+      redirect_to new_user_session_path, alert: "Please login to place an ad"
+      return
+    end
     @listing = Listing.new
     @categories = Category.all
   end
