@@ -33,19 +33,20 @@ body {
   padding: 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid #E8FBF4;
-  max-height: 120px;
+  max-height: 100px;
   overflow: visible;
 }
 
 .header-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0.5rem 1.5rem;
+  padding: 0.25rem 1.5rem;
   padding-left: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 2rem;
+  height: 100px;
 }
 
 .header-left {
@@ -63,27 +64,39 @@ body {
   align-items: center;
   gap: 0.75rem;
   flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+/* Place Ad button in header-right - matches Vinted/Leboncoin pattern */
+.header-right .btn-place-ad {
+  margin-top: 0;
+  margin-left: 0.5rem;
+  order: 1;
 }
 
 .logo {
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  height: 100px;
+  padding: 0;
+  margin: 0;
 }
 
 .logo-link {
   display: inline-block;
   text-decoration: none;
   line-height: 0;
+  padding: 0;
+  margin: 0;
 }
 
 .logo-image {
-  height: 200px;
+  height: 100px;
   width: auto;
   display: block;
   transition: opacity 0.3s ease;
-  margin-top: -40px;
-  margin-bottom: -40px;
+  margin: 0;
 }
 
 .logo-image:hover {
@@ -351,19 +364,19 @@ body:has(.mobile-menu.open) .hamburger-menu-btn {
 }
 
 .mobile-menu-primary {
-  background-color: #4FD1A5;
+  background-color: #22C55E;
   color: white !important;
   font-weight: 600;
-  margin: 0;
-  padding: 1rem 1.5rem;
-  border-radius: 0;
-  justify-content: flex-start;
-  font-size: 1rem;
-  border-bottom: 1px solid #F0F0F0;
+  margin: 0.5rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  justify-content: center;
+  font-size: 0.9375rem;
+  border-bottom: none;
 }
 
 .mobile-menu-primary:hover {
-  background-color: #2FA37A !important;
+  background-color: #16A34A !important;
   color: white !important;
 }
 
@@ -473,25 +486,26 @@ body:has(.mobile-menu.open) .hamburger-menu-btn {
 }
 
 .btn-place-ad {
-  padding: 0;
   background-color: #22C55E;
   color: #FFFFFF;
   text-decoration: none;
   border: none;
-  border-radius: 6px;
-  font-size: 0.9375rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
   font-weight: 600;
   transition: all 0.3s;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 40px;
-  min-width: 100px;
-  padding: 0 1.25rem;
+  height: 28px;
+  min-width: 55px;
+  max-width: 65px;
+  padding: 0 0.5rem;
   box-sizing: border-box;
-  line-height: 1;
-  margin-top: 1rem;
+  line-height: 1.2;
+  margin-top: 0;
+  vertical-align: middle;
 }
 
 .btn-place-ad {
@@ -504,6 +518,30 @@ body:has(.mobile-menu.open) .hamburger-menu-btn {
   text-decoration: none;
   transform: translateY(-2px) scale(1.02);
   box-shadow: 0 6px 20px rgba(22, 163, 74, 0.4);
+}
+
+/* Desktop: Place Ad button in header-right - premium positioning */
+@media (min-width: 1024px) {
+  .header-right .btn-place-ad {
+    height: 32px;
+    min-width: 80px;
+    max-width: 90px;
+    padding: 0 0.875rem;
+    font-size: 0.8125rem;
+    margin-top: 18px; /* lowered by an additional ~4px */
+    margin-left: 1rem;
+    border-radius: 4px;
+    order: 1;
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+  }
+  
+  .header-right .dropdown {
+    order: 2;
+  }
 }
 
 /* Dropdown Menu */
@@ -6563,29 +6601,50 @@ select[name*="year"]:focus {
 
   /* Header and Logo */
   .main-header {
-    max-height: none;
-    padding: 0.5rem 0;
+    max-height: 80px;
+    padding: 0 0.75rem 0 0.5rem; /* bring logo and actions slightly left */
+    display: flex;
+    align-items: center; /* vertically center logo + actions */
+    justify-content: space-between;
+    position: relative;
+    gap: 0.5rem;
+    padding-top: 0;
   }
 
   .header-container {
     flex-direction: row;
-    padding: 0.5rem 1rem;
+    padding: 0.25rem 0;
     gap: 0.5rem;
     align-items: center;
+    height: 80px;
+    flex: 1;
   }
 
   .header-left {
-    margin-left: 0;
+    margin-left: -0.25rem; /* nudge logo further left */
     padding-left: 0;
     flex-shrink: 1;
     min-width: 0;
+    height: 80px;
+    padding: 0;
+    margin: 0;
+  }
+
+  .logo {
+    height: 80px;
+    padding: 0;
+    margin: 0;
+  }
+
+  .logo-link {
+    padding: 0;
+    margin: 0;
   }
 
   .logo-image {
-    height: 120px;
+    height: 80px;
     width: auto;
-    margin-top: 0;
-    margin-bottom: 0;
+    margin: 0;
   }
 
   .back-nav-btn {
@@ -6594,12 +6653,7 @@ select[name*="year"]:focus {
     margin-right: 0.25rem;
   }
 
-  /* Hamburger Menu - Show on mobile */
-  .hamburger-menu-btn {
-    display: flex;
-    margin-left: auto;
-    margin-right: 0.5rem;
-  }
+  /* Hamburger Menu - Now in header-right, handled by .header-right .hamburger-menu-btn */
 
   /* Navigation - Hide on mobile */
   .main-nav {
@@ -6616,13 +6670,38 @@ select[name*="year"]:focus {
   }
 
   .header-right {
+    display: flex !important;
+    align-items: center;
     gap: 0.5rem;
     flex-shrink: 0;
+    justify-content: flex-end;
+    align-self: center; /* Vertically center the whole action zone in the header */
+    margin-right: 0.25rem; /* shift Place Ad + hamburger slightly left from the edge */
   }
 
-  /* Hide Place Ad button and account dropdown on mobile (they're in the menu) */
-  .btn-place-ad {
-    display: none;
+  /* Place Ad button in header-right on mobile */
+  body.home-page .header-right .btn-place-ad {
+    display: inline-flex !important;
+    padding: 0 0.5rem !important;
+    font-size: 0.75rem !important;
+    height: 28px !important;
+    margin-top: 27px !important; /* dropped a further ~8px */
+    min-width: 55px !important;
+    max-width: 65px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0;
+    order: 0; /* Place Ad first, to the left of the hamburger */
+    margin-left: 0;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1.2 !important;
+    vertical-align: middle !important;
+  }
+
+  /* Hide the fixed-header Place Ad button on all non-home mobile pages */
+  body:not(.home-page) .header-right .btn-place-ad {
+    display: none !important;
   }
 
   .header-right .dropdown {
@@ -6631,6 +6710,20 @@ select[name*="year"]:focus {
 
   .header-right .nav-login {
     display: none;
+  }
+
+  /* Hamburger now in header-right */
+  .header-right .hamburger-menu-btn {
+    display: flex !important;
+    flex-shrink: 0;
+    order: 1; /* Hamburger second, to the right of Place Ad */
+    width: 20px;  /* narrower from left & right */
+    height: 20px; /* shorter top & bottom */
+  }
+
+  /* Make the mobile hamburger icon a bit slimmer */
+  .hamburger-menu-btn .hamburger-line {
+    height: 2px;
   }
 
   /* Account Dropdown */
@@ -6702,7 +6795,8 @@ select[name*="year"]:focus {
 
   .search-box-results {
     padding: 0 1rem;
-    display: none; /* Hide top search box on mobile */
+    display: none;
+    /* Hide top search box on mobile */
   }
 
   /* Mobile Search Bar - Show on mobile */
@@ -7086,7 +7180,7 @@ select[name*="year"]:focus {
   }
 
   .logo-image {
-    height: 100px;
+    height: 80px;
   }
 
   .main-nav {

@@ -720,31 +720,6 @@
         </div>
       <% end %>
         </div>
-        
-        <!-- Sell Your Stuff Today Box (only show on homepage, not on browse page) -->
-        <% unless params[:category_id].present? || params[:search].present? || is_browse_page %>
-        <div class="sell-box-column">
-          <div class="sell-box">
-            <h2 class="sell-box-title">Sell Your Stuff Today</h2>
-            <p class="sell-box-text">Post your ad in minutes and reach thousands of buyers in your area.</p>
-            <%= link_to "Place an Ad", new_listing_path, class: "btn-place-ad" %>
-            <div class="sell-box-benefits">
-              <div class="benefit-item">
-                <span class="check-icon">✓</span>
-                <span>Free and easy to use</span>
-              </div>
-              <div class="benefit-item">
-                <span class="check-icon">✓</span>
-                <span>Reach local buyers</span>
-              </div>
-              <div class="benefit-item">
-                <span class="check-icon">✓</span>
-                <span>Safe and secure</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <% end %>
       </div>
     </div>
   </section>
