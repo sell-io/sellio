@@ -74,8 +74,8 @@
     </div>
 
     <div class="field">
-      <%= f.label :location, "Location" %>
-      <%= f.text_field :location %>
+      <%= f.label :location, "County" %>
+      <%= f.select :location, options_for_select(irish_counties.map { |c| [c, c] }, resource.location), { prompt: "Select a county" }, { class: "auth-form-select" } %>
     </div>
 
     <% if devise_mapping.confirmable? && resource.pending_reconfirmation? %>

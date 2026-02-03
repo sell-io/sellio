@@ -2494,16 +2494,23 @@ select[name*="year"]:focus {
 .auth-form input[type="email"],
 .auth-form input[type="password"],
 .auth-form input[type="text"],
-.auth-form input[type="tel"] {
+.auth-form input[type="tel"],
+.auth-form select,
+.auth-form .auth-form-select {
   width: 100%;
   padding: 0.875rem;
   border: 2px solid #e0e0e0;
   border-radius: 6px;
   font-size: 1rem;
   transition: border-color 0.3s;
+  background: #fff;
+  cursor: pointer;
+  appearance: auto;
 }
 
-.auth-form input:focus {
+.auth-form input:focus,
+.auth-form select:focus,
+.auth-form .auth-form-select:focus {
   outline: none;
   border-color: #4FD1A5;
 }
