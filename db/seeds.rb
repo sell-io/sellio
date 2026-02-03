@@ -55,7 +55,7 @@ end
 
 Category.find_or_create_by(name: "Electronics") do |cat|
   cat.description = "Phones, Computers, TVs"
-  cat.icon = "📱"
+  cat.icon = "📱" # phone
   cat.slug = nil
 end
 
@@ -85,7 +85,7 @@ end
 
 Category.find_or_create_by(name: "Services") do |cat|
   cat.description = "Babysitting, Car Valeting, Cleaning, etc."
-  cat.icon = "🔧"
+  cat.icon = "🔧" # original Electronics icon (wrench)
   cat.slug = nil
 end
 
