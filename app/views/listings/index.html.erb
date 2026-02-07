@@ -674,7 +674,7 @@
         <% if defined?(@listings_total_pages) && @listings_total_pages > 1 %>
           <div class="pagination-wrapper">
             <nav class="pagination" aria-label="Pagination">
-              <% pagination_params = params.slice(:category_id, :search, :location, :make, :model, :min_year, :max_year, :min_mileage, :max_mileage, :min_price, :max_price, :subcategory) %>
+              <% pagination_params = params.permit(:category_id, :search, :location, :make, :model, :min_year, :max_year, :min_mileage, :max_mileage, :min_price, :max_price, :subcategory).to_h %>
               <% if @listings_current_page > 1 %>
                 <%= link_to "← Previous", listings_path(pagination_params.merge(page: @listings_current_page - 1)), class: "page-link prev" %>
               <% end %>
