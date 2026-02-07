@@ -401,7 +401,7 @@
             <%= link_to "Buy", listings_path, class: "nav-link dropdown-toggle", id: "buyDropdown", role: "button", data: { toggle: "dropdown" } %>
             <div class="dropdown-menu buy-dropdown-menu" aria-labelledby="buyDropdown">
               <%= link_to "All Categories", listings_path, class: "dropdown-item" %>
-              <% Category.all.order(:name).each do |category| %>
+              <% Category.visible.order(:name).each do |category| %>
                 <%= link_to category.name, listings_path(category_id: category.id), class: "dropdown-item" %>
               <% end %>
             </div>
@@ -443,7 +443,7 @@
               </button>
               <div class="mobile-menu-submenu" id="mobileBuySubmenu">
                 <%= link_to "All Categories", listings_path, class: "mobile-menu-subitem" %>
-                <% Category.all.order(:name).each do |category| %>
+                <% Category.visible.order(:name).each do |category| %>
                   <%= link_to category.name, listings_path(category_id: category.id), class: "mobile-menu-subitem" %>
                 <% end %>
               </div>

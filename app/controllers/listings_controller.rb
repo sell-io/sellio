@@ -8,7 +8,7 @@ class ListingsController < ApplicationController
     # Featured listings: always show a small randomized set on the homepage section
     @featured_listings = Listing.order(Arel.sql('RANDOM()')).limit(4)
     # Order categories with Motors first, then alphabetically
-    all_categories = Category.all.order(:name)
+    all_categories = Category.visible.order(:name)
     motors_category = all_categories.find { |c| c.name.downcase == "motors" }
     @categories = if motors_category
       [motors_category] + (all_categories - [motors_category])
@@ -165,12 +165,12 @@ class ListingsController < ApplicationController
       return
     end
     @listing = Listing.new
-    @categories = Category.all
+    @categories = Category.visible.order(:name)
   end
 
   # GET /listings/1/edit
   def edit
-    @categories = Category.all
+    @categories = Category.visible.order(:name)
     # CRITICAL: Reload to ensure we have the latest images and order
     @listing.reload
     Rails.logger.info "Edit action - Listing #{@listing.id}: Total attachments: #{@listing.images_attachments.count}, Image order: #{@listing.extra_fields&.dig('image_order').inspect}"
@@ -180,7 +180,7 @@ class ListingsController < ApplicationController
   def create
     @listing = Listing.new(listing_params)
     @listing.user = current_user if user_signed_in?
-    @categories = Category.all
+    @categories = Category.visible.order(:name)
 
     respond_to do |format|
       if @listing.save
