@@ -461,7 +461,7 @@
                   <span class="mobile-menu-badge"><%= unread_count %></span>
                 <% end %>
               <% end %>
-              <% if current_user.admin? %>
+              <% if current_user&.admin? %>
                 <%= link_to "Admin", admin_root_path, class: "mobile-menu-item" %>
               <% end %>
               <%= link_to "My Listings", my_listings_path, class: "mobile-menu-item" %>
@@ -503,7 +503,7 @@
                 <span class="dropdown-arrow">▼</span>
               </button>
               <ul class="dropdown-menu" id="accountDropdownMenu">
-                <% if current_user.admin? %>
+                <% if current_user&.admin? %>
                   <li><%= link_to "Admin", admin_root_path, class: "dropdown-item" %></li>
                   <li><hr class="dropdown-divider"></li>
                 <% end %>
