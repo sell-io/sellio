@@ -29,11 +29,4 @@ module ListingsHelper
     CATEGORY_SUBCATEGORIES[category.name] || []
   end
 
-  def pagination_params
-    # Use to_h or to_unsafe_h to convert to hash
-    # params.permit(:search, :category, :status, :sort, :direction).to_h
-    # Or if you need to include all parameters
-    params.to_unsafe_h
-  end
-
 end
