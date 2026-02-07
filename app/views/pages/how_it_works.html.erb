@@ -1,0 +1,31 @@
+<% content_for :title, "How It Works - Dealo" %>
+<div class="static-page">
+  <div class="container static-page-container">
+    <h1 class="static-page-title">How It Works</h1>
+    <div class="static-page-content">
+      <p class="static-lead">Dealo makes it easy to buy and sell in your area. Here’s how to get started.</p>
+
+      <section class="static-section">
+        <h2>For buyers</h2>
+        <ol class="static-list">
+          <li><strong>Browse or search</strong> — Use the homepage search, category filters, or “Browse All” to find what you want.</li>
+          <li><strong>Filter by category and location</strong> — Narrow results by category, subcategory, location, and price.</li>
+          <li><strong>Contact the seller</strong> — Open a listing and use the contact option to message or call the seller.</li>
+          <li><strong>Meet safely</strong> — Prefer a safe, public place and follow our <%= link_to "Safety Tips", safety_tips_path %>.</li>
+        </ol>
+      </section>
+
+      <section class="static-section">
+        <h2>For sellers</h2>
+        <ol class="static-list">
+          <li><strong>Sign up</strong> — <%= link_to "Create a free account", new_user_registration_path %> with your email.</li>
+          <li><strong>Post your ad</strong> — Click “Post an Ad” or “Sell”, choose a category and subcategory, add a title, description, price, and photos.</li>
+          <li><strong>Respond to buyers</strong> — Reply to messages and arrange viewing or collection.</li>
+          <li><strong>Complete the sale</strong> — Agree on payment and handover. We recommend meeting in person in a safe location.</li>
+        </ol>
+      </section>
+
+      <p><%= link_to "Browse listings", listings_path, class: "btn-auth", style: "display: inline-block; text-align: center; text-decoration: none;" %> or <%= link_to "Post an ad", new_listing_path, class: "static-link" %></p>
+    </div>
+  </div>
+</div>

@@ -1,12 +1,26 @@
 Rails.application.routes.draw do
-  devise_for :users, controllers: { registrations: 'registrations' }
+  devise_for :users, controllers: {
+    registrations: 'registrations',
+    sessions: 'users/sessions'
+  }
   resources :tasks
   resources :messages, only: [:index, :show, :new, :create]
   resources :users, only: [:show] do
     resources :reviews, only: [:create]
   end
   root "listings#index"
-  
+
+  # Static pages (footer and info)
+  get "how-it-works", to: "pages#how_it_works", as: :how_it_works
+  get "help", to: "pages#help_center", as: :help_center
+  get "contact", to: "pages#contact", as: :contact
+  get "safety-tips", to: "pages#safety_tips", as: :safety_tips
+  get "faqs", to: "pages#faqs", as: :faqs
+  get "privacy", to: "pages#privacy_policy", as: :privacy_policy
+  get "terms", to: "pages#terms_of_service", as: :terms_of_service
+  get "cookies", to: "pages#cookie_policy", as: :cookie_policy
+  get "community-guidelines", to: "pages#community_guidelines", as: :community_guidelines
+
   # User account pages
   get "my_listings", to: "listings#my_listings", as: :my_listings
   get "my_messages", to: "messages#my_messages", as: :my_messages
@@ -19,6 +33,18 @@ Rails.application.routes.draw do
   # Listings with favorites
   resources :listings do
     resources :favorites, only: [:create, :destroy]
+  end
+
+  # Admin
+  namespace :admin do
+    root to: "dashboard#index"
+    resources :users, only: [:index, :destroy] do
+      member do
+        post :ban
+        post :unban
+      end
+    end
+    resources :listings, only: [:index, :destroy]
   end
   
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html

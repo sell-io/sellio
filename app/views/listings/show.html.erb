@@ -231,12 +231,13 @@
           
           <div class="seller-actions">
             <% if user_signed_in? %>
-              <% if current_user == @listing.user %>
+              <% if current_user == @listing.user || current_user.admin? %>
                 <%= link_to "Edit Listing", edit_listing_path(@listing), class: "btn-seller-action btn-edit" %>
-                <%= button_to "Delete Listing", @listing, method: :delete, 
-                              data: { confirm: "Are you sure?" }, 
+                <%= button_to "Delete Listing", @listing, method: :delete,
+                              data: { turbo_confirm: "Are you sure you want to delete this listing?" },
                               class: "btn-seller-action btn-delete" %>
-              <% else %>
+              <% end %>
+              <% if current_user != @listing.user && @listing.user %>
                 <%= link_to "Send Message", new_message_path(listing_id: @listing.id, recipient_id: @listing.user.id), class: "btn-seller-primary" %>
               <% end %>
             <% else %>

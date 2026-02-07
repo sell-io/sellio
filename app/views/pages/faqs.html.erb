@@ -1,0 +1,46 @@
+<% content_for :title, "FAQs - Dealo" %>
+<div class="static-page">
+  <div class="container static-page-container">
+    <h1 class="static-page-title">Frequently Asked Questions</h1>
+    <div class="static-page-content">
+      <section class="static-section">
+        <h2>Using Dealo</h2>
+        <dl class="static-faq">
+          <dt>Is Dealo free to use?</dt>
+          <dd>Yes. Browsing and posting ads are free. We don’t charge listing or success fees.</dd>
+
+          <dt>Do I need an account to browse?</dt>
+          <dd>You can browse and search without an account. You need to <%= link_to "sign up", new_user_registration_path, class: "static-link" %> to post ads, save favourites, and contact sellers.</dd>
+
+          <dt>How do I post an ad?</dt>
+          <dd>Click “Post an Ad” or “Sell”, sign in (or create an account), then choose a category, add a title, description, price, photos, and your location.</dd>
+        </dl>
+      </section>
+
+      <section class="static-section">
+        <h2>Buying and selling</h2>
+        <dl class="static-faq">
+          <dt>How do I contact a seller?</dt>
+          <dd>Open the listing and use the contact button to message or call. Always meet in a safe, public place.</dd>
+
+          <dt>How do I edit or delete my ad?</dt>
+          <dd>Go to <%= link_to "My Listings", my_listings_path, class: "static-link" %> (when signed in), then choose “Edit” or “Delete” for the ad.</dd>
+
+          <dt>Does Dealo handle payments?</dt>
+          <dd>No. Payment is agreed between you and the buyer or seller. We recommend cash on collection or a secure method you both trust.</dd>
+        </dl>
+      </section>
+
+      <section class="static-section">
+        <h2>Account and safety</h2>
+        <dl class="static-faq">
+          <dt>I forgot my password.</dt>
+          <dd>On the <%= link_to "login page", new_user_session_path, class: "static-link" %>, click “Forgot your password?” and enter your email to receive reset instructions.</dd>
+
+          <dt>How can I stay safe?</dt>
+          <dd>Read our <%= link_to "Safety Tips", safety_tips_path, class: "static-link" %> and always meet in a public place. Report suspicious activity via our <%= link_to "contact page", contact_path, class: "static-link" %>.</dd>
+        </dl>
+      </section>
+    </div>
+  </div>
+</div>

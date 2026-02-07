@@ -32,4 +32,16 @@ class User < ApplicationRecord
   def reviews_count
     reviews_received.count
   end
+
+  def banned?
+    banned_at.present?
+  end
+
+  def ban!
+    update!(banned_at: Time.current)
+  end
+
+  def unban!
+    update!(banned_at: nil)
+  end
 end

@@ -1,0 +1,40 @@
+<% content_for :title, "Privacy Policy - Dealo" %>
+<div class="static-page">
+  <div class="container static-page-container">
+    <h1 class="static-page-title">Privacy Policy</h1>
+    <div class="static-page-content">
+      <p class="static-lead">Last updated: <%= Date.current.strftime("%B %d, %Y") %></p>
+
+      <section class="static-section">
+        <h2>Information we collect</h2>
+        <p>When you use Dealo we may collect:</p>
+        <ul class="static-list">
+          <li>Account information (name, email, phone, location) when you register</li>
+          <li>Listings you create (title, description, price, photos, category)</li>
+          <li>Messages you send through the site</li>
+          <li>Usage data (e.g. how you use the site) to improve our service</li>
+        </ul>
+      </section>
+
+      <section class="static-section">
+        <h2>How we use your information</h2>
+        <p>We use your information to run the service (e.g. showing your ads, enabling messages), to communicate with you, to improve Dealo, and to comply with the law.</p>
+      </section>
+
+      <section class="static-section">
+        <h2>Sharing</h2>
+        <p>We do not sell your personal data. Your listing content is visible to other users. We may share data with service providers that help us operate the site, under strict confidentiality.</p>
+      </section>
+
+      <section class="static-section">
+        <h2>Your rights</h2>
+        <p>You can access, correct, or delete your account and data from your <%= link_to "account settings", edit_user_registration_path, class: "static-link" %> or by contacting us. You may have additional rights under local data protection laws.</p>
+      </section>
+
+      <section class="static-section">
+        <h2>Contact</h2>
+        <p>For privacy-related questions, <%= link_to "contact us", contact_path, class: "static-link" %>.</p>
+      </section>
+    </div>
+  </div>
+</div>

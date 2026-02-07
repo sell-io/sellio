@@ -1,0 +1,21 @@
+<% content_for :title, "Admin Dashboard - Dealo" %>
+<div class="admin-container">
+  <h1 class="admin-page-title">Admin Dashboard</h1>
+
+  <div class="admin-stats">
+    <div class="admin-stat-card">
+      <span class="admin-stat-value"><%= @users_count %></span>
+      <span class="admin-stat-label">Total Users</span>
+      <%= link_to "Manage users →", admin_users_path, class: "admin-stat-link" %>
+    </div>
+    <div class="admin-stat-card">
+      <span class="admin-stat-value"><%= @listings_count %></span>
+      <span class="admin-stat-label">Total Listings</span>
+      <%= link_to "Manage listings →", admin_listings_path, class: "admin-stat-link" %>
+    </div>
+    <div class="admin-stat-card">
+      <span class="admin-stat-value"><%= @banned_count %></span>
+      <span class="admin-stat-label">Banned Users</span>
+    </div>
+  </div>
+</div>

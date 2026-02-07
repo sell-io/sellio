@@ -248,10 +248,6 @@
           <div class="category-icon-large" style="color: #22C55E;">🏠</div>
           <span>Properties</span>
         <% end %>
-        <%= link_to listings_path(search: "Jobs"), class: "category-icon-item", data: { turbo: false } do %>
-          <div class="category-icon-large" style="color: #F97316;">💼</div>
-          <span>Jobs</span>
-        <% end %>
         <%= link_to listings_path(search: "Services"), class: "category-icon-item", data: { turbo: false } do %>
           <div class="category-icon-large" style="color: #EF4444;">🔧</div>
           <span>Services</span>
@@ -260,14 +256,30 @@
           <div class="category-icon-large" style="color: #A855F7;">📱</div>
           <span>Electronics</span>
         <% end %>
-        <%= link_to listings_path(search: "Pets"), class: "category-icon-item", data: { turbo: false } do %>
+        <%= link_to listings_path(search: "Animals"), class: "category-icon-item", data: { turbo: false } do %>
           <div class="category-icon-large" style="color: #3B82F6;">🐾</div>
-          <span>Pets</span>
+          <span>Animals</span>
         <% end %>
         <% furniture_category = Category.find_by("name ILIKE ?", "%furniture%") %>
         <%= link_to furniture_category ? "/listings?category_id=#{furniture_category.id}" : listings_path(search: "Furniture"), class: "category-icon-item", data: { turbo: false } do %>
           <div class="category-icon-large" style="color: #8B4513;">🪑</div>
           <span>Furniture</span>
+        <% end %>
+        <%= link_to listings_path(search: "Farming"), class: "category-icon-item", data: { turbo: false } do %>
+          <div class="category-icon-large" style="color: #84CC16;">🚜</div>
+          <span>Farming</span>
+        <% end %>
+        <%= link_to listings_path(search: "Music + Education"), class: "category-icon-item", data: { turbo: false } do %>
+          <div class="category-icon-large" style="color: #EC4899;">🎵</div>
+          <span>Music + Education</span>
+        <% end %>
+        <%= link_to listings_path(search: "Sport + Hobbies"), class: "category-icon-item", data: { turbo: false } do %>
+          <div class="category-icon-large" style="color: #F59E0B;">⚽</div>
+          <span>Sport + Hobbies</span>
+        <% end %>
+        <%= link_to listings_path(search: "Baby + Kids"), class: "category-icon-item", data: { turbo: false } do %>
+          <div class="category-icon-large" style="color: #A78BFA;">👶</div>
+          <span>Baby + Kids</span>
         <% end %>
       </div>
     </div>
@@ -275,7 +287,7 @@
   <% end %>
 
   <!-- Category Filter Section (show when browsing all ads via Browse button, not on homepage or when filters are applied) -->
-  <% has_filters = params[:make].present? || params[:model].present? || params[:min_year].present? || params[:max_year].present? || params[:min_price].present? || params[:max_price].present? || params[:subcategory].present? %>
+  <% has_filters = params[:make].present? || params[:model].present? || params[:min_year].present? || params[:max_year].present? || params[:min_mileage].present? || params[:max_mileage].present? || params[:min_price].present? || params[:max_price].present? || params[:subcategory].present? %>
   <% if params[:category_id].blank? && params[:search].blank? && is_browse_page && !has_filters %>
   <section class="category-filter-section">
     <div class="container">
@@ -450,31 +462,95 @@
   </section>
   <% end %>
 
-  <!-- General Filter Section (hidden by default, shown when Filters button is clicked) -->
+  <!-- Category filters (hidden by default, shown when "Show Filters" is clicked) -->
   <% motors_category = Category.find_by("name ILIKE ?", "%motor%") || Category.find_by("name ILIKE ?", "%car%") %>
-  <% is_motors_page = motors_category && (is_browse_page || @selected_category&.id == motors_category.id || params[:category_id].to_i == motors_category.id) %>
-  <% is_search_results = params[:search].present? || params[:location].present? %>
-  <% show_general_filters = (params[:category_id].present? || params[:search].present? || params[:location].present? || is_browse_page) && !(motors_category && (is_motors_page || has_filters || is_search_results)) %>
-  <% if show_general_filters %>
-  <section class="general-filter-section" id="generalFiltersSection">
+  <% is_motors_category_selected = motors_category && @selected_category&.id == motors_category.id %>
+  <% show_filters_section = params[:category_id].present? || params[:search].present? || params[:location].present? || is_browse_page %>
+  <% if show_filters_section %>
+  <section class="general-filter-section" id="categoryFiltersSection">
     <div class="container">
       <div class="general-filter-box">
-        <h2 class="general-filter-title">Filters</h2>
+        <h2 class="general-filter-title"><%= @selected_category ? "Filter #{@selected_category.name}" : "Filters" %></h2>
         <%= form_with url: listings_path, method: :get, local: true, class: "general-filter-form" do |f| %>
           <%= f.hidden_field :search, value: params[:search] if params[:search].present? %>
-          <div class="general-filter-grid">
-            <div class="general-filter-field">
-              <%= f.label :category_id, "Category" %>
-              <%= f.select :category_id,
-                           options_from_collection_for_select([Category.new(id: nil, name: "All categories")] + @categories, :id, :name, params[:category_id]),
-                           { include_blank: false },
-                           class: "general-filter-select" %>
+          <% if @selected_category %>
+            <%= f.hidden_field :category_id, value: @selected_category.id %>
+          <% else %>
+            <div class="general-filter-grid">
+              <div class="general-filter-field">
+                <%= f.label :category_id, "Category" %>
+                <%= f.select :category_id,
+                             options_from_collection_for_select([Category.new(id: nil, name: "All categories")] + @categories, :id, :name, params[:category_id]),
+                             { include_blank: false },
+                             class: "general-filter-select" %>
+              </div>
             </div>
+          <% end %>
+          <% subcategories = @selected_category ? subcategories_for_category(@selected_category) : [] %>
+          <div class="general-filter-grid">
+            <% if subcategories.any? %>
+              <div class="general-filter-field">
+                <%= f.label :subcategory, is_motors_category_selected ? "Vehicle Type" : "Subcategory" %>
+                <%= f.select :subcategory,
+                             options_for_select([["All", ""]] + subcategories.map { |s| [s, s] }, params[:subcategory]),
+                             {}, class: "general-filter-select" %>
+              </div>
+            <% end %>
             <div class="general-filter-field">
               <%= f.label :location, "Location" %>
               <%= f.text_field :location, placeholder: "Location (e.g., Dublin)", class: "general-filter-input", value: params[:location] %>
             </div>
           </div>
+          <div class="general-filter-grid general-filter-price-row">
+            <div class="general-filter-field">
+              <%= f.label :min_price, "Min Price (€)" %>
+              <%= f.number_field :min_price, placeholder: "Min", class: "general-filter-input", min: 0, step: 100, value: params[:min_price] %>
+            </div>
+            <div class="general-filter-field">
+              <%= f.label :max_price, "Max Price (€)" %>
+              <%= f.number_field :max_price, placeholder: "Max", class: "general-filter-input", min: 0, step: 100, value: params[:max_price] %>
+            </div>
+          </div>
+          <% if is_motors_category_selected %>
+          <div class="general-filter-grid">
+            <div class="general-filter-field">
+              <%= f.label :make, "Make" %>
+              <%= f.select :make, options_for_select([
+                ['All Makes', ''],
+                ['Alfa Romeo', 'Alfa Romeo'], ['Aston Martin', 'Aston Martin'], ['Audi', 'Audi'], ['Bentley', 'Bentley'], ['BMW', 'BMW'],
+                ['Chevrolet', 'Chevrolet'], ['Chrysler', 'Chrysler'], ['Citroen', 'Citroen'], ['Dacia', 'Dacia'], ['Dodge', 'Dodge'],
+                ['Ferrari', 'Ferrari'], ['Fiat', 'Fiat'], ['Ford', 'Ford'], ['Honda', 'Honda'], ['Hyundai', 'Hyundai'],
+                ['Infiniti', 'Infiniti'], ['Jaguar', 'Jaguar'], ['Jeep', 'Jeep'], ['Kia', 'Kia'], ['Lamborghini', 'Lamborghini'],
+                ['Land Rover', 'Land Rover'], ['Lexus', 'Lexus'], ['Maserati', 'Maserati'], ['Mazda', 'Mazda'], ['McLaren', 'McLaren'],
+                ['Mercedes-Benz', 'Mercedes-Benz'], ['Mini', 'Mini'], ['Mitsubishi', 'Mitsubishi'], ['Nissan', 'Nissan'],
+                ['Opel', 'Opel'], ['Peugeot', 'Peugeot'], ['Porsche', 'Porsche'], ['Renault', 'Renault'],
+                ['Rolls-Royce', 'Rolls-Royce'], ['Seat', 'Seat'], ['Skoda', 'Skoda'], ['Smart', 'Smart'], ['Subaru', 'Subaru'],
+                ['Suzuki', 'Suzuki'], ['Tesla', 'Tesla'], ['Toyota', 'Toyota'], ['Vauxhall', 'Vauxhall'],
+                ['Volkswagen', 'Volkswagen'], ['Volvo', 'Volvo']
+              ], params[:make]), {}, { class: "general-filter-select", id: "car_make_select_buy" } %>
+            </div>
+            <div class="general-filter-field">
+              <%= f.label :model, "Model" %>
+              <%= f.select :model, options_for_select([['All Models', '']], params[:model]), {}, { class: "general-filter-select", id: "car_model_select_buy" } %>
+            </div>
+            <div class="general-filter-field">
+              <%= f.label :min_year, "Min Year" %>
+              <%= f.select :min_year, options_for_select([['Min Year', '']] + (1990..Date.current.year).to_a.reverse.map { |y| [y, y] }, params[:min_year]), {}, { class: "general-filter-select" } %>
+            </div>
+            <div class="general-filter-field">
+              <%= f.label :max_year, "Max Year" %>
+              <%= f.select :max_year, options_for_select([['Max Year', '']] + (1990..Date.current.year).to_a.reverse.map { |y| [y, y] }, params[:max_year]), {}, { class: "general-filter-select" } %>
+            </div>
+            <div class="general-filter-field">
+              <%= f.label :min_mileage, "Min Mileage (km)" %>
+              <%= f.number_field :min_mileage, placeholder: "e.g. 0", class: "general-filter-input", min: 0, value: params[:min_mileage] %>
+            </div>
+            <div class="general-filter-field">
+              <%= f.label :max_mileage, "Max Mileage (km)" %>
+              <%= f.number_field :max_mileage, placeholder: "e.g. 150000", class: "general-filter-input", min: 0, value: params[:max_mileage] %>
+            </div>
+          </div>
+          <% end %>
           <div class="form-actions">
             <%= f.submit "Apply Filters", class: "general-filter-button" %>
           </div>
@@ -482,130 +558,10 @@
       </div>
     </div>
   </section>
-  
-  <!-- Filters Button (show on all search results pages) -->
-  <section class="filters-button-container">
-    <div class="container">
-      <button type="button" class="btn-show-filters" id="toggleGeneralFiltersBtn">Show Filters</button>
-    </div>
-  </section>
-  <% end %>
 
-  <!-- Car Filter Section (hidden by default, shown when Filters button is clicked) -->
-  <% if motors_category && (is_motors_page || has_filters || is_search_results) %>
-  <section class="car-filter-section" id="carFiltersSection">
-    <div class="container">
-      <div class="car-filter-box">
-        <h2 class="car-filter-title">Filter Motors</h2>
-        <%= form_with url: listings_path, method: :get, local: true, class: "car-filter-form" do |f| %>
-          <%= f.hidden_field :category_id, value: motors_category.id %>
-          <%= f.hidden_field :search, value: params[:search] if params[:search].present? %>
-          <div class="car-filter-grid">
-            <div class="car-filter-field">
-              <%= f.label :location, "Location" %>
-              <%= f.text_field :location, placeholder: "Location (e.g., Dublin)", class: "car-filter-input", value: params[:location] %>
-            </div>
-            <div class="car-filter-field">
-              <%= f.label :subcategory, "Vehicle Type" %>
-              <%= f.select :subcategory, options_for_select([
-                ['All Types', ''],
-                ['Car', 'Car'],
-                ['Van', 'Van'],
-                ['Truck', 'Truck'],
-                ['Tractor', 'Tractor'],
-                ['Motorcycle', 'Motorcycle'],
-                ['Scooter', 'Scooter'],
-                ['Quad', 'Quad'],
-                ['Caravan', 'Caravan'],
-                ['Trailer', 'Trailer'],
-                ['Boat', 'Boat'],
-                ['Other', 'Other']
-              ], params[:subcategory]), {}, { class: "car-filter-select" } %>
-            </div>
-            <div class="car-filter-field">
-              <%= f.label :make, "All Makes" %>
-              <%= f.select :make, options_for_select([
-                ['All Makes', ''],
-                ['Alfa Romeo', 'Alfa Romeo'],
-                ['Aston Martin', 'Aston Martin'],
-                ['Audi', 'Audi'],
-                ['Bentley', 'Bentley'],
-                ['BMW', 'BMW'],
-                ['Chevrolet', 'Chevrolet'],
-                ['Chrysler', 'Chrysler'],
-                ['Citroen', 'Citroen'],
-                ['Dacia', 'Dacia'],
-                ['Dodge', 'Dodge'],
-                ['Ferrari', 'Ferrari'],
-                ['Fiat', 'Fiat'],
-                ['Ford', 'Ford'],
-                ['Honda', 'Honda'],
-                ['Hyundai', 'Hyundai'],
-                ['Infiniti', 'Infiniti'],
-                ['Jaguar', 'Jaguar'],
-                ['Jeep', 'Jeep'],
-                ['Kia', 'Kia'],
-                ['Lamborghini', 'Lamborghini'],
-                ['Land Rover', 'Land Rover'],
-                ['Lexus', 'Lexus'],
-                ['Maserati', 'Maserati'],
-                ['Mazda', 'Mazda'],
-                ['McLaren', 'McLaren'],
-                ['Mercedes-Benz', 'Mercedes-Benz'],
-                ['Mini', 'Mini'],
-                ['Mitsubishi', 'Mitsubishi'],
-                ['Nissan', 'Nissan'],
-                ['Opel', 'Opel'],
-                ['Peugeot', 'Peugeot'],
-                ['Porsche', 'Porsche'],
-                ['Renault', 'Renault'],
-                ['Rolls-Royce', 'Rolls-Royce'],
-                ['Seat', 'Seat'],
-                ['Skoda', 'Skoda'],
-                ['Smart', 'Smart'],
-                ['Subaru', 'Subaru'],
-                ['Suzuki', 'Suzuki'],
-                ['Tesla', 'Tesla'],
-                ['Toyota', 'Toyota'],
-                ['Vauxhall', 'Vauxhall'],
-                ['Volkswagen', 'Volkswagen'],
-                ['Volvo', 'Volvo']
-              ], params[:make]), {}, { class: "car-filter-select", id: "car_make_select_buy" } %>
-            </div>
-            <div class="car-filter-field">
-              <%= f.label :model, "All Models" %>
-              <%= f.select :model, options_for_select([['All Models', '']], params[:model]), {}, { class: "car-filter-select", id: "car_model_select_buy" } %>
-            </div>
-            <div class="car-filter-field">
-              <%= f.label :min_year, "Min Year" %>
-              <%= f.select :min_year, options_for_select([['Min Year', '']] + (1990..Date.current.year).to_a.reverse.map { |y| [y, y] }, params[:min_year]), {}, { class: "car-filter-select" } %>
-            </div>
-            <div class="car-filter-field">
-              <%= f.label :max_year, "Max Year" %>
-              <%= f.select :max_year, options_for_select([['Max Year', '']] + (1990..Date.current.year).to_a.reverse.map { |y| [y, y] }, params[:max_year]), {}, { class: "car-filter-select" } %>
-            </div>
-            <div class="car-filter-field">
-              <%= f.label :min_price, "Min Price" %>
-              <%= f.number_field :min_price, placeholder: "Min Price", class: "car-filter-input", min: 0, step: 100, value: params[:min_price] %>
-            </div>
-            <div class="car-filter-field">
-              <%= f.label :max_price, "Max Price" %>
-              <%= f.number_field :max_price, placeholder: "Max Price", class: "car-filter-input", min: 0, step: 100, value: params[:max_price] %>
-            </div>
-          </div>
-          <div class="form-actions">
-            <% motors_count = Listing.where(category_id: motors_category.id).count %>
-            <%= f.submit "Search #{number_with_delimiter(motors_count)} Motors", class: "car-filter-button" %>
-          </div>
-        <% end %>
-      </div>
-    </div>
-  </section>
-  
-  <!-- Filters Button for Motors (show when Motors category is selected) -->
   <section class="filters-button-container">
     <div class="container">
-      <button type="button" class="btn-show-filters" id="toggleFiltersBtn">Show Filters</button>
+      <button type="button" class="btn-show-filters" id="toggleCategoryFiltersBtn">Show Filters</button>
     </div>
   </section>
   <% end %>
@@ -627,8 +583,9 @@
       
       <% if @listings.any? %>
         <% if @selected_category || params[:category_id].present? || params[:search].present? || has_filters %>
+          <% total_count = defined?(@listings_total_count) ? @listings_total_count : @listings.count %>
           <p class="filter-info" style="margin-bottom: 1.5rem; color: #666; font-size: 0.9375rem;">
-            Showing <%= @listings.count %> <%= @listings.count == 1 ? 'listing' : 'listings' %>
+            Showing <%= total_count %> <%= total_count == 1 ? 'listing' : 'listings' %>
             <% if has_filters && params[:subcategory] == "Car" %>
               <% filter_parts = [] %>
               <% filter_parts << params[:make] if params[:make].present? %>
@@ -714,6 +671,30 @@
             </div>
           <% end %>
         </div>
+        <% if defined?(@listings_total_pages) && @listings_total_pages > 1 %>
+          <div class="pagination-wrapper">
+            <nav class="pagination" aria-label="Pagination">
+              <% pagination_params = params.slice(:category_id, :search, :location, :make, :model, :min_year, :max_year, :min_mileage, :max_mileage, :min_price, :max_price, :subcategory) %>
+              <% if @listings_current_page > 1 %>
+                <%= link_to "← Previous", listings_path(pagination_params.merge(page: @listings_current_page - 1)), class: "page-link prev" %>
+              <% end %>
+              <span class="page-info">
+                Page <%= @listings_current_page %> of <%= @listings_total_pages %>
+              </span>
+              <% (@listings_current_page - 2).upto(@listings_current_page + 2).each do |p| %>
+                <% next if p < 1 || p > @listings_total_pages %>
+                <% if p == @listings_current_page %>
+                  <span class="current"><%= p %></span>
+                <% else %>
+                  <%= link_to p, listings_path(pagination_params.merge(page: p)), class: "page-link" %>
+                <% end %>
+              <% end %>
+              <% if @listings_current_page < @listings_total_pages %>
+                <%= link_to "Next →", listings_path(pagination_params.merge(page: @listings_current_page + 1)), class: "page-link next" %>
+              <% end %>
+            </nav>
+          </div>
+        <% end %>
       <% else %>
         <div class="empty-state">
           <p class="empty-message">No listings yet. Be the first to <%= link_to "post an ad", new_listing_path, class: "link" %>!</p>
@@ -737,20 +718,14 @@
 </div>
 
 <script>
-  // Toggle general filters visibility
-  function initGeneralFiltersToggle() {
-    const toggleBtn = document.getElementById('toggleGeneralFiltersBtn');
-    const filtersSection = document.getElementById('generalFiltersSection');
-    
+  function initCategoryFiltersToggle() {
+    const toggleBtn = document.getElementById('toggleCategoryFiltersBtn');
+    const filtersSection = document.getElementById('categoryFiltersSection');
     if (!toggleBtn || !filtersSection) return;
-    
-    // Guard: avoid duplicate listeners
     if (toggleBtn.hasAttribute('data-filters-initialized')) return;
     toggleBtn.setAttribute('data-filters-initialized', 'true');
-    
     toggleBtn.addEventListener('click', function() {
       const isVisible = filtersSection.classList.contains('show');
-      
       if (isVisible) {
         filtersSection.classList.remove('show');
         toggleBtn.textContent = 'Show Filters';
@@ -762,51 +737,11 @@
       }
     });
   }
-  
-  // Toggle car filters visibility
-  function initFiltersToggle() {
-    const toggleBtn = document.getElementById('toggleFiltersBtn');
-    const filtersSection = document.getElementById('carFiltersSection');
-    
-    if (!toggleBtn || !filtersSection) return;
-    
-    // Guard: avoid duplicate listeners
-    if (toggleBtn.hasAttribute('data-filters-initialized')) return;
-    toggleBtn.setAttribute('data-filters-initialized', 'true');
-    
-    toggleBtn.addEventListener('click', function() {
-      const isVisible = filtersSection.classList.contains('show');
-      
-      if (isVisible) {
-        filtersSection.classList.remove('show');
-        toggleBtn.textContent = 'Show Filters';
-        toggleBtn.classList.remove('hide');
-      } else {
-        filtersSection.classList.add('show');
-        toggleBtn.textContent = 'Hide Filters';
-        toggleBtn.classList.add('hide');
-      }
-    });
-  }
-  
-  // Initialize on page load
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      initGeneralFiltersToggle();
-      initFiltersToggle();
-    });
+    document.addEventListener('DOMContentLoaded', initCategoryFiltersToggle);
   } else {
-    initGeneralFiltersToggle();
-    initFiltersToggle();
+    initCategoryFiltersToggle();
   }
-  
-  // Re-initialize on Turbo navigation
-  document.addEventListener('turbo:load', function() {
-    initGeneralFiltersToggle();
-    initFiltersToggle();
-  });
-  document.addEventListener('turbo:render', function() {
-    initGeneralFiltersToggle();
-    initFiltersToggle();
-  });
+  document.addEventListener('turbo:load', initCategoryFiltersToggle);
+  document.addEventListener('turbo:render', initCategoryFiltersToggle);
 </script>
