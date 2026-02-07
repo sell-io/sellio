@@ -1,0 +1,28 @@
+<% content_for :title, "Help Center - Dealo" %>
+<div class="static-page">
+  <div class="container static-page-container">
+    <h1 class="static-page-title">Help Center</h1>
+    <div class="static-page-content">
+      <p class="static-lead">Find answers and get support for using Dealo.</p>
+
+      <section class="static-section">
+        <h2>Getting started</h2>
+        <ul class="static-list">
+          <li><%= link_to "How It Works", how_it_works_path, class: "static-link" %> — Buying and selling on Dealo</li>
+          <li><%= link_to "FAQs", faqs_path, class: "static-link" %> — Frequently asked questions</li>
+          <li><%= link_to "Safety Tips", safety_tips_path, class: "static-link" %> — Stay safe when meeting buyers or sellers</li>
+        </ul>
+      </section>
+
+      <section class="static-section">
+        <h2>Your account</h2>
+        <p>Manage your listings, messages, and saved ads from your account. If you forgot your password, use <%= link_to "Forgot your password?", new_user_password_path, class: "static-link" %> on the login page.</p>
+      </section>
+
+      <section class="static-section">
+        <h2>Contact us</h2>
+        <p>Can’t find what you need? <%= link_to "Contact us", contact_path, class: "static-link" %> and we’ll get back to you as soon as we can.</p>
+      </section>
+    </div>
+  </div>
+</div>

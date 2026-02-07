@@ -26,25 +26,19 @@
             { class: "form-select", required: true, id: "listing_category_id", onchange: "showCategoryFields()" } %>
       </div>
 
-      <!-- Motors subcategory should sit directly under Category -->
+      <!-- Subcategory for all categories (options populated by JS from category_subcategories) -->
       <% is_motors_category = listing.category&.name&.downcase&.include?('motor') || listing.category&.name&.downcase&.include?('car') || (listing.persisted? && listing.category_id && Category.find_by(id: listing.category_id)&.name&.downcase&.include?('motor')) %>
-      <div class="form-field" id="motors-subcategory-field" style="<%= is_motors_category ? 'display: block;' : 'display: none;' %>">
+      <% any_category_selected = listing.category_id.present? || is_motors_category %>
+      <div class="form-field" id="subcategory-field" style="<%= any_category_selected ? 'display: block;' : 'display: none;' %>">
         <label for="listing_subcategory">Subcategory *</label>
-        <select name="listing[subcategory]" id="listing_subcategory" class="form-select">
+        <select name="listing[subcategory]" id="listing_subcategory" class="form-select" data-current-subcategory="<%= listing.extra_fields&.dig('subcategory') %>">
           <option value="">Select subcategory</option>
-          <option value="Car" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Car' %>>Car</option>
-          <option value="Van" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Van' %>>Van</option>
-          <option value="Truck" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Truck' %>>Truck</option>
-          <option value="Tractor" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Tractor' %>>Tractor</option>
-          <option value="Motorcycle" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Motorcycle' %>>Motorcycle</option>
-          <option value="Scooter" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Scooter' %>>Scooter</option>
-          <option value="Quad" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Quad' %>>Quad</option>
-          <option value="Caravan" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Caravan' %>>Caravan</option>
-          <option value="Trailer" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Trailer' %>>Trailer</option>
-          <option value="Boat" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Boat' %>>Boat</option>
-          <option value="Other" <%= 'selected' if listing.extra_fields&.dig('subcategory') == 'Other' %>>Other</option>
+          <%# Options are populated by showCategoryFields() from window.categorySubcategories %>
         </select>
       </div>
+      <script>
+        window.categorySubcategories = <%= raw category_subcategories_json %>;
+      </script>
 
       <div class="form-field">
         <%= form.label :description, "Description *" %>
@@ -300,7 +294,8 @@
   function showCategoryFields() {
     const categorySelect = document.getElementById('listing_category_id');
     const motorsFields = document.getElementById('motors-fields');
-    const motorsSubcategoryField = document.getElementById('motors-subcategory-field');
+    const subcategoryField = document.getElementById('subcategory-field');
+    const subcategorySelect = document.getElementById('listing_subcategory');
     
     if (!categorySelect) return;
     
@@ -312,32 +307,39 @@
                      selectedCategoryText.toLowerCase().includes('car') ||
                      (selectedCategoryId && selectedCategoryText === 'Motors');
     
-    if (isMotors) {
-      // Show motors fields
-      if (motorsFields) motorsFields.style.display = 'block';
-      if (motorsSubcategoryField) motorsSubcategoryField.style.display = 'block';
-      // Trigger model update when motors fields are shown
-      if (window.updateListingModels) {
-        setTimeout(function() {
-          window.updateListingModels();
-        }, 50);
+    // Show subcategory for any selected category; populate from window.categorySubcategories
+    if (selectedCategoryId && selectedCategoryText && selectedCategoryText !== 'Select a category') {
+      if (subcategoryField) subcategoryField.style.display = 'block';
+      if (subcategorySelect && window.categorySubcategories) {
+        const subs = window.categorySubcategories[selectedCategoryText] || window.categorySubcategories['Motors'] || [];
+        const currentVal = subcategorySelect.getAttribute('data-current-subcategory') || subcategorySelect.value;
+        subcategorySelect.innerHTML = '<option value="">Select subcategory</option>';
+        subs.forEach(function(s) {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.textContent = s;
+          subcategorySelect.appendChild(opt);
+        });
+        if (currentVal && subs.indexOf(currentVal) !== -1) subcategorySelect.value = currentVal;
+        subcategorySelect.removeAttribute('data-current-subcategory');
       }
     } else {
-      // Hide motors fields
-      if (motorsFields) motorsFields.style.display = 'none';
-      if (motorsSubcategoryField) {
-        motorsSubcategoryField.style.display = 'none';
-        // Clear subcategory selection
-        const subcategorySelect = document.getElementById('listing_subcategory');
-        if (subcategorySelect) subcategorySelect.value = '';
+      if (subcategoryField) subcategoryField.style.display = 'none';
+      if (subcategorySelect) subcategorySelect.value = '';
+    }
+    
+    if (isMotors) {
+      if (motorsFields) motorsFields.style.display = 'block';
+      if (window.updateListingModels) {
+        setTimeout(function() { window.updateListingModels(); }, 50);
       }
-      
+    } else {
+      if (motorsFields) motorsFields.style.display = 'none';
       // Clear vehicle-related fields when switching away from Motors
       const makeSelect = document.getElementById('listing_make');
       const modelSelect = document.getElementById('listing_model');
       const vehicleRegistrationInput = document.getElementById('vehicle_registration_lookup');
       const vehicleRegistrationHidden = document.getElementById('listing_vehicle_registration');
-      
       if (makeSelect) makeSelect.value = '';
       if (modelSelect) {
         modelSelect.innerHTML = '<option value="">Select Model</option>';
@@ -345,28 +347,10 @@
       }
       if (vehicleRegistrationInput) vehicleRegistrationInput.value = '';
       if (vehicleRegistrationHidden) vehicleRegistrationHidden.value = '';
-      
-      // Clear other vehicle-related hidden fields
-      const performanceField = document.getElementById('listing_performance');
-      const dimensionsField = document.getElementById('listing_dimensions');
-      const featuresField = document.getElementById('listing_features');
-      const runningCostsField = document.getElementById('listing_running_costs');
-      
-      if (performanceField) performanceField.value = '';
-      if (dimensionsField) dimensionsField.value = '';
-      if (featuresField) featuresField.value = '';
-      if (runningCostsField) runningCostsField.value = '';
-      
-      // Clear any other vehicle detail fields
-      const yearField = document.querySelector('[name="listing[extra_fields][year]"]');
-      const mileageField = document.querySelector('[name="listing[extra_fields][mileage]"]');
-      const engineSizeField = document.querySelector('[name="listing[extra_fields][engine_size]"]');
-      const fuelTypeField = document.querySelector('[name="listing[extra_fields][fuel_type]"]');
-      
-      if (yearField) yearField.value = '';
-      if (mileageField) mileageField.value = '';
-      if (engineSizeField) engineSizeField.value = '';
-      if (fuelTypeField) fuelTypeField.value = '';
+      ['listing_performance', 'listing_dimensions', 'listing_features', 'listing_running_costs'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
     }
   }
   

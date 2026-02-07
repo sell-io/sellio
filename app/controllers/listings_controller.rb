@@ -1,5 +1,6 @@
 class ListingsController < ApplicationController
   before_action :set_listing, only: %i[ show edit update destroy ]
+  before_action :authorize_listing_owner_or_admin, only: %i[ edit update destroy ]
 
   # GET /listings or /listings.json
   def index
@@ -41,25 +42,24 @@ class ListingsController < ApplicationController
     if params[:location].present?
       @listings = @listings.where("city ILIKE ?", "%#{params[:location]}%")
     end
-    
+
+    # Subcategory filter (applies to any category when subcategory param is present)
+    if params[:subcategory].present?
+      @listings = @listings.where("extra_fields->>'subcategory' = ?", params[:subcategory])
+    end
+
     # Car-specific filters (apply if Motors category is selected OR if any car filter params are present)
-    has_car_filters = params[:make].present? || params[:model].present? || params[:min_year].present? || 
-                      params[:max_year].present? || params[:subcategory].present?
+    has_car_filters = params[:make].present? || params[:model].present? || params[:min_year].present? ||
+                      params[:max_year].present?
     is_motors_category = params[:category_id].present? && Category.find_by(id: params[:category_id])&.name&.downcase&.include?("motor")
-    
+
     if is_motors_category || has_car_filters
-      # Ensure we are only filtering within the Motors category if car filters are applied
       motors_category_id = Category.find_by("name ILIKE ?", "%motor%")&.id
       if motors_category_id && (has_car_filters || is_motors_category)
         @listings = @listings.where(category_id: motors_category_id)
       end
-
-      # Vehicle type filter (subcategory) - must be applied when car filters are used from homepage
-      # If subcategory is "Car" from homepage filter, ensure it's applied
-      if params[:subcategory].present?
-        @listings = @listings.where("extra_fields->>'subcategory' = ?", params[:subcategory])
-      elsif has_car_filters && !is_motors_category
-        # If car filters are used but no subcategory specified, default to "Car" for homepage searches
+      # When car filters (make/model/year) used from homepage without category, default to Cars
+      if has_car_filters && !is_motors_category && params[:subcategory].blank?
         @listings = @listings.where("extra_fields->>'subcategory' = ?", "Car")
       end
 
@@ -114,8 +114,24 @@ class ListingsController < ApplicationController
           params[:max_year].to_i
         )
       end
+
+      if params[:min_mileage].present?
+        @listings = @listings.where(
+          "extra_fields->>'mileage' IS NOT NULL AND extra_fields->>'mileage' != '' AND " +
+          "CAST(NULLIF(TRIM(extra_fields->>'mileage'), '') AS INTEGER) >= ?",
+          params[:min_mileage].to_i
+        )
+      end
+
+      if params[:max_mileage].present?
+        @listings = @listings.where(
+          "extra_fields->>'mileage' IS NOT NULL AND extra_fields->>'mileage' != '' AND " +
+          "CAST(NULLIF(TRIM(extra_fields->>'mileage'), '') AS INTEGER) <= ?",
+          params[:max_mileage].to_i
+        )
+      end
     end
-    
+
     # Price filters (apply to all categories)
     if params[:min_price].present?
       @listings = @listings.where("price >= ?", params[:min_price].to_i)
@@ -124,6 +140,15 @@ class ListingsController < ApplicationController
     if params[:max_price].present?
       @listings = @listings.where("price <= ?", params[:max_price].to_i)
     end
+
+    # Paginate with limit/offset (24 per page)
+    per_page = 24
+    @listings_total_count = @listings.count
+    page_num = [params[:page].to_i, 1].max
+    @listings = @listings.limit(per_page).offset((page_num - 1) * per_page)
+    @listings_current_page = page_num
+    @listings_per_page = per_page
+    @listings_total_pages = (@listings_total_count.to_f / per_page).ceil
   end
 
   # GET /listings/1 or /listings/1.json
@@ -368,9 +393,16 @@ class ListingsController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
     def set_listing
       @listing = Listing.find(params.expect(:id))
+    end
+
+    def authorize_listing_owner_or_admin
+      return if current_user&.admin?
+      return if user_signed_in? && @listing.user_id == current_user.id
+
+      flash[:alert] = "You are not authorized to do that."
+      redirect_to @listing
     end
 
     # Only allow a list of trusted parameters through.

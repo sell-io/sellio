@@ -22,7 +22,13 @@
 
     <div class="field">
       <%= f.label :password %>
-      <%= f.password_field :password, autocomplete: "current-password", placeholder: "Enter your password" %>
+      <div class="password-field-wrapper">
+        <%= f.password_field :password, autocomplete: "current-password", placeholder: "Enter your password", id: "user_password_login" %>
+        <label class="show-password-label">
+          <%= check_box_tag "show_password_login", "1", false, class: "show-password-checkbox", "data-target": "user_password_login" %>
+          Show password
+        </label>
+      </div>
     </div>
 
     <% if devise_mapping.rememberable? %>
@@ -42,3 +48,14 @@
     <%= link_to "Forgot your password?", new_user_password_path %>
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.show-password-checkbox').forEach(function(cb) {
+      cb.addEventListener('change', function() {
+        var target = document.getElementById(this.getAttribute('data-target'));
+        if (target) target.type = this.checked ? 'text' : 'password';
+      });
+    });
+  });
+</script>

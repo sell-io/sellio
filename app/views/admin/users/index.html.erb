@@ -1,0 +1,62 @@
+<% content_for :title, "Manage Users - Dealo Admin" %>
+<div class="admin-container">
+  <h1 class="admin-page-title">Users</h1>
+
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @users.each do |user| %>
+        <tr class="<%= 'admin-row-banned' if user.banned? %>">
+          <td><%= user.id %></td>
+          <td><%= user.name.presence || "—" %></td>
+          <td><%= user.email %></td>
+          <td>
+            <% if user.admin? %>
+              <span class="admin-badge admin-badge-admin">Admin</span>
+            <% elsif user.banned? %>
+              <span class="admin-badge admin-badge-banned">Banned</span>
+            <% else %>
+              <span class="admin-badge admin-badge-ok">Active</span>
+            <% end %>
+          </td>
+          <td><%= user.created_at.strftime("%d %b %Y") %></td>
+          <td class="admin-actions">
+            <% unless user == current_user %>
+              <% unless user.admin? %>
+                <% if user.banned? %>
+                  <%= button_to "Unban", unban_admin_user_path(user), method: :post, class: "admin-btn admin-btn-success", form: { data: { turbo_confirm: "Unban this user?" } } %>
+                <% else %>
+                  <%= button_to "Ban", ban_admin_user_path(user), method: :post, class: "admin-btn admin-btn-warning", form: { data: { turbo_confirm: "Ban this user? They will not be able to sign in." } } %>
+                <% end %>
+                <%= button_to "Delete", admin_user_path(user), method: :delete, class: "admin-btn admin-btn-danger", form: { data: { turbo_confirm: "Permanently delete this user and all their data?" } } %>
+              <% end %>
+            <% else %>
+              <span class="admin-muted">(you)</span>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <% if @users_total_pages > 1 %>
+    <div class="admin-pagination">
+      <% if @users_current_page > 1 %>
+        <%= link_to "← Previous", admin_users_path(page: @users_current_page - 1), class: "admin-page-link" %>
+      <% end %>
+      <span class="admin-page-info">Page <%= @users_current_page %> of <%= @users_total_pages %></span>
+      <% if @users_current_page < @users_total_pages %>
+        <%= link_to "Next →", admin_users_path(page: @users_current_page + 1), class: "admin-page-link" %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

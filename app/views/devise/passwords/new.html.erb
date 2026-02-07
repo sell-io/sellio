@@ -1,0 +1,41 @@
+<% content_for :title, "Forgot Password - Dealo" %>
+
+<div class="auth-container">
+  <div class="auth-header">
+    <h2>Forgot your password?</h2>
+    <p>Enter your email and we'll send you a link to reset your password.</p>
+  </div>
+
+  <% if alert %>
+    <div class="alert alert-alert"><%= alert %></div>
+  <% end %>
+
+  <% if notice %>
+    <div class="alert alert-notice"><%= notice %></div>
+  <% end %>
+
+  <% if resource.errors.any? %>
+    <div class="alert alert-alert">
+      <ul>
+        <% resource.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :post, class: "auth-form" }) do |f| %>
+    <div class="field">
+      <%= f.label :email %>
+      <%= f.email_field :email, autofocus: true, autocomplete: "email", placeholder: "your@email.com" %>
+    </div>
+
+    <div class="actions">
+      <%= f.submit "Send reset instructions", class: "btn-auth" %>
+    </div>
+  <% end %>
+
+  <div class="auth-links">
+    <%= link_to "Back to login", new_user_session_path %>
+  </div>
+</div>

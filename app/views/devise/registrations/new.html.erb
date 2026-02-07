@@ -47,12 +47,18 @@
       <% if @minimum_password_length %>
         <em>(<%= @minimum_password_length %> characters minimum)</em>
       <% end %>
-      <%= f.password_field :password, autocomplete: "new-password", placeholder: "Choose a strong password" %>
+      <div class="password-field-wrapper">
+        <%= f.password_field :password, autocomplete: "new-password", placeholder: "Choose a strong password", id: "user_password_signup" %>
+        <label class="show-password-label">
+          <%= check_box_tag "show_password_signup", "1", false, class: "show-password-checkbox", "data-target": "user_password_signup user_password_confirmation_signup" %>
+          Show password
+        </label>
+      </div>
     </div>
 
     <div class="field">
       <%= f.label :password_confirmation, "Confirm Password" %>
-      <%= f.password_field :password_confirmation, autocomplete: "new-password", placeholder: "Confirm your password" %>
+      <%= f.password_field :password_confirmation, autocomplete: "new-password", placeholder: "Confirm your password", id: "user_password_confirmation_signup" %>
     </div>
 
     <div class="actions">
@@ -64,3 +70,17 @@
     <p>Already have an account? <%= link_to "Login here", new_user_session_path %></p>
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.show-password-checkbox').forEach(function(cb) {
+      cb.addEventListener('change', function() {
+        var ids = (this.getAttribute('data-target') || '').split(/\s+/);
+        ids.forEach(function(id) {
+          var target = document.getElementById(id);
+          if (target) target.type = cb.checked ? 'text' : 'password';
+        });
+      });
+    });
+  });
+</script>

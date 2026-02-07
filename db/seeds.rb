@@ -34,6 +34,21 @@ User.find_or_create_by(email: "alexsidorov05@gmail.com") do |user|
   user.phone = "+353852406366"
 end
 
+# Admin user: alexsidorov2005@gmail.com / Dr3amH0useEleven
+admin_email = ENV.fetch("ADMIN_EMAIL", "alexsidorov2005@gmail.com")
+admin_password = ENV.fetch("ADMIN_PASSWORD", "Dr3amH0useEleven")
+admin_user = User.find_or_create_by(email: admin_email) do |u|
+  u.password = admin_password
+  u.password_confirmation = admin_password
+  u.name = "Admin"
+  u.location = "Ireland"
+end
+if admin_user.persisted?
+  admin_user.assign_attributes(password: admin_password, password_confirmation: admin_password)
+  admin_user.save(validate: false)
+  admin_user.update_column(:admin, true)
+end
+
 # Create categories if they don't exist
 Category.find_or_create_by(name: "Motors") do |cat|
   cat.description = "Cars, Vans, Motorcycles"
@@ -44,12 +59,6 @@ end
 Category.find_or_create_by(name: "Property") do |cat|
   cat.description = "Houses, Apartments, Land"
   cat.icon = "🏠"
-  cat.slug = nil
-end
-
-Category.find_or_create_by(name: "Jobs") do |cat|
-  cat.description = "Full-time, Part-time, Contract"
-  cat.icon = "💼"
   cat.slug = nil
 end
 
@@ -77,9 +86,33 @@ Category.find_or_create_by(name: "Hobbies") do |cat|
   cat.slug = nil
 end
 
-Category.find_or_create_by(name: "Pets") do |cat|
-  cat.description = "Dogs, Cats, Birds"
+Category.find_or_create_by(name: "Animals") do |cat|
+  cat.description = "Dogs, Cats, Birds, and more"
   cat.icon = "🐾"
+  cat.slug = nil
+end
+
+Category.find_or_create_by(name: "Farming") do |cat|
+  cat.description = "Equipment, Livestock, Seeds & Feed"
+  cat.icon = "🚜"
+  cat.slug = nil
+end
+
+Category.find_or_create_by(name: "Music + Education") do |cat|
+  cat.description = "Instruments, Books, Tuition"
+  cat.icon = "🎵"
+  cat.slug = nil
+end
+
+Category.find_or_create_by(name: "Sport + Hobbies") do |cat|
+  cat.description = "Sports Equipment, Gym, Outdoor"
+  cat.icon = "⚽"
+  cat.slug = nil
+end
+
+Category.find_or_create_by(name: "Baby + Kids") do |cat|
+  cat.description = "Clothing, Toys, Furniture, Equipment"
+  cat.icon = "👶"
   cat.slug = nil
 end
 

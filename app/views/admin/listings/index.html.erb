@@ -1,0 +1,46 @@
+<% content_for :title, "Manage Listings - Dealo Admin" %>
+<div class="admin-container">
+  <h1 class="admin-page-title">Listings</h1>
+
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Title</th>
+        <th>User</th>
+        <th>Category</th>
+        <th>Price</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @listings.each do |listing| %>
+        <tr>
+          <td><%= listing.id %></td>
+          <td><%= truncate(listing.title, length: 40) %></td>
+          <td><%= listing.user&.email %></td>
+          <td><%= listing.category&.name || "—" %></td>
+          <td><%= listing.price ? "€#{number_with_delimiter(listing.price.to_i)}" : "—" %></td>
+          <td><%= listing.created_at.strftime("%d %b %Y") %></td>
+          <td class="admin-actions">
+            <%= link_to "View", listing_path(listing), class: "admin-btn admin-btn-default", target: "_blank" %>
+            <%= button_to "Delete", admin_listing_path(listing), method: :delete, class: "admin-btn admin-btn-danger", form: { data: { turbo_confirm: "Permanently delete this listing?" } } %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <% if @listings_total_pages > 1 %>
+    <div class="admin-pagination">
+      <% if @listings_current_page > 1 %>
+        <%= link_to "← Previous", admin_listings_path(page: @listings_current_page - 1), class: "admin-page-link" %>
+      <% end %>
+      <span class="admin-page-info">Page <%= @listings_current_page %> of <%= @listings_total_pages %></span>
+      <% if @listings_current_page < @listings_total_pages %>
+        <%= link_to "Next →", admin_listings_path(page: @listings_current_page + 1), class: "admin-page-link" %>
+      <% end %>
+    </div>
+  <% end %>
+</div>
