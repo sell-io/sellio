@@ -1,19 +1,18 @@
 module ListingsHelper
   # Subcategories per category name (used when creating/editing a listing).
-  # Motors uses vehicle types; other categories use these lists.
   CATEGORY_SUBCATEGORIES = {
-    "Motors" => %w[Car Van Truck Tractor Motorcycle Scooter Quad Caravan Trailer Boat Other],
-    "Property" => %w[House Apartment Land Commercial Room Other],
-    "Electronics" => %w[Phone Computer TV Audio Camera Gaming Other],
-    "Furniture" => %w[Sofa Table Bed Chair Storage Garden Other],
-    "Fashion" => %w[Men Women Kids Shoes Accessories Other],
-    "Hobbies" => %w[Sports Games Books Collectibles Other],
-    "Animals" => %w[Dogs Cats Birds Fish Small\ animals Other],
-    "Services" => %w[Babysitting Cleaning Car\ Valeting Gardening Tutoring Other],
-    "Farming" => %w[Equipment Livestock Seeds\ &\ Feed Other],
-    "Music + Education" => %w[Instruments Books\ &\ Courses Tuition Other],
-    "Sport + Hobbies" => %w[Sports\ Equipment Gym Outdoor Other],
-    "Baby + Kids" => %w[Clothing Toys Furniture Equipment Other]
+    "Motors" => %w[Car Van Truck Tractor Motorcycle Scooter Quad Caravan Trailer Boat Parts\ &\ Accessories Other],
+    "Property" => %w[House Apartment Land Commercial Room Studio Shared\ accommodation Holiday\ let Other],
+    "Electronics" => %w[Phone Computer Laptop Tablet TV Audio Camera Gaming Console Headphones Smartwatch Printer Monitor Other],
+    "Furniture" => %w[Sofa Table Bed Chair Desk Wardrobe Storage Garden Outdoor Shelving Lighting Other],
+    "Fashion" => %w[Men Women Kids Unisex Shoes Bags Accessories Jewellery Watches Coats Jackets Sportswear Other],
+    "Hobbies" => %w[Sports Games Books Collectibles Art\ supplies Crafts Musical\ instruments Board\ games Puzzles Other],
+    "Animals" => %w[Dogs Cats Birds Fish Small\ animals Reptiles Equine Livestock Pet\ supplies Other],
+    "Services" => %w[Babysitting Cleaning Car\ valeting Gardening Tutoring Plumbing Electrical Moving Beauty Repair Other],
+    "Farming" => %w[Tractors Machinery Livestock Seeds\ &\ feed Hay\ &\ straw Tools Buildings Veterinary Other],
+    "Music + Education" => %w[Guitar Piano Drums Keyboard Strings Brass Woodwind Books\ &\ courses Tuition Sheet\ music Other],
+    "Sport + Hobbies" => %w[Bike Cycling Running Gym Outdoor Sports\ equipment Camping Fishing Golf Tennis Football GAA Rugby Water\ sports Winter\ sports Hiking Yoga Fitness Skateboard Swimming Equestrian Martial\ arts Other],
+    "Baby + Kids" => %w[Pram Pushchair Stroller Clothing Toys Furniture Crib Cot High\ chair Car\ seat Baby\ carrier Feeding Bottles Nursery Books Games Bikes\ &\ trikes Outdoor\ play Safety\ equipment Other]
   }.freeze
 
   def irish_counties
