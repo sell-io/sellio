@@ -2229,7 +2229,7 @@ select[name*="year"]:focus {
 .listing-price {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #4FD1A5;
+  color: #000000;
 }
 
 .btn-view {

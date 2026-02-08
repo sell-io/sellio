@@ -10,7 +10,7 @@ module ListingsHelper
     "Animals" => %w[Dogs Cats Birds Fish Small\ animals Reptiles Equine Livestock Pet\ supplies Other],
     "Services" => %w[Babysitting Cleaning Car\ valeting Gardening Tutoring Plumbing Electrical Moving Beauty Repair Other],
     "Farming" => %w[Tractors Machinery Livestock Seeds\ &\ feed Hay\ &\ straw Tools Buildings Veterinary Other],
-    "Music + Education" => %w[Guitar Piano Drums Keyboard Strings Brass Woodwind Books\ &\ courses Tuition Sheet\ music Other],
+    "Music + Education" => %w[Guitar Piano Drums Keyboard Strings Brass Woodwind Microphones Headphones Speakers Audio\ interface Amplifier Books\ &\ courses Tuition Sheet\ music Recording\ equipment DJ\ equipment Other],
     "Sport + Hobbies" => %w[Bike Cycling Running Gym Outdoor Sports\ equipment Camping Fishing Golf Tennis Football GAA Rugby Water\ sports Winter\ sports Hiking Yoga Fitness Skateboard Swimming Equestrian Martial\ arts Other],
     "Baby + Kids" => %w[Pram Pushchair Stroller Clothing Toys Furniture Crib Cot High\ chair Car\ seat Baby\ carrier Feeding Bottles Nursery Books Games Bikes\ &\ trikes Outdoor\ play Safety\ equipment Other]
   }.freeze

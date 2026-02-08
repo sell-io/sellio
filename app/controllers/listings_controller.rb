@@ -4,7 +4,7 @@ class ListingsController < ApplicationController
 
   # GET /listings or /listings.json
   def index
-    @listings = Listing.all.order(created_at: :desc)
+    @listings = Listing.all.order(Arel.sql("RANDOM()"))
     # Featured listings: always show a small randomized set on the homepage section
     @featured_listings = Listing.order(Arel.sql('RANDOM()')).limit(4)
     # Order categories with Motors first, then alphabetically
