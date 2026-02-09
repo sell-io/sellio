@@ -551,6 +551,12 @@
             </div>
           </div>
           <% end %>
+          <div class="general-filter-grid">
+            <div class="general-filter-field general-filter-checkbox">
+              <%= f.check_box :include_sold, { checked: params[:include_sold] == "1" }, "1", "0" %>
+              <%= f.label :include_sold, "Include sold listings" %>
+            </div>
+          </div>
           <div class="form-actions">
             <%= f.submit "Apply Filters", class: "general-filter-button" %>
           </div>
@@ -584,7 +590,7 @@
       <% if @listings.any? %>
         <% if @selected_category || params[:category_id].present? || params[:search].present? || has_filters %>
           <% total_count = defined?(@listings_total_count) ? @listings_total_count : @listings.count %>
-          <p class="filter-info" style="margin-bottom: 1.5rem; color: #666; font-size: 0.9375rem;">
+          <p class="filter-info" style="margin-bottom: 0.5rem; color: #666; font-size: 0.9375rem;">
             Showing <%= total_count %> <%= total_count == 1 ? 'listing' : 'listings' %>
             <% if has_filters && params[:subcategory] == "Car" %>
               <% filter_parts = [] %>
@@ -599,6 +605,25 @@
               in <%= @selected_category.name %>
             <% end %>
           </p>
+          <% if user_signed_in? %>
+            <%= form_with url: saved_searches_path, method: :post, local: true, class: "save-search-form" do |f| %>
+              <%= f.hidden_field :search, value: params[:search] %>
+              <%= f.hidden_field :location, value: params[:location] %>
+              <%= f.hidden_field :category_id, value: params[:category_id] %>
+              <%= f.hidden_field :subcategory, value: params[:subcategory] %>
+              <%= f.hidden_field :make, value: params[:make] %>
+              <%= f.hidden_field :model, value: params[:model] %>
+              <%= f.hidden_field :min_year, value: params[:min_year] %>
+              <%= f.hidden_field :max_year, value: params[:max_year] %>
+              <%= f.hidden_field :min_mileage, value: params[:min_mileage] %>
+              <%= f.hidden_field :max_mileage, value: params[:max_mileage] %>
+              <%= f.hidden_field :min_price, value: params[:min_price] %>
+              <%= f.hidden_field :max_price, value: params[:max_price] %>
+              <%= f.hidden_field :include_sold, value: params[:include_sold] %>
+              <%= f.text_field :name, value: params[:name], placeholder: "Search name (optional)", class: "save-search-name-input" %>
+              <%= f.submit "Save this search", class: "btn-save-search" %>
+            <% end %>
+          <% end %>
         <% end %>
         <% listings_to_show = if @selected_category || params[:category_id].present? || params[:search].present? || has_filters || is_browse_page
                                  @listings
@@ -617,6 +642,9 @@
                     <div class="image-placeholder">
                       <span>📷</span>
                     </div>
+                  <% end %>
+                  <% if listing.sold? %>
+                    <span class="listing-badge-sold-overlay">Sold</span>
                   <% end %>
                 </div>
                 <div class="listing-content">
@@ -674,7 +702,7 @@
         <% if defined?(@listings_total_pages) && @listings_total_pages > 1 %>
           <div class="pagination-wrapper">
             <nav class="pagination" aria-label="Pagination">
-              <% pagination_params = params.permit(:category_id, :search, :location, :make, :model, :min_year, :max_year, :min_mileage, :max_mileage, :min_price, :max_price, :subcategory).to_h %>
+              <% pagination_params = params.permit(:category_id, :search, :location, :make, :model, :min_year, :max_year, :min_mileage, :max_mileage, :min_price, :max_price, :subcategory, :include_sold).to_h %>
               <% if @listings_current_page > 1 %>
                 <%= link_to "← Previous", listings_path(pagination_params.merge(page: @listings_current_page - 1)), class: "page-link prev" %>
               <% end %>

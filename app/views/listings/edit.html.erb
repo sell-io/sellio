@@ -12,7 +12,8 @@
   <%= render "form", listing: @listing %>
 
   <div class="back-link-container">
-    <%= link_to "← Back to listing", @listing, class: "back-link" %> |
+    <%= link_to "← Back to homepage", root_path, class: "back-link" %>
+    <%= link_to "Back to listing", @listing, class: "back-link" %>
     <%= link_to "Back to listings", listings_path, class: "back-link" %>
   </div>
 </div>

@@ -1,0 +1,23 @@
+<% content_for :title, "Report ##{@report.id} - Dealo Admin" %>
+<div class="admin-container">
+  <h1 class="admin-page-title">Report #<%= @report.id %></h1>
+
+  <div class="admin-detail">
+    <p><strong>Status:</strong> <%= @report.status %></p>
+    <p><strong>Reason:</strong> <%= @report.reason %></p>
+    <p><strong>Reporter:</strong> <%= @report.user&.email %></p>
+    <p><strong>Submitted:</strong> <%= @report.created_at.strftime("%d %b %Y %H:%M") %></p>
+    <p><strong>Listing:</strong> <%= link_to @report.listing.title, listing_path(@report.listing), target: "_blank" %></p>
+    <% if @report.body.present? %>
+      <p><strong>Details:</strong></p>
+      <div class="admin-box"><%= simple_format(@report.body) %></div>
+    <% end %>
+  </div>
+
+  <div class="admin-actions" style="margin-top: 1rem;">
+    <% if @report.status == "open" %>
+      <%= button_to "Mark as resolved", resolve_admin_report_path(@report), method: :post, class: "admin-btn admin-btn-success", form: { data: { turbo_confirm: "Mark this report as resolved?" } } %>
+    <% end %>
+    <%= link_to "← Back to reports", admin_reports_path, class: "admin-btn admin-btn-default" %>
+  </div>
+</div>

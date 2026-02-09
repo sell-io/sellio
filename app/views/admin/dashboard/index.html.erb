@@ -17,5 +17,10 @@
       <span class="admin-stat-value"><%= @banned_count %></span>
       <span class="admin-stat-label">Banned Users</span>
     </div>
+    <div class="admin-stat-card">
+      <span class="admin-stat-value"><%= @reports_open_count %></span>
+      <span class="admin-stat-label">Open Reports</span>
+      <%= link_to "View reports →", admin_reports_path, class: "admin-stat-link" %>
+    </div>
   </div>
 </div>

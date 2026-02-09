@@ -1,0 +1,27 @@
+<% content_for :title, "Report listing" %>
+
+<div class="form-container">
+  <div class="form-card">
+    <h1>Report this listing</h1>
+    <p class="form-subtitle">Listing: <%= link_to @listing.title, @listing, class: "static-link" %></p>
+
+    <%= form_with model: @report, url: reports_path, method: :post, local: true do |f| %>
+      <%= f.hidden_field :listing_id, value: @listing.id %>
+
+      <div class="form-group">
+        <%= f.label :reason, "Reason" %>
+        <%= f.select :reason, Report::REASONS, { include_blank: "Select a reason" }, class: "form-control", required: true %>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :body, "Additional details (optional)" %>
+        <%= f.text_area :body, rows: 4, class: "form-control", placeholder: "Provide any extra information that might help us review this listing." %>
+      </div>
+
+      <div class="form-actions">
+        <%= f.submit "Submit report", class: "btn-primary" %>
+        <%= link_to "Cancel", @listing, class: "btn-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>

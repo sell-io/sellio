@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_07_130757) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_09_144500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -96,6 +96,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_07_130757) do
     t.index ["sender_id"], name: "index_messages_on_sender_id"
   end
 
+  create_table "reports", force: :cascade do |t|
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.bigint "listing_id", null: false
+    t.string "reason", null: false
+    t.string "status", default: "open", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["listing_id"], name: "index_reports_on_listing_id"
+    t.index ["user_id"], name: "index_reports_on_user_id"
+  end
+
   create_table "reviews", force: :cascade do |t|
     t.text "comment"
     t.datetime "created_at", null: false
@@ -107,6 +119,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_07_130757) do
     t.index ["reviewer_id", "reviewed_user_id"], name: "index_reviews_on_reviewer_id_and_reviewed_user_id", unique: true
     t.index ["reviewer_id"], name: "index_reviews_on_reviewer_id"
     t.check_constraint "rating >= 1 AND rating <= 5", name: "rating_range"
+  end
+
+  create_table "saved_searches", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name"
+    t.jsonb "query_params", default: {}
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_saved_searches_on_user_id"
   end
 
   create_table "tasks", force: :cascade do |t|
@@ -140,6 +161,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_07_130757) do
   add_foreign_key "messages", "listings"
   add_foreign_key "messages", "users", column: "recipient_id"
   add_foreign_key "messages", "users", column: "sender_id"
+  add_foreign_key "reports", "listings"
+  add_foreign_key "reports", "users"
   add_foreign_key "reviews", "users", column: "reviewed_user_id"
   add_foreign_key "reviews", "users", column: "reviewer_id"
+  add_foreign_key "saved_searches", "users"
 end

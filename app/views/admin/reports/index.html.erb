@@ -1,0 +1,49 @@
+<% content_for :title, "Reports - Dealo Admin" %>
+<div class="admin-container">
+  <h1 class="admin-page-title">Reports</h1>
+  <% if @open_count > 0 %>
+    <p class="admin-muted"><%= @open_count %> open report(s)</p>
+  <% end %>
+
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Listing</th>
+        <th>Reporter</th>
+        <th>Reason</th>
+        <th>Status</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @reports.each do |report| %>
+        <tr class="<%= 'admin-row-muted' if report.status == 'resolved' %>">
+          <td><%= report.id %></td>
+          <td><%= link_to report.listing.title.truncate(40), listing_path(report.listing), target: "_blank" %></td>
+          <td><%= report.user&.email %></td>
+          <td><%= report.reason %></td>
+          <td>
+            <% if report.status == "open" %>
+              <span class="admin-badge admin-badge-warning">Open</span>
+            <% else %>
+              <span class="admin-badge admin-badge-ok">Resolved</span>
+            <% end %>
+          </td>
+          <td><%= report.created_at.strftime("%d %b %Y %H:%M") %></td>
+          <td class="admin-actions">
+            <%= link_to "View", admin_report_path(report), class: "admin-btn admin-btn-default" %>
+            <% if report.status == "open" %>
+              <%= button_to "Resolve", resolve_admin_report_path(report), method: :post, class: "admin-btn admin-btn-success", form: { data: { turbo_confirm: "Mark this report as resolved?" } } %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <% if @reports.empty? %>
+    <p class="admin-muted">No reports yet.</p>
+  <% end %>
+</div>

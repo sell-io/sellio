@@ -1,0 +1,33 @@
+<% content_for :title, "My Saved Searches" %>
+
+<div class="listings-container">
+  <div class="listings-header">
+    <h1>My Saved Searches</h1>
+    <p class="listings-subtitle">Quick links to your saved searches</p>
+  </div>
+
+  <% if @saved_searches.any? %>
+    <ul class="saved-searches-list">
+      <% @saved_searches.each do |saved| %>
+        <li class="saved-search-item">
+          <div class="saved-search-info">
+            <%= link_to saved.name.presence || "Saved search", listings_path(saved.query_params), class: "saved-search-link" %>
+            <span class="saved-search-params">
+              <% if saved.query_params.present? %>
+                <%= saved.query_params.except("page").values.compact.join(" · ") %>
+              <% end %>
+            </span>
+          </div>
+          <%= button_to "Remove", saved_search_path(saved), method: :delete, class: "btn-delete-small", form: { data: { turbo_confirm: "Remove this saved search?" } } %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <div class="empty-state">
+      <div class="empty-state-icon">🔍</div>
+      <h2>No saved searches yet</h2>
+      <p>When you search or filter listings, use "Save this search" to find them again quickly.</p>
+      <%= link_to "Browse Listings", listings_path, class: "btn-primary" %>
+    </div>
+  <% end %>
+</div>

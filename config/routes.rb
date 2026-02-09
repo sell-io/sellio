@@ -33,7 +33,15 @@ Rails.application.routes.draw do
   # Listings with favorites
   resources :listings do
     resources :favorites, only: [:create, :destroy]
+    member do
+      post :mark_as_sold
+      post :mark_available
+    end
   end
+
+  resources :reports, only: [:new, :create]
+  resources :saved_searches, only: [:index, :create, :destroy]
+  get "my_saved_searches", to: "saved_searches#index", as: :my_saved_searches
 
   # Admin
   namespace :admin do
@@ -45,6 +53,11 @@ Rails.application.routes.draw do
       end
     end
     resources :listings, only: [:index, :destroy]
+    resources :reports, only: [:index, :show] do
+      member do
+        post :resolve
+      end
+    end
   end
   
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
