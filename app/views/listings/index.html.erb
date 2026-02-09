@@ -288,21 +288,33 @@
 
   <!-- Category Filter Section (show when browsing all ads via Browse button, not on homepage or when filters are applied) -->
   <% has_filters = params[:make].present? || params[:model].present? || params[:min_year].present? || params[:max_year].present? || params[:min_mileage].present? || params[:max_mileage].present? || params[:min_price].present? || params[:max_price].present? || params[:subcategory].present? %>
-  <% if params[:category_id].blank? && params[:search].blank? && is_browse_page && !has_filters %>
+  <% if params[:category_id].blank? && params[:search].blank? && params[:location].blank? && is_browse_page && !has_filters %>
   <section class="category-filter-section">
     <div class="container">
       <div class="category-filter-box">
         <h2 class="category-filter-title">Filter by Category</h2>
-        <%= form_with url: listings_path, method: :get, local: true, class: "category-filter-form" do |f| %>
-          <div class="category-filter-grid">
+        <%= form_with url: listings_path, method: :get, local: true, class: "category-filter-form", id: "category-filter-form" do |f| %>
+          <%= f.hidden_field :location, value: params[:location] if params[:location].present? %>
+          <%= f.hidden_field :category_id, value: params[:category_id], id: "category_id_submit" %>
+          <!-- Mobile only: category dropdown -->
+          <div class="category-filter-dropdown-mobile">
+            <select class="category-select-mobile" id="category_id_mobile" aria-label="Category">
+              <option value="" <%= params[:category_id].blank? ? "selected" : "" %>>All categories</option>
+              <% @categories.each do |c| %>
+                <option value="<%= c.id %>" <%= params[:category_id].to_s == c.id.to_s ? "selected" : "" %>><%= c.name %></option>
+              <% end %>
+            </select>
+          </div>
+          <!-- Desktop only: category radio grid -->
+          <div class="category-filter-grid category-filter-grid-desktop">
             <label class="category-filter-option <%= 'active' if params[:category_id].blank? %>">
-              <%= f.radio_button :category_id, "", checked: params[:category_id].blank?, onchange: "this.form.submit();" %>
+              <input type="radio" name="category_id_radio" value="" <%= params[:category_id].blank? ? "checked" : "" %> class="category-radio-desktop">
               <span class="category-filter-label">All Categories</span>
               <span class="category-count">(<%= Listing.count %>)</span>
             </label>
             <% @categories.each do |category| %>
               <label class="category-filter-option <%= 'active' if params[:category_id].to_i == category.id %>">
-                <%= f.radio_button :category_id, category.id, checked: (params[:category_id].to_i == category.id), onchange: "this.form.submit();" %>
+                <input type="radio" name="category_id_radio" value="<%= category.id %>" <%= params[:category_id].to_s == category.id.to_s ? "checked" : "" %> class="category-radio-desktop">
                 <span class="category-filter-label"><%= category.name %></span>
                 <span class="category-count">(<%= category.listings.count %>)</span>
               </label>
@@ -422,7 +434,9 @@
           <h2 class="section-title">Car Search Results</h2>
         <% elsif @selected_category %>
           <h2 class="section-title"><%= @selected_category.name %> Listings</h2>
-        <% elsif params[:category_id].present? || params[:search].present? %>
+        <% elsif params[:location].present? && params[:search].blank? && params[:category_id].blank? %>
+          <h2 class="section-title">Listings in <%= params[:location] %></h2>
+        <% elsif params[:search].present? || params[:location].present? || params[:category_id].present? %>
           <h2 class="section-title">Search Results</h2>
         <% elsif is_browse_page %>
           <h2 class="section-title">All Listings</h2>
@@ -441,14 +455,19 @@
           </div>
         <% end %>
       </div>
-      <!-- Mobile search bar (simple search input) -->
+      <!-- Mobile search: search + location, then results -->
       <div class="mobile-search-bar">
         <%= form_with url: listings_path, method: :get, local: true, class: "mobile-search-form" do |f| %>
           <% if params[:category_id].present? %>
             <%= f.hidden_field :category_id, value: params[:category_id] %>
           <% end %>
-          <div class="mobile-search-input-wrapper">
-            <%= f.text_field :search, placeholder: "Search...", class: "mobile-search-input", value: params[:search] %>
+          <div class="mobile-search-row">
+            <div class="mobile-search-input-wrapper">
+              <%= f.text_field :search, placeholder: "What are you looking for?", class: "mobile-search-input", value: params[:search] %>
+            </div>
+            <div class="mobile-search-input-wrapper">
+              <%= f.text_field :location, placeholder: "Location (e.g. Dublin)", class: "mobile-search-input", value: params[:location] %>
+            </div>
             <button type="submit" class="mobile-search-icon-button" aria-label="Search">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -473,10 +492,20 @@
         <h2 class="general-filter-title"><%= @selected_category ? "Filter #{@selected_category.name}" : "Filters" %></h2>
         <%= form_with url: listings_path, method: :get, local: true, class: "general-filter-form" do |f| %>
           <%= f.hidden_field :search, value: params[:search] if params[:search].present? %>
-          <% if @selected_category %>
-            <%= f.hidden_field :category_id, value: @selected_category.id %>
-          <% else %>
-            <div class="general-filter-grid">
+          <% subcategories = @selected_category ? subcategories_for_category(@selected_category) : [] %>
+          <!-- Row 1: Category (or Subcategory) next to Location -->
+          <div class="general-filter-grid general-filter-row-category-location">
+            <% if @selected_category %>
+              <%= f.hidden_field :category_id, value: @selected_category.id %>
+              <% if subcategories.any? %>
+                <div class="general-filter-field">
+                  <%= f.label :subcategory, is_motors_category_selected ? "Vehicle Type" : "Subcategory" %>
+                  <%= f.select :subcategory,
+                               options_for_select([["All", ""]] + subcategories.map { |s| [s, s] }, params[:subcategory]),
+                               {}, class: "general-filter-select" %>
+                </div>
+              <% end %>
+            <% else %>
               <div class="general-filter-field">
                 <%= f.label :category_id, "Category" %>
                 <%= f.select :category_id,
@@ -484,23 +513,13 @@
                              { include_blank: false },
                              class: "general-filter-select" %>
               </div>
-            </div>
-          <% end %>
-          <% subcategories = @selected_category ? subcategories_for_category(@selected_category) : [] %>
-          <div class="general-filter-grid">
-            <% if subcategories.any? %>
-              <div class="general-filter-field">
-                <%= f.label :subcategory, is_motors_category_selected ? "Vehicle Type" : "Subcategory" %>
-                <%= f.select :subcategory,
-                             options_for_select([["All", ""]] + subcategories.map { |s| [s, s] }, params[:subcategory]),
-                             {}, class: "general-filter-select" %>
-              </div>
             <% end %>
             <div class="general-filter-field">
               <%= f.label :location, "Location" %>
               <%= f.text_field :location, placeholder: "Location (e.g., Dublin)", class: "general-filter-input", value: params[:location] %>
             </div>
           </div>
+          <!-- Row 2: Min and Max price -->
           <div class="general-filter-grid general-filter-price-row">
             <div class="general-filter-field">
               <%= f.label :min_price, "Min Price (€)" %>
@@ -588,7 +607,7 @@
 
       
       <% if @listings.any? %>
-        <% if @selected_category || params[:category_id].present? || params[:search].present? || has_filters %>
+        <% if @selected_category || params[:category_id].present? || params[:search].present? || params[:location].present? || has_filters %>
           <% total_count = defined?(@listings_total_count) ? @listings_total_count : @listings.count %>
           <p class="filter-info" style="margin-bottom: 0.5rem; color: #666; font-size: 0.9375rem;">
             Showing <%= total_count %> <%= total_count == 1 ? 'listing' : 'listings' %>
@@ -603,6 +622,8 @@
               <% end %>
             <% elsif @selected_category %>
               in <%= @selected_category.name %>
+            <% elsif params[:location].present? %>
+              in <%= params[:location] %>
             <% end %>
           </p>
           <% if user_signed_in? %>
@@ -625,12 +646,12 @@
             <% end %>
           <% end %>
         <% end %>
-        <% listings_to_show = if @selected_category || params[:category_id].present? || params[:search].present? || has_filters || is_browse_page
+        <% listings_to_show = if @selected_category || params[:category_id].present? || params[:search].present? || params[:location].present? || has_filters || is_browse_page
                                  @listings
                                else
                                  (@featured_listings || @listings.order(Arel.sql('RANDOM()')).limit(4))
                                end %>
-        <% is_homepage_grid = !is_browse_page && !params[:category_id].present? && !params[:search].present? && !has_filters %>
+        <% is_homepage_grid = !is_browse_page && !params[:category_id].present? && !params[:search].present? && !params[:location].present? && !has_filters %>
         <div class="listings-grid <%= 'homepage-grid' if is_homepage_grid %>">
           <% listings_to_show.each do |listing| %>
             <div class="listing-card">
@@ -746,6 +767,25 @@
 </div>
 
 <script>
+  (function() {
+    var form = document.getElementById('category-filter-form');
+    var hidden = document.getElementById('category_id_submit');
+    var mobileSelect = document.getElementById('category_id_mobile');
+    if (form && hidden) {
+      if (mobileSelect) {
+        mobileSelect.addEventListener('change', function() {
+          hidden.value = this.value || '';
+          form.submit();
+        });
+      }
+      form.querySelectorAll('.category-radio-desktop').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+          hidden.value = this.value || '';
+          form.submit();
+        });
+      });
+    }
+  })();
   function initCategoryFiltersToggle() {
     const toggleBtn = document.getElementById('toggleCategoryFiltersBtn');
     const filtersSection = document.getElementById('categoryFiltersSection');

@@ -1199,8 +1199,13 @@ body:has(.mobile-menu.open) .hamburger-menu-btn {
   margin-bottom: 0;
 }
 
+.general-filter-row-category-location {
+  margin-bottom: 0.875rem;
+}
+
 .general-filter-price-row {
   grid-template-columns: repeat(2, 1fr);
+  margin-bottom: 0.875rem;
 }
 
 .general-filter-field {
@@ -1627,8 +1632,40 @@ select[name*="year"]:focus {
   width: 100%;
 }
 
-.category-filter-grid {
+/* Mobile: category dropdown (hidden on desktop) */
+.category-filter-dropdown-mobile {
+  display: none;
+  margin-bottom: 1rem;
+}
+
+.category-select-mobile {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  color: #2B2F33;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+.category-select-mobile:focus {
+  border-color: #4FD1A5;
+  outline: none;
+}
+
+/* Desktop: category radio grid (hidden on mobile) */
+.category-filter-grid-desktop {
   display: grid;
+}
+
+.category-filter-grid {
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
@@ -7601,8 +7638,33 @@ select[name*="year"]:focus {
     margin-top: 0.5rem;
   }
 
+  .mobile-search-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+  }
+
+  .mobile-search-row .mobile-search-input-wrapper {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mobile-search-row .mobile-search-input-wrapper:first-child .mobile-search-input {
+    border-radius: 8px 0 0 8px;
+  }
+
+  .mobile-search-row .mobile-search-input-wrapper:last-of-type .mobile-search-input {
+    border-radius: 0;
+  }
+
+  .mobile-search-row .mobile-search-icon-button {
+    border-radius: 0 8px 8px 0;
+    flex-shrink: 0;
+  }
+
   .mobile-search-input-wrapper {
-    padding: 0.5rem;
+    padding: 0.5rem 0;
     align-items: center;
   }
 
@@ -7613,6 +7675,15 @@ select[name*="year"]:focus {
 
   .mobile-search-icon-button {
     padding: 0.5rem;
+  }
+
+  /* Category: dropdown on mobile, hide radio grid */
+  .category-filter-dropdown-mobile {
+    display: block;
+  }
+
+  .category-filter-grid-desktop {
+    display: none !important;
   }
 
   /* General Filter Section */
