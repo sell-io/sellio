@@ -1812,6 +1812,7 @@ select[name*="year"]:focus {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.5rem;
   text-decoration: none;
   color: #2B2F33;
@@ -1819,6 +1820,7 @@ select[name*="year"]:focus {
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 12px;
+  min-height: 0;
 }
 
 .category-icon-item:hover {
@@ -1831,6 +1833,9 @@ select[name*="year"]:focus {
   font-size: 2.5rem;
   width: 60px;
   height: 60px;
+  min-width: 60px;
+  min-height: 60px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -7204,12 +7209,22 @@ select[name*="year"]:focus {
 
   .categories-row {
     gap: 2rem;
+    align-items: flex-start;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    justify-items: center;
+  }
+
+  .category-icon-item {
+    justify-content: flex-start;
   }
 
   .category-icon-large {
     font-size: 2rem;
     width: 50px;
     height: 50px;
+    min-width: 50px;
+    min-height: 50px;
   }
 
   .hero-title {
