@@ -48,7 +48,7 @@
           <p class="profile-location">📍 <%= @user.location %></p>
         <% end %>
         <% if @user.phone.present? %>
-          <p class="profile-phone">📞 <%= @user.phone %></p>
+          <p class="profile-phone">📞 <%= link_to @user.phone, "tel:#{@user.phone.gsub(/\s+/, '')}", class: "phone-number-link", title: "Tap or click to call" %></p>
         <% end %>
         <p class="profile-joined">Member since <%= @user.created_at.strftime("%B %Y") %></p>
       </div>

@@ -44,9 +44,14 @@ admin_user = User.find_or_create_by(email: admin_email) do |u|
   u.location = "Ireland"
 end
 if admin_user.persisted?
-  admin_user.assign_attributes(password: admin_password, password_confirmation: admin_password)
+  admin_user.assign_attributes(
+    password: admin_password,
+    password_confirmation: admin_password,
+    name: "Admin",
+    banned_at: nil
+  )
   admin_user.save(validate: false)
-  admin_user.update_column(:admin, true)
+  admin_user.update_columns(admin: true, banned_at: nil)
 end
 
 # Create categories if they don't exist

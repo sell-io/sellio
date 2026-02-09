@@ -51,6 +51,9 @@
             <div class="listing-header">
               <h1 class="listing-detail-title"><%= @listing.title %></h1>
               <div class="listing-meta">
+                <% if @listing.sold? %>
+                  <span class="listing-badge-sold">Sold</span>
+                <% end %>
                 <% subcategory = @listing.extra_fields&.dig('subcategory') %>
                 <% if subcategory.present? %>
                   <span class="subcategory-badge"><%= subcategory %></span>
@@ -162,6 +165,10 @@
                     <%= is_favorited ? 'Saved' : 'Save Ad' %>
                   </button>
                 <% end %>
+                <button type="button" class="btn-share-listing" id="share-listing-btn" data-url="<%= listing_url(@listing) %>" data-title="<%= @listing.title %>">Share</button>
+                <% if user_signed_in? && current_user != @listing.user %>
+                  <%= link_to "Report", new_report_path(listing_id: @listing.id), class: "btn-report-listing" %>
+                <% end %>
                 <%= link_to "Back to Listings", listings_path, class: "btn-back" %>
               </div>
             <% else %>
@@ -232,6 +239,11 @@
           <div class="seller-actions">
             <% if user_signed_in? %>
               <% if current_user == @listing.user || current_user&.admin? %>
+                <% if @listing.sold? %>
+                  <%= button_to "Mark as available", mark_available_listing_path(@listing), method: :post, class: "btn-seller-action btn-available" %>
+                <% else %>
+                  <%= button_to "Mark as sold", mark_as_sold_listing_path(@listing), method: :post, class: "btn-seller-action btn-sold", form: { data: { turbo_confirm: "Mark this listing as sold?" } } %>
+                <% end %>
                 <%= link_to "Edit Listing", edit_listing_path(@listing), class: "btn-seller-action btn-edit" %>
                 <%= button_to "Delete Listing", @listing, method: :delete,
                               data: { turbo_confirm: "Are you sure you want to delete this listing?" },
@@ -249,7 +261,8 @@
           <% if @listing.user.phone.present? %>
             <div class="seller-phone-display">
               <strong>Phone:</strong>
-              <a href="tel:<%= @listing.user.phone %>" class="phone-number-link"><%= @listing.user.phone %></a>
+              <%= link_to @listing.user.phone, "tel:#{@listing.user.phone.gsub(/\s+/, '')}", class: "phone-number-link", title: "Tap or click to call" %>
+              <span class="phone-call-hint">Tap to call</span>
             </div>
           <% end %>
           
@@ -260,6 +273,41 @@
         </div>
       <% end %>
     </div>
+
+    <!-- Similar Listings -->
+    <% if @similar_listings.present? %>
+      <section class="similar-listings-section">
+        <h2 class="similar-listings-title">Similar listings</h2>
+        <div class="similar-listings-grid">
+          <% @similar_listings.each do |listing| %>
+            <div class="similar-listing-card">
+              <%= link_to listing, class: "similar-listing-link" do %>
+                <div class="similar-listing-image">
+                  <% if listing.images.attached? %>
+                    <%= image_tag listing.ordered_images.first, class: "similar-listing-img", alt: listing.title %>
+                  <% else %>
+                    <div class="image-placeholder small">📷</div>
+                  <% end %>
+                  <% if listing.sold? %>
+                    <span class="listing-badge-sold-overlay">Sold</span>
+                  <% end %>
+                </div>
+                <div class="similar-listing-content">
+                  <h3 class="similar-listing-title"><%= listing.title.truncate(50) %></h3>
+                  <span class="similar-listing-price">
+                    <% if listing.price %>
+                      €<%= number_with_delimiter(listing.price.to_i) %>
+                    <% else %>
+                      Price on request
+                    <% end %>
+                  </span>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
 
     <!-- Image Modal/Lightbox -->
     <div class="image-modal" id="image-modal" style="display: none;">
@@ -572,5 +620,28 @@
     // Re-initialize on Turbo navigation
     document.addEventListener('turbo:load', initializeOnTurbo);
     document.addEventListener('turbo:render', initializeOnTurbo);
+  })();
+
+  // Share listing: Web Share API with copy-link fallback
+  (function() {
+    const shareBtn = document.getElementById('share-listing-btn');
+    if (!shareBtn) return;
+    shareBtn.addEventListener('click', function() {
+      const url = shareBtn.getAttribute('data-url') || window.location.href;
+      const title = shareBtn.getAttribute('data-title') || document.title;
+      if (navigator.share) {
+        navigator.share({ title: title, url: url }).then(function() {
+          shareBtn.textContent = 'Shared!';
+          setTimeout(function() { shareBtn.textContent = 'Share'; }, 2000);
+        }).catch(function() {});
+      } else {
+        navigator.clipboard.writeText(url).then(function() {
+          shareBtn.textContent = 'Link copied!';
+          setTimeout(function() { shareBtn.textContent = 'Share'; }, 2000);
+        }).catch(function() {
+          shareBtn.textContent = 'Copy link';
+        });
+      }
+    });
   })();
 </script>

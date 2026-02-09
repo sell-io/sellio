@@ -4,7 +4,11 @@ class Listing < ApplicationRecord
   has_many_attached :images
   has_many :favorites, dependent: :destroy
   has_many :favorited_by, through: :favorites, source: :user
-  
+  has_many :reports, dependent: :destroy
+
+  scope :available, -> { where(status: [nil, "", "available"]) }
+  scope :sold, -> { where(status: "sold") }
+
   validates :title, presence: true
   validates :description, presence: true
   validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
@@ -45,7 +49,11 @@ class Listing < ApplicationRecord
   def transmission
     extra_fields&.dig('transmission')
   end
-  
+
+  def sold?
+    status.to_s.downcase == "sold"
+  end
+
   # Get images in the correct order (as stored in extra_fields or by created_at)
   def ordered_images
     return [] unless images.attached?

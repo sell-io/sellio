@@ -17,6 +17,9 @@ class User < ApplicationRecord
   
   # Profile picture
   has_one_attached :avatar
+
+  has_many :reports, dependent: :destroy
+  has_many :saved_searches, dependent: :destroy
   
   # Helper method to get unread messages count
   def unread_messages_count

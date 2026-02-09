@@ -1,12 +1,15 @@
 class ListingsController < ApplicationController
-  before_action :set_listing, only: %i[ show edit update destroy ]
-  before_action :authorize_listing_owner_or_admin, only: %i[ edit update destroy ]
+  before_action :set_listing, only: %i[ show edit update destroy mark_as_sold mark_available ]
+  before_action :authorize_listing_owner_or_admin, only: %i[ edit update destroy mark_as_sold mark_available ]
 
   # GET /listings or /listings.json
   def index
-    @listings = Listing.all.order(Arel.sql("RANDOM()"))
+    @listings = Listing.all
+    # Exclude sold unless include_sold=1
+    @listings = @listings.available unless params[:include_sold] == "1"
+    @listings = @listings.order(Arel.sql("RANDOM()"))
     # Featured listings: always show a small randomized set on the homepage section
-    @featured_listings = Listing.order(Arel.sql('RANDOM()')).limit(4)
+    @featured_listings = Listing.available.order(Arel.sql('RANDOM()')).limit(4)
     # Order categories with Motors first, then alphabetically
     all_categories = Category.visible.order(:name)
     motors_category = all_categories.find { |c| c.name.downcase == "motors" }
@@ -155,7 +158,29 @@ class ListingsController < ApplicationController
   def show
     # Reload to ensure we have the latest data, especially image order
     @listing.reload if @listing.persisted?
+    # Similar listings: same category, exclude current, available only (only when listing has a category)
+    @similar_listings = if @listing.category_id.present?
+      Listing.available
+             .where(category_id: @listing.category_id)
+             .where.not(id: @listing.id)
+             .order(Arel.sql("RANDOM()"))
+             .limit(6)
+    else
+      Listing.none
+    end
     Rails.logger.info "Listing #{@listing.id} - Show action. Image order: #{@listing.extra_fields&.dig('image_order').inspect}, Total attachments: #{@listing.images_attachments.count}"
+  end
+
+  # POST /listings/:id/mark_as_sold
+  def mark_as_sold
+    @listing.update!(status: "sold")
+    redirect_to @listing, notice: "Listing marked as sold."
+  end
+
+  # POST /listings/:id/mark_available
+  def mark_available
+    @listing.update!(status: "available")
+    redirect_to @listing, notice: "Listing marked as available again."
   end
 
   # GET /listings/new
