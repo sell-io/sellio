@@ -3400,6 +3400,52 @@ select[name*="year"]:focus {
   color: #374151;
 }
 
+/* Mobile: short description + Read all */
+.listing-description-wrap.collapsed .listing-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.listing-description-wrap.expanded .listing-description {
+  display: block;
+}
+
+.btn-read-all {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  color: #3b82f6;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+  min-height: 44px;
+  min-width: 80px;
+  display: inline-flex;
+  align-items: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-read-all:hover {
+  text-decoration: underline;
+  color: #2563eb;
+}
+
+/* Desktop: always show full description, hide Read all */
+@media (min-width: 769px) {
+  .listing-description-section .listing-description-wrap .listing-description {
+    display: block !important;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+  }
+  .listing-description-section .btn-read-all {
+    display: none;
+  }
+}
+
 /* Seller Info Card */
 .seller-info-card {
   background: white;

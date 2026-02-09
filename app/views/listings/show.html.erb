@@ -143,9 +143,12 @@
                 <% if @listing.description.present? %>
                   <div class="listing-description-section">
                     <h2>Description</h2>
-                    <div class="listing-description">
-                      <%= simple_format(@listing.description) %>
+                    <div class="listing-description-wrap collapsed" id="listing-description-wrap">
+                      <div class="listing-description">
+                        <%= simple_format(@listing.description) %>
+                      </div>
                     </div>
+                    <button type="button" class="btn-read-all" id="btn-read-all" aria-expanded="false">Read all</button>
                   </div>
                 <% end %>
               </div>
@@ -641,6 +644,27 @@
         }).catch(function() {
           shareBtn.textContent = 'Copy link';
         });
+      }
+    });
+  })();
+
+  // Description "Read all" / "Show less" toggle
+  (function() {
+    var wrap = document.getElementById('listing-description-wrap');
+    var btn = document.getElementById('btn-read-all');
+    if (!wrap || !btn) return;
+    btn.addEventListener('click', function() {
+      var isExpanded = wrap.classList.contains('expanded');
+      if (isExpanded) {
+        wrap.classList.remove('expanded');
+        wrap.classList.add('collapsed');
+        btn.textContent = 'Read all';
+        btn.setAttribute('aria-expanded', 'false');
+      } else {
+        wrap.classList.remove('collapsed');
+        wrap.classList.add('expanded');
+        btn.textContent = 'Show less';
+        btn.setAttribute('aria-expanded', 'true');
       }
     });
   })();
