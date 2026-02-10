@@ -3468,6 +3468,44 @@ select[name*="year"]:focus {
   text-decoration: underline;
 }
 
+/* Payment success page – full-width CTA, no truncation */
+.payment-success-page .static-page-content {
+  text-align: center;
+}
+
+.payment-success-page .payment-success-message {
+  margin-bottom: 1.5rem;
+}
+
+.payment-success-page .btn-payment-success {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: #4FD1A5;
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.15s;
+  margin-bottom: 1rem;
+}
+
+.payment-success-page .btn-payment-success:hover {
+  background: #45b892;
+  color: #fff;
+  text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 209, 165, 0.35);
+}
+
+.payment-success-page .payment-success-actions {
+  margin-bottom: 0.5rem;
+}
+
+.payment-success-page .payment-success-back {
+  margin-top: 0.5rem;
+}
+
 .static-faq dt {
   font-weight: 600;
   color: #2B2F33;
@@ -4351,6 +4389,17 @@ select[name*="year"]:focus {
   background: #E0F2FE;
   color: #0369a1;
 }
+
+.seller-badge-contact {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #4b5563;
+  background: #f3f4f6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
 .seller-meta {
   font-size: 0.8125rem;
   color: #6b7280;
