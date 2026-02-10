@@ -1,14 +1,16 @@
 <% content_for :title, "Payment successful - Dealo" %>
-<div class="static-page">
+<div class="static-page payment-success-page">
   <div class="container static-page-container">
     <h1 class="static-page-title">Payment successful</h1>
     <div class="static-page-content">
       <% if @success_type.present? %>
-        <p class="static-lead"><%= @message %></p>
+        <p class="static-lead payment-success-message"><%= @message %></p>
         <% if @success_type == "boost" && @listing %>
-          <p><%= link_to "View your listing", @listing, class: "btn-place-ad", style: "display: inline-block; margin-top: 0.5rem;" %></p>
+          <p class="payment-success-actions">
+            <%= link_to "View your listing", @listing, class: "btn btn-payment-success" %>
+          </p>
         <% end %>
-        <p><%= link_to "Back to home", root_path, class: "static-link" %></p>
+        <p class="payment-success-back"><%= link_to "Back to home", root_path, class: "static-link" %></p>
       <% else %>
         <p class="static-lead"><%= @message %></p>
         <p><%= link_to "Back to home", root_path, class: "static-link" %></p>

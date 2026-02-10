@@ -216,10 +216,10 @@
             <div class="seller-info-text">
               <div class="seller-name-row">
                 <h3 class="seller-name"><%= @listing.user.name || @listing.user.email %></h3>
-                <% if @listing.user.email.present? && @listing.user.phone.present? %>
-                  <span class="seller-badge-verified" title="Email and phone added">Verified seller</span>
-                <% elsif @listing.user.email.present? %>
-                  <span class="seller-badge-verified seller-badge-verified-partial" title="Email added">Email verified</span>
+                <% if @listing.user.is_verified %>
+                  <span class="seller-badge-verified" title="Verified Seller (paid)">✓ Verified seller</span>
+                <% elsif @listing.user.email.present? || @listing.user.phone.present? %>
+                  <span class="seller-badge-contact" title="Contact details on profile">Contact details added</span>
                 <% end %>
               </div>
               <p class="seller-type-location">
