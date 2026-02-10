@@ -55,6 +55,7 @@ Rails.application.routes.draw do
       member do
         post :ban
         post :unban
+        post :toggle_verified
       end
     end
     resources :listings, only: [:index, :destroy]

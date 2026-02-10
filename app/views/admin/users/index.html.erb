@@ -27,11 +27,15 @@
             <% else %>
               <span class="admin-badge admin-badge-ok">Active</span>
             <% end %>
+            <% if user.is_verified %>
+              <span class="admin-badge admin-badge-verified">Verified</span>
+            <% end %>
           </td>
           <td><%= user.created_at.strftime("%d %b %Y") %></td>
           <td class="admin-actions">
             <% unless user == current_user %>
               <% unless user.admin? %>
+                <%= button_to user.is_verified? ? "Remove verified" : "Mark verified", toggle_verified_admin_user_path(user), method: :post, class: "admin-btn admin-btn-default", form: { data: { turbo_confirm: user.is_verified? ? "Remove Verified Seller status?" : "Mark as Verified Seller? (use if they paid but Stripe did not redirect)" } } %>
                 <% if user.banned? %>
                   <%= button_to "Unban", unban_admin_user_path(user), method: :post, class: "admin-btn admin-btn-success", form: { data: { turbo_confirm: "Unban this user?" } } %>
                 <% else %>

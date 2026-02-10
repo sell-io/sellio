@@ -53,7 +53,7 @@
         <p class="profile-joined">Member since <%= @user.created_at.strftime("%B %Y") %></p>
         <% if user_signed_in? && current_user == @user && !@user.is_verified %>
           <p class="profile-verified-cta">
-            <%= link_to "Get Verified Seller (€2/month)", verified_seller_path, class: "btn-verified-seller", data: { turbo: "false" } %>
+            <%= link_to "Get Verified Seller (€1.99/month)", verified_seller_path, class: "btn-verified-seller", data: { turbo: "false" } %>
           </p>
         <% end %>
       </div>

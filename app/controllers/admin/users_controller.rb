@@ -47,5 +47,13 @@ module Admin
       flash[:notice] = "User has been unbanned."
       redirect_to admin_users_path
     end
+
+    def toggle_verified
+      @user = User.find(params[:id])
+      @user.update!(is_verified: !@user.is_verified)
+      status = @user.is_verified? ? "verified" : "unverified"
+      flash[:notice] = "User is now #{status}."
+      redirect_to admin_users_path
+    end
   end
 end

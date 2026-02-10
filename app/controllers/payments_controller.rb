@@ -2,7 +2,7 @@
 # Success is assumed when user reaches /payment-success.
 class PaymentsController < ApplicationController
   STRIPE_BOOST_LINK = "https://buy.stripe.com/28E7sMckG6HPe9Bey608g01".freeze
-  STRIPE_VERIFIED_LINK = "https://buy.stripe.com/3cI28s2K6felc1tfCa08g00".freeze
+  STRIPE_VERIFIED_LINK = "https://buy.stripe.com/9B66oIfwSgip6H9ahQ08g02".freeze
 
   before_action :authenticate_user!, only: [:redirect_boost, :redirect_verified]
 
@@ -22,10 +22,10 @@ class PaymentsController < ApplicationController
     redirect_to STRIPE_VERIFIED_LINK, allow_other_host: true
   end
 
-  # Stripe redirects here after payment. Configure success_url in Stripe Dashboard to:
-  # - Boost: https://yourdomain.com/payment-success?type=boost
-  # - Verified: https://yourdomain.com/payment-success?type=verified
-  # Optional: add &listingId=123 to return URL for boost (else we use session).
+  # Stripe redirects here after payment. Set success URL in Stripe Dashboard (Payment links → customize):
+  # - Boost: https://dealo.ie/payment-success?type=boost
+  # - Verified: https://dealo.ie/payment-success?type=verified
+  # See STRIPE_SETUP.md. Optional: add &listingId=123 for boost (else we use session).
   def success
     type = params[:type].to_s.downcase
     listing_id = params[:listingId].presence || params[:listing_id].presence || session[:pending_boost_listing_id]
