@@ -4,6 +4,17 @@
   <div class="alert alert-success"><%= notice %></div>
 <% end %>
 
+<% breadcrumb_items = [[ "Home", root_path ]] %>
+<% if @listing.category %>
+  <% breadcrumb_items << [ @listing.category.name, listings_path(category_id: @listing.category.id) ] %>
+<% end %>
+<% subcat = @listing.extra_fields&.dig("subcategory") %>
+<% if subcat.present? %>
+  <% breadcrumb_items << [ subcat, listings_path(category_id: @listing.category_id, subcategory: subcat) ] %>
+<% end %>
+<% breadcrumb_items << [ @listing.title, nil ] %>
+<%= render "shared/breadcrumbs", items: breadcrumb_items %>
+
 <div class="listing-detail">
   <div class="listing-detail-container">
     <!-- Main Content: Images + Details on Left, Seller Info on Right -->
@@ -170,7 +181,7 @@
                 <% end %>
                 <button type="button" class="btn-share-listing" id="share-listing-btn" data-url="<%= listing_url(@listing) %>" data-title="<%= @listing.title %>">Share</button>
                 <% if user_signed_in? && current_user != @listing.user %>
-                  <%= link_to "Report", new_report_path(listing_id: @listing.id), class: "btn-report-listing" %>
+                  <%= link_to "Report Ad", new_report_path(listing_id: @listing.id), class: "btn-report-listing" %>
                 <% end %>
                 <%= link_to "Back to Listings", listings_path, class: "btn-back" %>
               </div>
@@ -202,7 +213,11 @@
             <div class="seller-info-text">
               <div class="seller-name-row">
                 <h3 class="seller-name"><%= @listing.user.name || @listing.user.email %></h3>
-                <span class="seller-verified">✓</span>
+                <% if @listing.user.email.present? && @listing.user.phone.present? %>
+                  <span class="seller-badge-verified" title="Email and phone added">Verified seller</span>
+                <% elsif @listing.user.email.present? %>
+                  <span class="seller-badge-verified seller-badge-verified-partial" title="Email added">Email verified</span>
+                <% end %>
               </div>
               <p class="seller-type-location">
                 <span>Private Seller</span>
@@ -211,10 +226,9 @@
                   <span><%= @listing.city %></span>
                 <% end %>
               </p>
-              <p class="seller-verification">
-                <span class="verification-check">✓</span>
-                Partial verification: Email, Phone
-              </p>
+              <% if @listing.user.created_at.present? %>
+                <p class="seller-meta">Member since <%= @listing.user.created_at.strftime("%b %Y") %></p>
+              <% end %>
             </div>
           </div>
           

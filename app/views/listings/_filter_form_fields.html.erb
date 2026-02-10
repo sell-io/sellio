@@ -1,0 +1,92 @@
+<%= f.hidden_field :search, value: params[:search] if params[:search].present? %>
+<% subcategories = local_assigns[:subcategories] || [] %>
+<% suffix = local_assigns[:form_suffix].present? ? "_#{form_suffix}" : "" %>
+<div class="general-filter-grid general-filter-row-category-location">
+  <% if selected_category %>
+    <%= f.hidden_field :category_id, value: selected_category.id %>
+    <% if subcategories.any? %>
+      <div class="general-filter-field">
+        <%= f.label :subcategory, is_motors_category_selected ? "Vehicle Type" : "Subcategory" %>
+        <%= f.select :subcategory,
+                     options_for_select([["All", ""]] + subcategories.map { |s| [s, s] }, params[:subcategory]),
+                     {}, class: "general-filter-select" %>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="general-filter-field">
+      <%= f.label :category_id, "Category" %>
+      <%= f.select :category_id,
+                   options_from_collection_for_select([Category.new(id: nil, name: "All categories")] + categories, :id, :name, params[:category_id]),
+                   { include_blank: false },
+                   class: "general-filter-select" %>
+    </div>
+  <% end %>
+  <div class="general-filter-field">
+    <%= f.label :location, "Location" %>
+    <%= f.text_field :location, placeholder: "Location (e.g., Dublin)", class: "general-filter-input", value: params[:location] %>
+  </div>
+</div>
+<div class="general-filter-grid general-filter-price-row">
+  <div class="general-filter-field">
+    <%= f.label :min_price, "Min Price (€)" %>
+    <%= f.number_field :min_price, placeholder: "Min", class: "general-filter-input", min: 0, step: 100, value: params[:min_price] %>
+  </div>
+  <div class="general-filter-field">
+    <%= f.label :max_price, "Max Price (€)" %>
+    <%= f.number_field :max_price, placeholder: "Max", class: "general-filter-input", min: 0, step: 100, value: params[:max_price] %>
+  </div>
+</div>
+<% if is_motors_category_selected %>
+<div class="general-filter-grid">
+  <div class="general-filter-field">
+    <%= f.label :make, "Make" %>
+    <%= f.select :make, options_for_select([
+      ['All Makes', ''],
+      ['Alfa Romeo', 'Alfa Romeo'], ['Aston Martin', 'Aston Martin'], ['Audi', 'Audi'], ['Bentley', 'Bentley'], ['BMW', 'BMW'],
+      ['Chevrolet', 'Chevrolet'], ['Chrysler', 'Chrysler'], ['Citroen', 'Citroen'], ['Dacia', 'Dacia'], ['Dodge', 'Dodge'],
+      ['Ferrari', 'Ferrari'], ['Fiat', 'Fiat'], ['Ford', 'Ford'], ['Honda', 'Honda'], ['Hyundai', 'Hyundai'],
+      ['Infiniti', 'Infiniti'], ['Jaguar', 'Jaguar'], ['Jeep', 'Jeep'], ['Kia', 'Kia'], ['Lamborghini', 'Lamborghini'],
+      ['Land Rover', 'Land Rover'], ['Lexus', 'Lexus'], ['Maserati', 'Maserati'], ['Mazda', 'Mazda'], ['McLaren', 'McLaren'],
+      ['Mercedes-Benz', 'Mercedes-Benz'], ['Mini', 'Mini'], ['Mitsubishi', 'Mitsubishi'], ['Nissan', 'Nissan'],
+      ['Opel', 'Opel'], ['Peugeot', 'Peugeot'], ['Porsche', 'Porsche'], ['Renault', 'Renault'],
+      ['Rolls-Royce', 'Rolls-Royce'], ['Seat', 'Seat'], ['Skoda', 'Skoda'], ['Smart', 'Smart'], ['Subaru', 'Subaru'],
+      ['Suzuki', 'Suzuki'], ['Tesla', 'Tesla'], ['Toyota', 'Toyota'], ['Vauxhall', 'Vauxhall'],
+      ['Volkswagen', 'Volkswagen'], ['Volvo', 'Volvo']
+    ], params[:make]), {}, { class: "general-filter-select", id: "car_make_select_buy#{suffix}" } %>
+  </div>
+  <div class="general-filter-field">
+    <%= f.label :model, "Model" %>
+    <%= f.select :model, options_for_select([['All Models', '']], params[:model]), {}, { class: "general-filter-select", id: "car_model_select_buy#{suffix}" } %>
+  </div>
+  <div class="general-filter-field">
+    <%= f.label :min_year, "Min Year" %>
+    <%= f.select :min_year, options_for_select([['Min Year', '']] + (1990..Date.current.year).to_a.reverse.map { |y| [y, y] }, params[:min_year]), {}, { class: "general-filter-select" } %>
+  </div>
+  <div class="general-filter-field">
+    <%= f.label :max_year, "Max Year" %>
+    <%= f.select :max_year, options_for_select([['Max Year', '']] + (1990..Date.current.year).to_a.reverse.map { |y| [y, y] }, params[:max_year]), {}, { class: "general-filter-select" } %>
+  </div>
+  <div class="general-filter-field">
+    <%= f.label :min_mileage, "Min Mileage (km)" %>
+    <%= f.number_field :min_mileage, placeholder: "e.g. 0", class: "general-filter-input", min: 0, value: params[:min_mileage] %>
+  </div>
+  <div class="general-filter-field">
+    <%= f.label :max_mileage, "Max Mileage (km)" %>
+    <%= f.number_field :max_mileage, placeholder: "e.g. 150000", class: "general-filter-input", min: 0, value: params[:max_mileage] %>
+  </div>
+</div>
+<% end %>
+<div class="general-filter-grid general-filter-quick-row">
+  <div class="general-filter-field general-filter-checkbox">
+    <%= f.check_box :include_sold, { checked: params[:include_sold] == "1" }, "1", "0" %>
+    <%= f.label :include_sold, "Include sold listings" %>
+  </div>
+  <div class="general-filter-field general-filter-checkbox">
+    <%= f.check_box :posted_today, { checked: params[:posted_today] == "1" }, "1", "0" %>
+    <%= f.label :posted_today, "Posted today" %>
+  </div>
+  <div class="general-filter-field general-filter-checkbox">
+    <%= f.check_box :has_images, { checked: params[:has_images] == "1" }, "1", "0" %>
+    <%= f.label :has_images, "Has images only" %>
+  </div>
+</div>

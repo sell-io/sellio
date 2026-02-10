@@ -1,0 +1,17 @@
+<%# Pass local: items = [[label, path], ...] — path nil = current page %>
+<% items = local_assigns[:items] || [] %>
+<% return if items.blank? %>
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <ol class="breadcrumbs-list">
+    <% items.each_with_index do |(label, path), i| %>
+      <li class="breadcrumbs-item">
+        <% if i > 0 %><span class="breadcrumbs-sep" aria-hidden="true">›</span><% end %>
+        <% if path.present? %>
+          <%= link_to label, path, class: "breadcrumbs-link" %>
+        <% else %>
+          <span class="breadcrumbs-current"><%= label %></span>
+        <% end %>
+      </li>
+    <% end %>
+  </ol>
+</nav>

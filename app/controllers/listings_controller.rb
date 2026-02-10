@@ -7,17 +7,9 @@ class ListingsController < ApplicationController
     @listings = Listing.all
     # Exclude sold unless include_sold=1
     @listings = @listings.available unless params[:include_sold] == "1"
-    @listings = @listings.order(Arel.sql("RANDOM()"))
     # Featured listings: always show a small randomized set on the homepage section
     @featured_listings = Listing.available.order(Arel.sql('RANDOM()')).limit(4)
-    # Order categories with Motors first, then alphabetically
-    all_categories = Category.visible.order(:name)
-    motors_category = all_categories.find { |c| c.name.downcase == "motors" }
-    @categories = if motors_category
-      [motors_category] + (all_categories - [motors_category])
-    else
-      all_categories
-    end
+    @categories = Category.by_display_order
     
     # Category filter (by ID)
     if params[:category_id].present?
@@ -25,19 +17,19 @@ class ListingsController < ApplicationController
       @selected_category = Category.find_by(id: params[:category_id])
     end
     
-    # Search functionality (also handles category name searches from fallback categories)
+    # Search: match title only (so results match what users see in listing titles)
     if params[:search].present?
-      search_term = "%#{params[:search]}%"
-      # First try to find by category name
+      search_term = "%#{params[:search].to_s.strip}%"
       category = Category.where("name ILIKE ?", search_term).first
       if category
-        @listings = @listings.where(category_id: category.id)
+        # Show listings in this category OR with search term in title
+        @listings = @listings.where(
+          "category_id = ? OR title ILIKE ?",
+          category.id, search_term
+        )
         @selected_category = category
       else
-        # Otherwise search in title and description
-        @listings = @listings.where("title ILIKE ? OR description ILIKE ?", 
-                                     search_term, 
-                                     search_term)
+        @listings = @listings.where("title ILIKE ?", search_term)
       end
     end
     
@@ -142,6 +134,27 @@ class ListingsController < ApplicationController
     
     if params[:max_price].present?
       @listings = @listings.where("price <= ?", params[:max_price].to_i)
+    end
+
+    if params[:posted_today] == "1"
+      @listings = @listings.where("listings.created_at >= ?", Time.current.beginning_of_day)
+    end
+
+    if params[:has_images] == "1"
+      @listings = @listings.joins(:images_attachments).distinct
+    end
+
+    # Sort (before pagination): newest, price_asc, price_desc, distance (distance requires location)
+    case params[:sort]
+    when "price_asc"
+      @listings = @listings.reorder(price: :asc)
+    when "price_desc"
+      @listings = @listings.reorder(price: :desc)
+    when "newest", "distance"
+      @listings = @listings.reorder(created_at: :desc)
+    else
+      # Default: newest (was RANDOM() before)
+      @listings = @listings.reorder(created_at: :desc)
     end
 
     # Paginate with limit/offset (24 per page)
