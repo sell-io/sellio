@@ -11,7 +11,7 @@
     <% if @listings.any? %>
       <div class="listings-grid">
         <% @listings.each do |listing| %>
-          <div class="listing-card">
+          <div class="listing-card<%= ' listing-card-boosted' if listing.boosted? %>">
             <div class="listing-image">
               <% if listing.images.attached? %>
                 <%= image_tag listing.ordered_images.first, class: "listing-card-image" %>
@@ -22,6 +22,9 @@
               <% end %>
             </div>
             <div class="listing-content">
+              <% if listing.boosted? %>
+              <p class="listing-boosted-time"><span class="listing-badge-boosted">Boosted<%= listing.boost_time_left ? " (#{listing.boost_time_left})" : "" %></span></p>
+              <% end %>
               <h3 class="listing-title">
                 <%= link_to listing.title, listing, class: "listing-link" %>
               </h3>
@@ -37,6 +40,9 @@
                 <div class="listing-actions">
                   <%= link_to "Edit", edit_listing_path(listing), class: "btn-edit-small" %>
                   <%= link_to "View", listing, class: "btn-view" %>
+                  <% unless listing.boosted? %>
+                    <%= link_to "Boost", boost_listing_path(listing.id), class: "btn-boost-small", data: { turbo: "false" } %>
+                  <% end %>
                 </div>
               </div>
             </div>

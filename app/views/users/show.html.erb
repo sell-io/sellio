@@ -14,7 +14,7 @@
       </div>
       <div class="profile-info">
         <div class="profile-name-rating">
-          <h1><%= @user.name || @user.email %></h1>
+          <h1><%= @user.name || @user.email %><% if @user.is_verified %> <span class="verified-badge" title="Verified Seller">✓ Verified</span><% end %></h1>
           <% if @user.reviews_count > 0 %>
             <div class="user-rating">
               <div class="stars">
@@ -51,6 +51,11 @@
           <p class="profile-phone">📞 <%= link_to @user.phone, "tel:#{@user.phone.gsub(/\s+/, '')}", class: "phone-number-link", title: "Tap or click to call" %></p>
         <% end %>
         <p class="profile-joined">Member since <%= @user.created_at.strftime("%B %Y") %></p>
+        <% if user_signed_in? && current_user == @user && !@user.is_verified %>
+          <p class="profile-verified-cta">
+            <%= link_to "Get Verified Seller (€2/month)", verified_seller_path, class: "btn-verified-seller", data: { turbo: "false" } %>
+          </p>
+        <% end %>
       </div>
     </div>
 

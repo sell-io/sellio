@@ -144,17 +144,17 @@ class ListingsController < ApplicationController
       @listings = @listings.joins(:images_attachments).distinct
     end
 
-    # Sort (before pagination): newest, price_asc, price_desc, distance (distance requires location)
+    # Boosted listings first (when searching by category or search term), then apply sort
+    boost_first = Arel.sql("(CASE WHEN boosted_until IS NOT NULL AND boosted_until > NOW() THEN 0 ELSE 1 END) ASC")
     case params[:sort]
     when "price_asc"
-      @listings = @listings.reorder(price: :asc)
+      @listings = @listings.reorder(boost_first, price: :asc)
     when "price_desc"
-      @listings = @listings.reorder(price: :desc)
+      @listings = @listings.reorder(boost_first, price: :desc)
     when "newest", "distance"
-      @listings = @listings.reorder(created_at: :desc)
+      @listings = @listings.reorder(boost_first, created_at: :desc)
     else
-      # Default: newest (was RANDOM() before)
-      @listings = @listings.reorder(created_at: :desc)
+      @listings = @listings.reorder(boost_first, created_at: :desc)
     end
 
     # Paginate with limit/offset (24 per page)
@@ -224,7 +224,11 @@ class ListingsController < ApplicationController
       if @listing.save
         # Reorder images to preserve the upload order (first uploaded = first/main image)
         reorder_listing_images(@listing)
-        format.html { redirect_to @listing, notice: "Listing was successfully created." }
+        if params[:boost_listing] == "1"
+          format.html { redirect_to boost_listing_path(@listing.id), notice: "Listing created. Complete payment to boost for 7 days." }
+        else
+          format.html { redirect_to @listing, notice: "Listing was successfully created." }
+        end
         format.json { render :show, status: :created, location: @listing }
       else
         format.html { render :new, status: :unprocessable_entity }

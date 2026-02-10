@@ -278,6 +278,16 @@
       </div>
     </div>
 
+    <% unless listing.persisted? %>
+      <div class="form-field boost-ad-option">
+        <label class="boost-ad-option-label">
+          <%= check_box_tag "boost_listing", "1", false, class: "boost-ad-checkbox" %>
+          <span>Boost ad for 7 days for €0.99</span>
+        </label>
+        <p class="form-help">Your listing will get more visibility for 7 days after you pay. After payment you'll return to a success page on Dealo with a link to view your boosted listing.</p>
+      </div>
+    <% end %>
+
     <div class="form-actions">
       <%= form.submit listing.persisted? ? "Update Listing" : "Create Listing", class: "btn-submit", id: "listing-submit-btn" %>
       <%= link_to "Cancel", listing.persisted? ? listing_path(listing) : listings_path, class: "btn-cancel" %>

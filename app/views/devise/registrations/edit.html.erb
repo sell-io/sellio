@@ -107,6 +107,13 @@
     </div>
   <% end %>
 
+  <% if current_user && !current_user.is_verified %>
+    <div class="verified-seller-section">
+      <p><strong>Stand out as a seller</strong></p>
+      <p><%= link_to "Get Verified Seller badge (€2/month)", verified_seller_path, class: "btn-verified-seller", data: { turbo: "false" } %></p>
+    </div>
+  <% end %>
+
   <div class="auth-links">
     <%= link_to "Back", :back %>
   </div>

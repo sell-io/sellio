@@ -626,7 +626,7 @@
         <% is_homepage_grid = !is_browse_page && !params[:category_id].present? && !params[:search].present? && !params[:location].present? && !has_filters %>
         <div class="listings-grid <%= 'homepage-grid' if is_homepage_grid %>">
           <% listings_to_show.each do |listing| %>
-            <div class="listing-card">
+            <div class="listing-card<%= ' listing-card-boosted' if listing.boosted? %>">
               <%= link_to listing, class: "listing-card-link" do %>
                 <div class="listing-image">
                   <% if listing.images.attached? %>
@@ -643,8 +643,9 @@
                 <div class="listing-content">
                   <% is_new = listing.created_at > 1.day.ago %>
                   <% is_urgent = listing.extra_fields&.dig('urgent').to_s == 'true' || listing.extra_fields&.dig('urgent') == true %>
-                  <% if listing.featured || is_new || listing.price_dropped? || is_urgent %>
+                  <% if listing.featured || is_new || listing.price_dropped? || is_urgent || listing.boosted? %>
                     <div class="listing-badges">
+                      <% if listing.boosted? %><span class="listing-badge listing-badge-boosted">Boosted<%= listing.boost_time_left ? " (#{listing.boost_time_left})" : "" %></span><% end %>
                       <% if listing.featured %><span class="listing-badge listing-badge-featured">Featured</span><% end %>
                       <% if is_new %><span class="listing-badge listing-badge-new">New</span><% end %>
                       <% if listing.price_dropped? %><span class="listing-badge listing-badge-price-drop">Price Drop</span><% end %>

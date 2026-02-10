@@ -56,6 +56,25 @@ class Listing < ApplicationRecord
     status.to_s.downcase == "sold"
   end
 
+  def boosted?
+    boosted_until.present? && boosted_until > Time.current
+  end
+
+  # Human-readable time left on boost (e.g. "5 days left", "12 hours left"). Returns nil if not boosted.
+  def boost_time_left
+    return nil unless boosted? && boosted_until.present?
+    diff = boosted_until - Time.current
+    if diff >= 1.day
+      days = (diff / 1.day).floor
+      "#{days} #{days == 1 ? 'day' : 'days'} left"
+    elsif diff >= 1.hour
+      hours = (diff / 1.hour).floor
+      "#{hours} #{hours == 1 ? 'hour' : 'hours'} left"
+    else
+      "Less than 1 hour left"
+    end
+  end
+
   # True only when the seller has lowered the price (previous_price stored on update).
   def price_dropped?
     return false unless previous_price.present? && price.present?
@@ -107,6 +126,52 @@ class Listing < ApplicationRecord
       base = by_make if by_make.count >= 3
     end
     base
+  end
+
+  # Apply the same filters as list/search (query_params hash from SavedSearch). Used for saved-search notification counts.
+  def self.scoped_by_query_params(q)
+    q = (q || {}).stringify_keys
+    rel = available
+    rel = rel.where(category_id: q["category_id"]) if q["category_id"].present?
+    if q["search"].present?
+      term = "%#{q["search"].to_s.strip}%"
+      cat = Category.where("name ILIKE ?", term).first
+      if cat
+        rel = rel.where("category_id = ? OR title ILIKE ?", cat.id, term)
+      else
+        rel = rel.where("title ILIKE ?", term)
+      end
+    end
+    rel = rel.where("city ILIKE ?", "%#{q["location"]}%") if q["location"].present?
+    rel = rel.where("extra_fields->>'subcategory' = ?", q["subcategory"]) if q["subcategory"].present?
+    motors_id = Category.find_by("name ILIKE ?", "%motor%")&.id
+    has_car = q["make"].present? || q["model"].present? || q["min_year"].present? || q["max_year"].present?
+    if motors_id && (q["category_id"].to_s == motors_id.to_s || has_car)
+      rel = rel.where(category_id: motors_id)
+      rel = rel.where("extra_fields->>'subcategory' = ?", "Car") if has_car && q["subcategory"].blank?
+      if q["make"].present?
+        rel = rel.where("extra_fields->>'make' ILIKE ? OR title ILIKE ?", "%#{q["make"]}%", "%#{q["make"]}%")
+      end
+      if q["model"].present?
+        if q["make"].present?
+          rel = rel.where(
+            "(extra_fields->>'model' ILIKE ? AND extra_fields->>'make' ILIKE ?) OR (title ILIKE ? AND title ILIKE ?)",
+            "%#{q["model"]}%", "%#{q["make"]}%", "%#{q["make"]}%", "%#{q["model"]}%"
+          )
+        else
+          rel = rel.where("extra_fields->>'model' ILIKE ? OR title ILIKE ?", "%#{q["model"]}%", "%#{q["model"]}%")
+        end
+      end
+      rel = rel.where("extra_fields->>'year' IS NOT NULL AND extra_fields->>'year' != '' AND CAST(NULLIF(extra_fields->>'year', '') AS INTEGER) >= ?", q["min_year"].to_i) if q["min_year"].present?
+      rel = rel.where("extra_fields->>'year' IS NOT NULL AND extra_fields->>'year' != '' AND CAST(NULLIF(extra_fields->>'year', '') AS INTEGER) <= ?", q["max_year"].to_i) if q["max_year"].present?
+      rel = rel.where("extra_fields->>'mileage' IS NOT NULL AND extra_fields->>'mileage' != '' AND CAST(NULLIF(TRIM(extra_fields->>'mileage'), '') AS INTEGER) >= ?", q["min_mileage"].to_i) if q["min_mileage"].present?
+      rel = rel.where("extra_fields->>'mileage' IS NOT NULL AND extra_fields->>'mileage' != '' AND CAST(NULLIF(TRIM(extra_fields->>'mileage'), '') AS INTEGER) <= ?", q["max_mileage"].to_i) if q["max_mileage"].present?
+    end
+    rel = rel.where("price >= ?", q["min_price"].to_i) if q["min_price"].present?
+    rel = rel.where("price <= ?", q["max_price"].to_i) if q["max_price"].present?
+    rel = rel.where("listings.created_at >= ?", Time.current.beginning_of_day) if q["posted_today"] == "1"
+    rel = rel.joins(:images_attachments).distinct if q["has_images"] == "1"
+    rel
   end
 
   # Get images in the correct order (as stored in extra_fields or by created_at)
