@@ -3672,6 +3672,11 @@ select[name*="year"]:focus {
   color: #065f46;
 }
 
+.admin-badge-verified {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 .admin-actions {
   display: flex;
   gap: 0.5rem;
