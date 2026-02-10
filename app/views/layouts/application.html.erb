@@ -78,6 +78,52 @@
         });
       }
 
+      function initLoginModal() {
+        var overlay = document.getElementById('loginModalOverlay');
+        var modal = document.getElementById('loginModal');
+        var closeBtn = document.getElementById('loginModalClose');
+        if (!overlay || !modal) return;
+        function openLoginModal() {
+          overlay.classList.add('open');
+          overlay.setAttribute('aria-hidden', 'false');
+          document.body.style.overflow = 'hidden';
+          var firstInput = modal.querySelector('input[type="email"]');
+          if (firstInput) firstInput.focus();
+        }
+        function closeLoginModal() {
+          overlay.classList.remove('open');
+          overlay.setAttribute('aria-hidden', 'true');
+          document.body.style.overflow = '';
+        }
+        var headerBtn = document.getElementById('headerLoginBtn');
+        if (headerBtn) {
+          headerBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            openLoginModal();
+          });
+        }
+        document.querySelectorAll('[data-open-login-modal]').forEach(function(btn) {
+          btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            var mobileMenu = document.getElementById('mobileMenu');
+            if (mobileMenu && mobileMenu.classList.contains('open')) {
+              mobileMenu.classList.remove('open');
+              var overlay = document.getElementById('mobileMenuOverlay');
+              if (overlay) overlay.classList.remove('open');
+              document.body.style.overflow = '';
+            }
+            openLoginModal();
+          });
+        });
+        if (closeBtn) closeBtn.addEventListener('click', closeLoginModal);
+        overlay.addEventListener('click', function(e) {
+          if (e.target === overlay) closeLoginModal();
+        });
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape' && overlay.classList.contains('open')) closeLoginModal();
+        });
+      }
+
       function initGlobalUiHandlers() {
         // Handle favorite button clicks (both heart icon and save button)
         document.addEventListener('click', function(e) {
@@ -346,12 +392,14 @@
       document.addEventListener('turbo:load', function() {
         resetMobileMenuState();
         initAccountDropdown();
+        initLoginModal();
         initBuyDropdown();
         initHamburgerMenu();
       });
       document.addEventListener('turbo:render', function() {
         resetMobileMenuState();
         initAccountDropdown();
+        initLoginModal();
         initBuyDropdown();
         initHamburgerMenu();
       });
@@ -363,10 +411,16 @@
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
           resetMobileMenuState();
+          initAccountDropdown();
+          initLoginModal();
+          initBuyDropdown();
           initHamburgerMenu();
         });
       } else {
         resetMobileMenuState();
+        initAccountDropdown();
+        initLoginModal();
+        initBuyDropdown();
         initHamburgerMenu();
       }
     </script>
@@ -471,7 +525,8 @@
               <hr class="mobile-menu-divider">
               <%= button_to "Logout", destroy_user_session_path, method: :delete, form: { data: { turbo: "false" } }, class: "mobile-menu-item mobile-menu-logout" %>
             <% else %>
-              <%= link_to "Sign up or Login", new_user_session_path, class: "mobile-menu-item" %>
+              <button type="button" class="mobile-menu-item mobile-menu-login-btn" data-open-login-modal>Log in</button>
+              <%= link_to "Sign up", new_user_registration_path, class: "mobile-menu-item mobile-menu-signup" %>
             <% end %>
           </div>
         </nav>
@@ -525,7 +580,10 @@
               </ul>
             </div>
           <% else %>
-            <%= link_to "Sign up or Login", new_user_session_path, class: "nav-link nav-login" %>
+            <div class="auth-buttons">
+              <button type="button" class="btn-login-header" id="headerLoginBtn" aria-label="Log in">Log in</button>
+              <%= link_to "Sign up", new_user_registration_path, class: "btn-signup-header" %>
+            </div>
           <% end %>
         </div>
       </div>
@@ -534,6 +592,33 @@
     <main class="main-content">
       <%= yield %>
     </main>
+
+    <!-- Login modal (only relevant when not signed in; modal markup always present for JS) -->
+    <div class="login-modal-overlay" id="loginModalOverlay" aria-hidden="true">
+      <div class="login-modal" id="loginModal" role="dialog" aria-labelledby="loginModalTitle" aria-modal="true">
+        <button type="button" class="login-modal-close" id="loginModalClose" aria-label="Close">&times;</button>
+        <h2 class="login-modal-title" id="loginModalTitle">Log in</h2>
+        <% if alert %>
+          <div class="login-modal-alert"><%= alert %></div>
+        <% end %>
+        <%= form_with url: user_session_path, scope: :user, method: :post, local: true, class: "login-modal-form", id: "loginModalForm" do |f| %>
+          <div class="login-modal-field">
+            <%= f.label :email, "Email" %>
+            <%= f.email_field :email, autofocus: true, autocomplete: "email", placeholder: "you@example.com" %>
+          </div>
+          <div class="login-modal-field">
+            <%= f.label :password, "Password" %>
+            <%= f.password_field :password, autocomplete: "current-password", placeholder: "Password", id: "login_modal_password" %>
+          </div>
+          <div class="login-modal-actions">
+            <%= f.submit "Log in", class: "login-modal-submit" %>
+          </div>
+        <% end %>
+        <p class="login-modal-signup">
+          Don't have an account? <%= link_to "Sign up", new_user_registration_path, class: "login-modal-signup-link" %>
+        </p>
+      </div>
+    </div>
 
     <footer class="main-footer">
       <div class="footer-container">
