@@ -9,6 +9,8 @@ class Listing < ApplicationRecord
   scope :available, -> { where(status: [nil, "", "available"]) }
   scope :sold, -> { where(status: "sold") }
 
+  before_save :track_price_drop, if: :price_changed?
+
   validates :title, presence: true
   validates :description, presence: true
   validates :price, presence: true, numericality: { greater_than_or_equal_to: 0 }
@@ -52,6 +54,59 @@ class Listing < ApplicationRecord
 
   def sold?
     status.to_s.downcase == "sold"
+  end
+
+  # True only when the seller has lowered the price (previous_price stored on update).
+  def price_dropped?
+    return false unless previous_price.present? && price.present?
+    price.to_d < previous_price.to_d
+  end
+
+  def track_price_drop
+    return if new_record?
+    old_price = price_was
+    return unless old_price.present?
+    if price.to_d < old_price.to_d
+      self.previous_price = old_price
+    else
+      self.previous_price = nil
+    end
+  end
+
+  # Smart Price Checker: compare to similar listings. Returns { label:, comparison:, similar_count: } or nil.
+  def price_insight
+    return nil unless price.present? && price.to_d > 0
+    similar = similar_listings_for_price_check
+    prices = similar.pluck(:price).compact.map { |p| p.to_d }.select { |p| p > 0 }
+    return nil if prices.size < 3
+    median = prices.sort[prices.size / 2]
+    ratio = price.to_d / median
+    label = if ratio <= 0.85
+      "Great Deal"
+    elsif ratio >= 1.15
+      "High"
+    else
+      "Fair"
+    end
+    pct = ((1 - price.to_d / median) * 100).round
+    comparison = if ratio <= 0.85
+      "#{pct.abs}% below typical"
+    elsif ratio >= 1.15
+      "#{((ratio - 1) * 100).round}% above typical"
+    else
+      "in line with similar ads"
+    end
+    { label: label, comparison: comparison, similar_count: similar.count }
+  end
+
+  def similar_listings_for_price_check
+    base = Listing.available.where(category_id: category_id).where.not(id: id)
+    base = base.where("city ILIKE ?", city) if city.present? && base.where("city ILIKE ?", city).count >= 3
+    if category&.name&.downcase&.include?("motor") && make.present?
+      by_make = base.where("extra_fields->>'make' ILIKE ?", make.to_s)
+      base = by_make if by_make.count >= 3
+    end
+    base
   end
 
   # Get images in the correct order (as stored in extra_fields or by created_at)
