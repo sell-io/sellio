@@ -65,6 +65,9 @@
                 <% if @listing.sold? %>
                   <span class="listing-badge-sold">Sold</span>
                 <% end %>
+                <% if @listing.boosted? %>
+                  <span class="listing-badge-boosted"><%= @listing.boost_time_left ? "Boosted (#{@listing.boost_time_left})" : "Boosted" %></span>
+                <% end %>
                 <% subcategory = @listing.extra_fields&.dig('subcategory') %>
                 <% if subcategory.present? %>
                   <span class="subcategory-badge"><%= subcategory %></span>
@@ -94,7 +97,7 @@
               <% if @listing.user %>
                 <div class="info-item">
                   <strong>👤 Seller:</strong>
-                  <span><%= link_to (@listing.user.name || @listing.user.email), user_path(@listing.user), class: "seller-link" %></span>
+                  <span><%= link_to (@listing.user.name || @listing.user.email), user_path(@listing.user), class: "seller-link" %><% if @listing.user.is_verified %> <span class="verified-badge-inline" title="Verified Seller">✓</span><% end %></span>
                 </div>
               <% end %>
             </div>
@@ -260,6 +263,9 @@
                   <%= button_to "Mark as available", mark_available_listing_path(@listing), method: :post, class: "btn-seller-action btn-available" %>
                 <% else %>
                   <%= button_to "Mark as sold", mark_as_sold_listing_path(@listing), method: :post, class: "btn-seller-action btn-sold", form: { data: { turbo_confirm: "Mark this listing as sold?" } } %>
+                <% end %>
+                <% unless @listing.boosted? %>
+                  <%= link_to "Boost listing (€1, 7 days)", boost_listing_path(@listing.id), class: "btn-seller-action btn-boost", data: { turbo: "false" } %>
                 <% end %>
                 <%= link_to "Edit Listing", edit_listing_path(@listing), class: "btn-seller-action btn-edit" %>
                 <%= button_to "Delete Listing", @listing, method: :delete,

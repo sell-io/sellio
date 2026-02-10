@@ -61,6 +61,10 @@
       <%= f.password_field :password_confirmation, autocomplete: "new-password", placeholder: "Confirm your password", id: "user_password_confirmation_signup" %>
     </div>
 
+    <div class="field verified-seller-signup-option">
+      <p class="verified-seller-signup-text">Stand out as a seller — <%= link_to "Become a Verified Seller", verified_seller_path, class: "verified-seller-signup-link", data: { turbo: "false" } %> (€2/month)</p>
+    </div>
+
     <div class="actions">
       <%= f.submit "Sign Up", class: "btn-auth" %>
     </div>
