@@ -109,8 +109,9 @@
 
   <% if current_user && !current_user.is_verified %>
     <div class="verified-seller-section">
-      <p><strong>Stand out as a seller</strong></p>
-      <p><%= link_to "Get Verified Seller badge (€1.99/month)", verified_seller_path, class: "btn-verified-seller", data: { turbo: "false" } %></p>
+      <p><strong>Stand out with a golden verified badge</strong></p>
+      <p>Verified Sellers get 3 free ad boosts every month — works out cheaper than buying boosts separately.</p>
+      <p><%= link_to "Get Verified Seller (€1.99/month, includes 3 free boosts/month)", verified_seller_path, class: "btn-verified-seller", data: { turbo: "false" } %></p>
     </div>
   <% end %>
 

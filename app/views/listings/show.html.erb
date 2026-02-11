@@ -97,7 +97,7 @@
               <% if @listing.user %>
                 <div class="info-item">
                   <strong>👤 Seller:</strong>
-                  <span><%= link_to (@listing.user.name || @listing.user.email), user_path(@listing.user), class: "seller-link" %><% if @listing.user.is_verified %> <span class="verified-badge-inline" title="Verified Seller">✓</span><% end %></span>
+                  <span><%= link_to (@listing.user.name || @listing.user.email), user_path(@listing.user), class: "seller-link #{'verified-seller-link' if @listing.user.is_verified}" %><% if @listing.user.is_verified %> <span class="verified-badge-inline" title="Verified Seller">✓</span><% end %></span>
                 </div>
               <% end %>
             </div>
@@ -215,7 +215,7 @@
             </div>
             <div class="seller-info-text">
               <div class="seller-name-row">
-                <h3 class="seller-name"><%= @listing.user.name || @listing.user.email %></h3>
+                <h3 class="seller-name <%= 'verified-seller-name' if @listing.user.is_verified %>"><%= @listing.user.name || @listing.user.email %></h3>
                 <% if @listing.user.is_verified %>
                   <span class="seller-badge-verified" title="Verified Seller (paid)">✓ Verified seller</span>
                 <% elsif @listing.user.email.present? || @listing.user.phone.present? %>
@@ -265,7 +265,11 @@
                   <%= button_to "Mark as sold", mark_as_sold_listing_path(@listing), method: :post, class: "btn-seller-action btn-sold", form: { data: { turbo_confirm: "Mark this listing as sold?" } } %>
                 <% end %>
                 <% unless @listing.boosted? %>
-                  <%= link_to "Boost listing (€1, 7 days)", boost_listing_path(@listing.id), class: "btn-seller-action btn-boost", data: { turbo: "false" } %>
+                  <% if current_user.is_verified? && current_user.free_boosts_remaining > 0 %>
+                    <%= link_to "Use free boost (#{current_user.free_boosts_remaining} left this month)", boost_listing_path(@listing.id), class: "btn-seller-action btn-boost", data: { turbo: "false" } %>
+                  <% else %>
+                    <%= link_to "Boost listing (€1, 7 days)", boost_listing_path(@listing.id), class: "btn-seller-action btn-boost", data: { turbo: "false" } %>
+                  <% end %>
                 <% end %>
                 <%= link_to "Edit Listing", edit_listing_path(@listing), class: "btn-seller-action btn-edit" %>
                 <%= button_to "Delete Listing", @listing, method: :delete,

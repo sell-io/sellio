@@ -284,7 +284,7 @@
           <%= check_box_tag "boost_listing", "1", false, class: "boost-ad-checkbox" %>
           <span>Boost ad for 7 days for €0.99</span>
         </label>
-        <p class="form-help">Your listing will get more visibility for 7 days after you pay. After payment you'll return to a success page on Dealo with a link to view your boosted listing.</p>
+        <p class="form-help">Your listing will get more visibility for 7 days. Verified Sellers get 3 free boosts every month — <%= link_to "upgrade here", verified_seller_path, data: { turbo: "false" }, class: "form-help-link" %>.</p>
       </div>
     <% end %>
 

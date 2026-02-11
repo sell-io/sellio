@@ -17,6 +17,8 @@ The app uses **Stripe Payment Links** (no custom checkout, no webhooks). After p
 
 ### Verified Seller (€1.99/month)
 
+Verified Sellers get a **golden username and badge** on the site and **3 free ad boosts every month** (works out cheaper than buying boosts). This is advertised on signup, account settings, and profile.
+
 - **After payment** → **Redirect to a page**
 - Set the URL to:
   - **Production (dealo.ie):** `https://dealo.ie/payment-success?type=verified`
