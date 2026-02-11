@@ -14,7 +14,7 @@
       </div>
       <div class="profile-info">
         <div class="profile-name-rating">
-          <h1><%= @user.name || @user.email %><% if @user.is_verified %> <span class="verified-badge" title="Verified Seller">✓ Verified</span><% end %></h1>
+          <h1><span class="<%= 'profile-name-verified' if @user.is_verified %>"><%= @user.name || @user.email %></span><% if @user.is_verified %> <span class="verified-badge" title="Verified Seller">✓ Verified</span><% end %></h1>
           <% if @user.reviews_count > 0 %>
             <div class="user-rating">
               <div class="stars">
@@ -51,9 +51,13 @@
           <p class="profile-phone">📞 <%= link_to @user.phone, "tel:#{@user.phone.gsub(/\s+/, '')}", class: "phone-number-link", title: "Tap or click to call" %></p>
         <% end %>
         <p class="profile-joined">Member since <%= @user.created_at.strftime("%B %Y") %></p>
-        <% if user_signed_in? && current_user == @user && !@user.is_verified %>
+        <% if user_signed_in? && current_user == @user && @user.is_verified %>
+          <p class="profile-free-boosts">
+            <strong>Free ad boosts:</strong> <%= @user.free_boosts_remaining %> of <%= User::FREE_BOOSTS_PER_MONTH %> left this month<% if @user.free_boosts_reset_on.present? %> (resets <%= @user.free_boosts_reset_on %>)<% end %>.
+          </p>
+        <% elsif user_signed_in? && current_user == @user && !@user.is_verified %>
           <p class="profile-verified-cta">
-            <%= link_to "Get Verified Seller (€1.99/month)", verified_seller_path, class: "btn-verified-seller", data: { turbo: "false" } %>
+            <%= link_to "Get Verified Seller — €1.99/month (includes 3 free ad boosts/month, saves you money)", verified_seller_path, class: "btn-verified-seller", data: { turbo: "false" } %>
           </p>
         <% end %>
       </div>

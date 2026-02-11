@@ -6,11 +6,20 @@ class PaymentsController < ApplicationController
 
   before_action :authenticate_user!, only: [:redirect_boost, :redirect_verified]
 
-  # User clicked "Boost listing" -> store listing_id in session, redirect to Stripe
+  # User clicked "Boost listing" -> use free boost if verified and available, else redirect to Stripe
   def redirect_boost
     listing = current_user.listings.find_by(id: params[:listing_id])
     unless listing
       redirect_back fallback_location: listings_path, alert: "Listing not found."
+      return
+    end
+    if current_user.is_verified? && current_user.free_boosts_left_this_month?
+      current_user.use_free_boost!
+      apply_boost(listing.id)
+      session.delete(:pending_boost_listing_id)
+      remaining = current_user.free_boosts_remaining
+      @message = "Your listing \"#{listing.title}\" is now boosted for 7 days! (#{remaining} free boost#{remaining == 1 ? '' : 's'} left this month.)"
+      render :success, status: :ok
       return
     end
     session[:pending_boost_listing_id] = listing.id

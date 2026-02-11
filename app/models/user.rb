@@ -47,4 +47,35 @@ class User < ApplicationRecord
   def unban!
     update!(banned_at: nil)
   end
+
+  # Verified sellers get 3 free ad boosts per month. Resets at start of each calendar month.
+  FREE_BOOSTS_PER_MONTH = 3
+
+  def reset_free_boosts_if_new_month!
+    return unless free_boosts_reset_at.nil? || free_boosts_reset_at < Time.current
+    update_columns(free_boosts_reset_at: 1.month.from_now.beginning_of_month, free_boosts_used: 0)
+  end
+
+  def free_boosts_left_this_month?
+    return false unless is_verified?
+    reset_free_boosts_if_new_month!
+    free_boosts_used < FREE_BOOSTS_PER_MONTH
+  end
+
+  def free_boosts_remaining
+    return 0 unless is_verified?
+    reset_free_boosts_if_new_month!
+    [FREE_BOOSTS_PER_MONTH - free_boosts_used, 0].max
+  end
+
+  # When the free-boost allowance resets (start of next month). Only meaningful if is_verified? and after free_boosts_remaining has been called.
+  def free_boosts_reset_on
+    return nil unless is_verified?
+    reset_free_boosts_if_new_month!
+    free_boosts_reset_at&.strftime("%e %B")
+  end
+
+  def use_free_boost!
+    increment!(:free_boosts_used)
+  end
 end

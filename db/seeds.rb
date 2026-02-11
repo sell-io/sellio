@@ -17,7 +17,7 @@ ActiveStorage::Blob.find_or_create_by(key: "pb4ch6w3qpt0e9jqw0626y9rnr95") do |b
   blob.service_name = "local"
 end
 
-# Create users if they don't exist
+# Create users if they don't exist (see LOCAL_DEVELOPMENT.md for logins)
 User.find_or_create_by(email: "adrianasecas12@gmail.com") do |user|
   user.password = "password123"
   user.password_confirmation = "password123"
@@ -26,13 +26,15 @@ User.find_or_create_by(email: "adrianasecas12@gmail.com") do |user|
   user.phone = "+353892126853"
 end
 
-User.find_or_create_by(email: "alexsidorov05@gmail.com") do |user|
+alex_user = User.find_or_create_by(email: "alexsidorov05@gmail.com") do |user|
   user.password = "password123"
   user.password_confirmation = "password123"
   user.location = "Limerick,Ireland"
   user.name = "Alex Sidorov"
   user.phone = "+353852406366"
 end
+# Verified seller locally so you can test golden badge + 3 free boosts
+alex_user&.update_columns(is_verified: true) if alex_user.persisted?
 
 # Admin user: alexsidorov2005@gmail.com / Dr3amH0useEleven
 admin_email = ENV.fetch("ADMIN_EMAIL", "alexsidorov2005@gmail.com")
@@ -129,14 +131,21 @@ end
 
 # Create listing if it doesn't exist
 motors_category = Category.find_by(name: "Motors")
-alex_user = User.find_by(email: "alexsidorov05@gmail.com")
+alex_user ||= User.find_by(email: "alexsidorov05@gmail.com")
 
 if motors_category && alex_user
-  Listing.find_or_create_by(title: "Volkswagen Polo", user_id: alex_user.id) do |listing|
+  polo_listing = Listing.find_or_create_by(title: "Volkswagen Polo", user_id: alex_user.id) do |listing|
     listing.category_id = motors_category.id
     listing.city = "Limerick"
     listing.description = "2021 Volkswagen Polo grey "
     listing.price = 20000.0
     listing.extra_fields = {"make" => "Volkswagen", "year" => "2021", "mileage" => "50000", "fuel_type" => "Petrol", "engine_size" => "1", "transmission" => "Manual", "previous_owners" => "0"}
+  end
+  # Attach a placeholder image so the Polo listing has a photo locally
+  if polo_listing.persisted? && polo_listing.images.count.zero?
+    path = Rails.root.join("public", "icon.png")
+    if File.exist?(path)
+      polo_listing.images.attach(io: File.open(path), filename: "polo-placeholder.png", content_type: "image/png")
+    end
   end
 end

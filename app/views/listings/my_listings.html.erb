@@ -8,6 +8,16 @@
       <%= link_to "Post New Ad", new_listing_path, class: "btn-post-new" %>
     </div>
 
+    <% if user_signed_in? && current_user.is_verified? %>
+      <div class="free-boosts-banner">
+        <span class="free-boosts-banner-label">Free ad boosts this month:</span>
+        <span class="free-boosts-banner-count"><%= current_user.free_boosts_remaining %> of <%= User::FREE_BOOSTS_PER_MONTH %> left</span>
+        <% if current_user.free_boosts_reset_on.present? %>
+          <span class="free-boosts-banner-reset">(resets <%= current_user.free_boosts_reset_on %>)</span>
+        <% end %>
+      </div>
+    <% end %>
+
     <% if @listings.any? %>
       <div class="listings-grid">
         <% @listings.each do |listing| %>
@@ -41,7 +51,11 @@
                   <%= link_to "Edit", edit_listing_path(listing), class: "btn-edit-small" %>
                   <%= link_to "View", listing, class: "btn-view" %>
                   <% unless listing.boosted? %>
-                    <%= link_to "Boost", boost_listing_path(listing.id), class: "btn-boost-small", data: { turbo: "false" } %>
+                    <% if current_user.is_verified? && current_user.free_boosts_remaining > 0 %>
+                      <%= link_to "Free boost (#{current_user.free_boosts_remaining})", boost_listing_path(listing.id), class: "btn-boost-small", data: { turbo: "false" } %>
+                    <% else %>
+                      <%= link_to "Boost", boost_listing_path(listing.id), class: "btn-boost-small", data: { turbo: "false" } %>
+                    <% end %>
                   <% end %>
                 </div>
               </div>

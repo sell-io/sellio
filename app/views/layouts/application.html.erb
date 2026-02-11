@@ -566,7 +566,7 @@
           </button>
           <%= link_to "Place Ad", new_listing_path, class: "btn-place-ad" %>
           <% if user_signed_in? %>
-            <div class="dropdown">
+            <div class="dropdown<%= ' header-account-verified' if current_user.is_verified? %>">
               <button class="nav-link dropdown-toggle" type="button" id="accountDropdown">
                 <div class="header-avatar-container">
                   <% if current_user.avatar.attached? %>
@@ -591,12 +591,21 @@
                   <li><%= link_to "Admin", admin_root_path, class: "dropdown-item" %></li>
                   <li><hr class="dropdown-divider"></li>
                 <% end %>
+                <% if current_user.is_verified? %>
+                  <li class="dropdown-item dropdown-item-free-boosts">
+                    Free boosts: <strong><%= current_user.free_boosts_remaining %>/<%= User::FREE_BOOSTS_PER_MONTH %></strong> left this month
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                <% end %>
                 <li><%= link_to "My Messages", my_messages_path, class: "dropdown-item" %></li>
                 <li><%= link_to "My Listings", my_listings_path, class: "dropdown-item" %></li>
                 <li><%= link_to "My Saved Ads", my_saved_ads_path, class: "dropdown-item" %></li>
                 <li><%= link_to "Saved Searches", my_saved_searches_path, class: "dropdown-item" %></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><%= link_to "Account Settings", edit_user_registration_path, class: "dropdown-item" %></li>
+                <% unless current_user.avatar.attached? %>
+                  <li><%= link_to "Add profile photo", edit_user_registration_path, class: "dropdown-item dropdown-item-subtle" %></li>
+                <% end %>
                 <li>
                   <%= button_to "Logout",
                         destroy_user_session_path,

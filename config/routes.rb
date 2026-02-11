@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  root "listings#index"
+
   devise_for :users, controllers: {
     registrations: 'registrations',
     sessions: 'users/sessions'
@@ -8,7 +10,6 @@ Rails.application.routes.draw do
   resources :users, only: [:show] do
     resources :reviews, only: [:create]
   end
-  root "listings#index"
 
   # Static pages (footer and info)
   get "how-it-works", to: "pages#how_it_works", as: :how_it_works
