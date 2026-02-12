@@ -62,11 +62,10 @@
     </div>
 
     <div class="field verified-seller-signup-option">
-      <label class="verified-seller-checkbox-label">
-        <%= check_box_tag "signup_verified_seller", "1", false, class: "verified-seller-checkbox" %>
-        <span class="verified-seller-checkbox-text">Become a Verified Seller (€1.99/month) — we'll take you to payment after sign up</span>
+      <label class="verified-seller-signup-row">
+        <%= check_box_tag "verified_seller_interest", "1", false, class: "verified-seller-signup-checkbox" %>
+        <span class="verified-seller-signup-label-text">I want to become a Verified Seller — golden badge + 3 free ad boosts every month (€1.99/month).</span>
       </label>
-      <p class="verified-seller-signup-text">Golden badge + 3 free ad boosts every month. Works out cheaper than buying boosts.</p>
     </div>
 
     <div class="actions">
