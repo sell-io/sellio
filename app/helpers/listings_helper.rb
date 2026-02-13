@@ -121,10 +121,10 @@ module ListingsHelper
   }.freeze
 
   FARMING_SECTION_HEADERS = {
-    "Machinery" => { icon: "tractor", subtitle: "Tractors, implements & equipment" },
-    "Livestock" => { icon: "cow", subtitle: "Cattle, sheep, pigs & poultry" },
-    "Supplies & Feed" => { icon: "package", subtitle: "Feed, seeds & fertilisers" },
-    "Infrastructure" => { icon: "warehouse", subtitle: "Sheds, fencing & buildings" }
+    "Machinery" => { icon: "tractor", emoji: "🚜", subtitle: "Tractors, implements & equipment" },
+    "Livestock" => { icon: "circle", emoji: "🐄", subtitle: "Cattle, sheep, pigs & poultry" },
+    "Supplies & Feed" => { icon: "package", emoji: "🌾", subtitle: "Feed, seeds & fertilisers" },
+    "Infrastructure" => { icon: "warehouse", emoji: "🏠", subtitle: "Sheds, fencing & buildings" }
   }.freeze
 
   def farming_sections
@@ -132,7 +132,7 @@ module ListingsHelper
   end
 
   def farming_section_header(heading)
-    FARMING_SECTION_HEADERS[heading.to_s] || { icon: "circle", subtitle: nil }
+    FARMING_SECTION_HEADERS[heading.to_s] || { icon: "circle", emoji: nil, subtitle: nil }
   end
 
   def farming_section_slug(heading)
@@ -146,15 +146,15 @@ module ListingsHelper
     "Machinery & Parts" => %w[Tractor Plant\ Machinery Breaking\ &\ Repairables Car\ Parts Parts\ &\ Accessories Other\ Motor Other]
   }.freeze
 
-  # Section heading: large icon (Lucide name) + optional subtitle.
+  # Section heading: emoji (preferred) or Lucide icon + optional subtitle.
   MOTORS_SECTION_HEADERS = {
-    "Vehicles" => { icon: "car", subtitle: "Cars, vans, trucks & more" },
-    "Leisure & Transport" => { icon: "ship", subtitle: "Boats, caravans, coaches & buses" },
-    "Machinery & Parts" => { icon: "wrench", subtitle: "Parts, machinery & repairs" }
+    "Vehicles" => { icon: "car", emoji: "🚗", subtitle: "Cars, vans, trucks & more" },
+    "Leisure & Transport" => { icon: "ship", emoji: "🚐", subtitle: "Boats, caravans, coaches & buses" },
+    "Machinery & Parts" => { icon: "wrench", emoji: "🔧", subtitle: "Parts, machinery & repairs" }
   }.freeze
 
   def motors_section_header(heading)
-    MOTORS_SECTION_HEADERS[heading.to_s] || { icon: "circle", subtitle: nil }
+    MOTORS_SECTION_HEADERS[heading.to_s] || { icon: "circle", emoji: nil, subtitle: nil }
   end
 
   def motors_sections(motors_cat)
@@ -163,7 +163,7 @@ module ListingsHelper
   end
 
   # Marketplace: single section, section-level icon in header, tiles text-only.
-  MARKETPLACE_SECTION_HEADER = { icon: "shopping-bag", subtitle: "Browse by category" }.freeze
+  MARKETPLACE_SECTION_HEADER = { icon: "shopping-bag", emoji: "🛍️", subtitle: "Browse by category" }.freeze
 
   def marketplace_section_header
     MARKETPLACE_SECTION_HEADER

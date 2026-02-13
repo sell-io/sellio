@@ -1622,6 +1622,10 @@ body:has(.mobile-menu.open) .hamburger-menu-btn {
   width: 2rem;
   height: 2rem;
 }
+.motors-section-emoji {
+  font-size: 2rem;
+  line-height: 1;
+}
 .motors-section-header-text {
   min-width: 0;
 }
