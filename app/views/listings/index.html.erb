@@ -9,117 +9,271 @@
 <div class="homepage">
   <!-- Hero Section with Search (only show on homepage, not on browse page) -->
   <% unless params[:category_id].present? || params[:search].present? || is_browse_page %>
-  <section class="hero-section" style="background-image: url('/SellioHomePage.png'); background-size: cover; background-position: center; position: relative;">
+  <% motors_cat = Category.find_by("name ILIKE ?", "%motor%") %>
+  <% farming_cat = Category.find_by("name ILIKE ?", "%farming%") %>
+  <% marketplace_categories = @categories.reject { |c| c.name.to_s.downcase.include?("motor") || c.name.to_s.downcase.include?("farming") } %>
+  <section class="hero-section marketplace-hero" style="background-image: url('/SellioHomePage.png'); background-size: cover; background-position: center; position: relative;">
     <div class="hero-overlay"></div>
     <div class="hero-content">
-      <h1 class="hero-title">Buy & Sell Anything</h1>
-      <p class="hero-subtitle">Free classified ads in your area</p>
-      
-      <div class="search-box search-box-hero" id="heroSearchBox">
-        <%= form_with url: listings_path, method: :get, local: true, class: "search-form" do |f| %>
-          <div class="search-input-group search-input-group-hero">
-            <%= f.text_field :search, placeholder: "Search", class: "search-input search-input-hero", id: "heroSearchInput" %>
-            <%= f.text_field :location, placeholder: "Location (e.g., Dublin)", class: "search-input location-input" %>
-            <%= f.submit "Search", class: "search-button" %>
-          </div>
-        <% end %>
+      <h1 class="hero-title marketplace-hero-title">Buy & Sell Anything</h1>
+      <p class="marketplace-hero-subtitle">Free classified ads in your area</p>
+      <div class="marketplace-card">
+        <div class="marketplace-category-cards" role="group" aria-label="Choose a category">
+          <button type="button" class="marketplace-category-card" data-tab="cars" data-category-id="<%= motors_cat&.id %>" aria-pressed="false">
+            <span class="marketplace-category-card-icon" aria-hidden="true">🚗</span>
+            <span class="marketplace-category-card-label">Cars & Motor</span>
+          </button>
+          <button type="button" class="marketplace-category-card" data-tab="marketplace" data-category-id="" aria-pressed="false">
+            <span class="marketplace-category-card-icon" aria-hidden="true">🛍</span>
+            <span class="marketplace-category-card-label">Marketplace</span>
+          </button>
+          <button type="button" class="marketplace-category-card" data-tab="farming" data-category-id="<%= farming_cat&.id %>" aria-pressed="false">
+            <span class="marketplace-category-card-icon" aria-hidden="true">🚜</span>
+            <span class="marketplace-category-card-label">Agri & Plant</span>
+          </button>
+        </div>
+        <div class="marketplace-search-wrap" id="marketplaceSearchWrap" hidden>
+          <%= form_with url: listings_path, method: :get, local: true, class: "marketplace-search-form" do |f| %>
+            <%= f.hidden_field :category_id, value: "", id: "marketplaceSearchCategoryId" %>
+            <div class="marketplace-search-row">
+              <div class="marketplace-search-input-wrap">
+                <span class="marketplace-search-icon" aria-hidden="true">
+                  <svg class="marketplace-search-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                </span>
+                <%= f.text_field :search, placeholder: "Search cars and motors", class: "marketplace-search-input", id: "marketplaceSearchInput", data: { placeholder_cars: "Search cars and motors", placeholder_marketplace: "Search marketplace", placeholder_farming: "Search agri & plant" } %>
+              </div>
+              <%= f.select :location, options_for_select([["All Ireland", ""]] + ApplicationHelper::IRISH_COUNTIES.map { |c| [c, c] }, params[:location]), {}, { class: "marketplace-location-select" } %>
+            </div>
+            <%= f.submit "Search Cars & Motor", class: "marketplace-search-button", id: "marketplaceSearchButton", data: { label_cars: "Search Cars & Motor", label_marketplace: "Search Marketplace", label_farming: "Search Agri & Plant" } %>
+          <% end %>
+        </div>
       </div>
     </div>
   </section>
+  <section class="marketplace-subcategories-section" id="marketplaceSubcategoriesSection" hidden>
+    <div class="marketplace-subcategories-panel" id="panel-cars" data-tab="cars">
+      <% if motors_cat %>
+        <% motors_category = motors_cat %>
+        <div class="car-filter-section car-filter-section--in-panel">
+          <div class="container">
+            <div class="car-filter-box">
+              <h2 class="car-filter-title">Looking for a new car?</h2>
+              <%= form_with url: listings_path, method: :get, local: true, class: "car-filter-form" do |f| %>
+                <%= f.hidden_field :category_id, value: motors_category.id %>
+                <%= f.hidden_field :subcategory, value: "Car" %>
+                <div class="car-filter-grid">
+                  <div class="car-filter-field">
+                    <%= f.label :make, "All Makes" %>
+                    <%= f.select :make, options_for_select([
+                      ['All Makes', ''],
+                      ['Alfa Romeo', 'Alfa Romeo'],
+                      ['Aston Martin', 'Aston Martin'],
+                      ['Audi', 'Audi'],
+                      ['Bentley', 'Bentley'],
+                      ['BMW', 'BMW'],
+                      ['Chevrolet', 'Chevrolet'],
+                      ['Chrysler', 'Chrysler'],
+                      ['Citroen', 'Citroen'],
+                      ['Dacia', 'Dacia'],
+                      ['Dodge', 'Dodge'],
+                      ['Ferrari', 'Ferrari'],
+                      ['Fiat', 'Fiat'],
+                      ['Ford', 'Ford'],
+                      ['Honda', 'Honda'],
+                      ['Hyundai', 'Hyundai'],
+                      ['Infiniti', 'Infiniti'],
+                      ['Jaguar', 'Jaguar'],
+                      ['Jeep', 'Jeep'],
+                      ['Kia', 'Kia'],
+                      ['Lamborghini', 'Lamborghini'],
+                      ['Land Rover', 'Land Rover'],
+                      ['Lexus', 'Lexus'],
+                      ['Maserati', 'Maserati'],
+                      ['Mazda', 'Mazda'],
+                      ['McLaren', 'McLaren'],
+                      ['Mercedes-Benz', 'Mercedes-Benz'],
+                      ['Mini', 'Mini'],
+                      ['Mitsubishi', 'Mitsubishi'],
+                      ['Nissan', 'Nissan'],
+                      ['Opel', 'Opel'],
+                      ['Peugeot', 'Peugeot'],
+                      ['Porsche', 'Porsche'],
+                      ['Renault', 'Renault'],
+                      ['Rolls-Royce', 'Rolls-Royce'],
+                      ['Seat', 'Seat'],
+                      ['Skoda', 'Skoda'],
+                      ['Smart', 'Smart'],
+                      ['Subaru', 'Subaru'],
+                      ['Suzuki', 'Suzuki'],
+                      ['Tesla', 'Tesla'],
+                      ['Toyota', 'Toyota'],
+                      ['Vauxhall', 'Vauxhall'],
+                      ['Volkswagen', 'Volkswagen'],
+                      ['Volvo', 'Volvo']
+                    ], params[:make]), {}, { class: "car-filter-select", id: "car_make_select" } %>
+                  </div>
+                  <div class="car-filter-field">
+                    <%= f.label :model, "All Models" %>
+                    <%= f.select :model, options_for_select([['All Models', '']], params[:model]), {}, { class: "car-filter-select", id: "car_model_select" } %>
+                  </div>
+                  <div class="car-filter-field">
+                    <%= f.label :min_year, "Min Year" %>
+                    <%= f.select :min_year, options_for_select([['Min Year', '']] + (1990..Date.current.year).to_a.reverse.map { |y| [y, y] }, params[:min_year]), {}, { class: "car-filter-select" } %>
+                  </div>
+                  <div class="car-filter-field">
+                    <%= f.label :max_year, "Max Year" %>
+                    <%= f.select :max_year, options_for_select([['Max Year', '']] + (1990..Date.current.year).to_a.reverse.map { |y| [y, y] }, params[:max_year]), {}, { class: "car-filter-select" } %>
+                  </div>
+                  <div class="car-filter-field">
+                    <%= f.label :min_price, "Min Price" %>
+                    <%= f.number_field :min_price, placeholder: "Min Price", class: "car-filter-input", min: 0, step: 100, value: params[:min_price] %>
+                  </div>
+                  <div class="car-filter-field">
+                    <%= f.label :max_price, "Max Price" %>
+                    <%= f.number_field :max_price, placeholder: "Max Price", class: "car-filter-input", min: 0, step: 100, value: params[:max_price] %>
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <% car_count = Listing.where(category_id: motors_category.id).where("extra_fields->>'subcategory' = ?", "Car").count %>
+                  <%= f.submit "Search #{number_with_delimiter(car_count)} Cars", class: "car-filter-button" %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+        <div class="farming-section-block farming-section-block--motors">
+          <div class="container farming-section-inner motors-sections-inner">
+            <% motors_sections(motors_cat).each do |section_heading, items| %>
+              <% header = motors_section_header(section_heading) %>
+              <div class="motors-category-section">
+                <div class="motors-section-header">
+                  <span class="motors-section-header-icon" aria-hidden="true">
+                    <i data-lucide="<%= header[:icon] %>" class="motors-section-icon" aria-hidden="true"></i>
+                  </span>
+                  <div class="motors-section-header-text">
+                    <h3 class="motors-section-title"><%= section_heading %></h3>
+                    <% if header[:subtitle].present? %>
+                      <p class="motors-section-subtitle"><%= header[:subtitle] %></p>
+                    <% end %>
+                  </div>
+                </div>
+                <div class="motors-tiles-grid">
+                  <% items.each do |item| %>
+                    <%= link_to item[:name], listings_path(category_id: motors_cat.id, subcategory: item[:name]), class: "motors-tile", data: { turbo: false } %>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+    <div class="marketplace-subcategories-panel" id="panel-marketplace" data-tab="marketplace">
+      <div class="farming-section-block farming-section-block--marketplace">
+        <div class="container farming-section-inner motors-sections-inner">
+          <% header = marketplace_section_header %>
+          <div class="motors-category-section">
+            <div class="motors-section-header">
+              <span class="motors-section-header-icon" aria-hidden="true">
+                <i data-lucide="<%= header[:icon] %>" class="motors-section-icon" aria-hidden="true"></i>
+              </span>
+              <div class="motors-section-header-text">
+                <h3 class="motors-section-title">Marketplace</h3>
+                <% if header[:subtitle].present? %>
+                  <p class="motors-section-subtitle"><%= header[:subtitle] %></p>
+                <% end %>
+              </div>
+            </div>
+            <div class="motors-tiles-grid">
+              <% marketplace_cards_items(marketplace_categories).each do |item| %>
+                <%= link_to item[:name], listings_path(category_id: item[:id]), class: "motors-tile", data: { turbo: false } %>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="marketplace-subcategories-panel farming-panel" id="panel-farming" data-tab="farming">
+      <% if farming_cat %>
+        <% farming_sections.each do |section_heading, items| %>
+          <div class="farming-section-block farming-section-block--<%= farming_section_slug(section_heading) %>">
+            <div class="container farming-section-inner motors-sections-inner">
+              <% header = farming_section_header(section_heading) %>
+              <div class="motors-category-section">
+                <div class="motors-section-header">
+                  <span class="motors-section-header-icon" aria-hidden="true">
+                    <i data-lucide="<%= header[:icon] %>" class="motors-section-icon" aria-hidden="true"></i>
+                  </span>
+                  <div class="motors-section-header-text">
+                    <h3 class="motors-section-title"><%= section_heading %></h3>
+                    <% if header[:subtitle].present? %>
+                      <p class="motors-section-subtitle"><%= header[:subtitle] %></p>
+                    <% end %>
+                  </div>
+                </div>
+                <div class="motors-tiles-grid">
+                  <% items.each do |item| %>
+                    <%= link_to item[:name], listings_path(category_id: farming_cat.id, subcategory: item[:name]), class: "motors-tile", data: { turbo: false } %>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+        <div class="farming-view-all-block">
+          <div class="container">
+            <%= link_to "View All Farming", listings_path(category_id: farming_cat.id), class: "farming-view-all-btn", data: { turbo: false } %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </section>
+  <script>
+    (function() {
+      var cards = document.querySelectorAll('.marketplace-category-card');
+      var searchWrap = document.getElementById('marketplaceSearchWrap');
+      var panels = document.querySelectorAll('.marketplace-subcategories-panel');
+      function updateSearchContext(tab, categoryId) {
+          var input = document.getElementById('marketplaceSearchInput');
+          var btn = document.getElementById('marketplaceSearchButton');
+          var catInput = document.getElementById('marketplaceSearchCategoryId');
+          if (input && btn) {
+            var p = input.getAttribute('data-placeholder-' + tab);
+            var l = btn.getAttribute('data-label-' + tab);
+            input.placeholder = p || 'Search marketplace';
+            btn.value = l || 'Search Marketplace';
+          }
+          if (catInput) { catInput.value = categoryId || ''; }
+        }
+      cards.forEach(function(card) {
+        card.addEventListener('click', function() {
+          var t = this.getAttribute('data-tab');
+          var categoryId = this.getAttribute('data-category-id') || '';
+          cards.forEach(function(c) { c.classList.remove('active'); c.setAttribute('aria-pressed', 'false'); });
+          this.classList.add('active'); this.setAttribute('aria-pressed', 'true');
+          if (searchWrap) { searchWrap.hidden = false; }
+          updateSearchContext(t, categoryId);
+          var section = document.getElementById('marketplaceSubcategoriesSection');
+          if (section) { section.hidden = false; }
+          var trendingSection = document.getElementById('trendingSearchesSection');
+          if (trendingSection) { trendingSection.hidden = true; }
+          var categoriesSection = document.getElementById('homeCategoriesSection');
+          if (categoriesSection) { categoriesSection.hidden = true; }
+          panels.forEach(function(p) {
+            if (p.getAttribute('data-tab') === t) { p.classList.add('active'); } else { p.classList.remove('active'); }
+          });
+          if (typeof lucide !== 'undefined') {
+            var root = document.getElementById('panel-cars');
+            if (t === 'cars' && root) lucide.createIcons({ root: root });
+            else if (t === 'marketplace') { root = document.getElementById('panel-marketplace'); if (root) lucide.createIcons({ root: root }); }
+            else if (t === 'farming') { root = document.getElementById('panel-farming'); if (root) lucide.createIcons({ root: root }); }
+          }
+        });
+      });
+    })();
+  </script>
   <% end %>
 
-  <!-- Car Filter Section (only show on homepage, not on browse page) -->
-  <% unless params[:category_id].present? || params[:search].present? || is_browse_page %>
-  <% motors_category = Category.find_by("name ILIKE ?", "%motor%") %>
-  <% if motors_category %>
-  <section class="car-filter-section">
-    <div class="container">
-      <div class="car-filter-box">
-        <h2 class="car-filter-title">Looking for a new car?</h2>
-        <%= form_with url: listings_path, method: :get, local: true, class: "car-filter-form" do |f| %>
-          <%= f.hidden_field :category_id, value: motors_category.id %>
-          <%= f.hidden_field :subcategory, value: "Car" %>
-          <div class="car-filter-grid">
-            <div class="car-filter-field">
-              <%= f.label :make, "All Makes" %>
-              <%= f.select :make, options_for_select([
-                ['All Makes', ''],
-                ['Alfa Romeo', 'Alfa Romeo'],
-                ['Aston Martin', 'Aston Martin'],
-                ['Audi', 'Audi'],
-                ['Bentley', 'Bentley'],
-                ['BMW', 'BMW'],
-                ['Chevrolet', 'Chevrolet'],
-                ['Chrysler', 'Chrysler'],
-                ['Citroen', 'Citroen'],
-                ['Dacia', 'Dacia'],
-                ['Dodge', 'Dodge'],
-                ['Ferrari', 'Ferrari'],
-                ['Fiat', 'Fiat'],
-                ['Ford', 'Ford'],
-                ['Honda', 'Honda'],
-                ['Hyundai', 'Hyundai'],
-                ['Infiniti', 'Infiniti'],
-                ['Jaguar', 'Jaguar'],
-                ['Jeep', 'Jeep'],
-                ['Kia', 'Kia'],
-                ['Lamborghini', 'Lamborghini'],
-                ['Land Rover', 'Land Rover'],
-                ['Lexus', 'Lexus'],
-                ['Maserati', 'Maserati'],
-                ['Mazda', 'Mazda'],
-                ['McLaren', 'McLaren'],
-                ['Mercedes-Benz', 'Mercedes-Benz'],
-                ['Mini', 'Mini'],
-                ['Mitsubishi', 'Mitsubishi'],
-                ['Nissan', 'Nissan'],
-                ['Opel', 'Opel'],
-                ['Peugeot', 'Peugeot'],
-                ['Porsche', 'Porsche'],
-                ['Renault', 'Renault'],
-                ['Rolls-Royce', 'Rolls-Royce'],
-                ['Seat', 'Seat'],
-                ['Skoda', 'Skoda'],
-                ['Smart', 'Smart'],
-                ['Subaru', 'Subaru'],
-                ['Suzuki', 'Suzuki'],
-                ['Tesla', 'Tesla'],
-                ['Toyota', 'Toyota'],
-                ['Vauxhall', 'Vauxhall'],
-                ['Volkswagen', 'Volkswagen'],
-                ['Volvo', 'Volvo']
-              ], params[:make]), {}, { class: "car-filter-select", id: "car_make_select" } %>
-            </div>
-            <div class="car-filter-field">
-              <%= f.label :model, "All Models" %>
-              <%= f.select :model, options_for_select([['All Models', '']], params[:model]), {}, { class: "car-filter-select", id: "car_model_select" } %>
-            </div>
-            <div class="car-filter-field">
-              <%= f.label :min_year, "Min Year" %>
-              <%= f.select :min_year, options_for_select([['Min Year', '']] + (1990..Date.current.year).to_a.reverse.map { |y| [y, y] }, params[:min_year]), {}, { class: "car-filter-select" } %>
-            </div>
-            <div class="car-filter-field">
-              <%= f.label :max_year, "Max Year" %>
-              <%= f.select :max_year, options_for_select([['Max Year', '']] + (1990..Date.current.year).to_a.reverse.map { |y| [y, y] }, params[:max_year]), {}, { class: "car-filter-select" } %>
-            </div>
-            <div class="car-filter-field">
-              <%= f.label :min_price, "Min Price" %>
-              <%= f.number_field :min_price, placeholder: "Min Price", class: "car-filter-input", min: 0, step: 100, value: params[:min_price] %>
-            </div>
-            <div class="car-filter-field">
-              <%= f.label :max_price, "Max Price" %>
-              <%= f.number_field :max_price, placeholder: "Max Price", class: "car-filter-input", min: 0, step: 100, value: params[:max_price] %>
-            </div>
-          </div>
-          <div class="form-actions">
-            <% car_count = Listing.where(category_id: motors_category.id).where("extra_fields->>'subcategory' = ?", "Car").count %>
-            <%= f.submit "Search #{number_with_delimiter(car_count)} Cars", class: "car-filter-button" %>
-          </div>
-        <% end %>
-      </div>
-    </div>
-  </section>
-  
   <script>
     // Comprehensive car make-model relationships
     const carModels = {
@@ -231,12 +385,10 @@
       initCarModelFilter();
     }
   </script>
-  <% end %>
-  <% end %>
 
   <!-- Popular right now / Trending searches (homepage only) -->
   <% unless params[:category_id].present? || params[:search].present? || is_browse_page %>
-  <section class="trending-searches-section">
+  <section class="trending-searches-section" id="trendingSearchesSection">
     <div class="container">
       <h2 class="trending-searches-title">Popular right now</h2>
       <div class="trending-searches-links">
@@ -252,7 +404,7 @@
 
   <!-- Categories Section (only show on homepage, not on filtered listings page or browse page) -->
   <% unless params[:category_id].present? || params[:search].present? || is_browse_page %>
-  <section class="categories-section">
+  <section class="categories-section" id="homeCategoriesSection">
     <div class="container">
       <div class="categories-row">
         <% motors_category = Category.find_by("name ILIKE ?", "%motor%") || Category.find_by("name ILIKE ?", "%car%") %>
@@ -464,27 +616,48 @@
           </div>
         <% end %>
       </div>
-      <!-- Mobile search: search + location, then results -->
-      <div class="mobile-search-bar">
-        <%= form_with url: listings_path, method: :get, local: true, class: "mobile-search-form" do |f| %>
-          <% if params[:category_id].present? %>
-            <%= f.hidden_field :category_id, value: params[:category_id] %>
+      <!-- Mobile search: one row [search + location] + [Filters] when filters shown; location in sheet -->
+      <div class="mobile-search-row-with-filters">
+        <div class="mobile-search-bar">
+          <%= form_with url: listings_path, method: :get, local: true, class: "mobile-search-form" do |f| %>
+            <% if params[:category_id].present? %>
+              <%= f.hidden_field :category_id, value: params[:category_id] %>
+            <% end %>
+            <div class="mobile-search-stack">
+              <div class="mobile-search-input-wrapper mobile-search-main-row">
+                <%= f.text_field :search, placeholder: "Search", class: "mobile-search-input", value: params[:search] %>
+                <button type="submit" class="mobile-search-submit-btn mobile-search-inline-btn" aria-label="Search">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="mobile-search-input-wrapper mobile-search-location-row">
+                <%= f.text_field :location, placeholder: "Location (e.g. Dublin)", class: "mobile-search-input", value: params[:location], "aria-label" => "Location" %>
+              </div>
+              <button type="submit" class="mobile-search-submit-btn mobile-search-full-width-btn" aria-label="Search">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Search
+              </button>
+            </div>
           <% end %>
-          <div class="mobile-search-stack">
-            <div class="mobile-search-input-wrapper">
-              <%= f.text_field :search, placeholder: "Search", class: "mobile-search-input", value: params[:search] %>
-            </div>
-            <div class="mobile-search-input-wrapper">
-              <%= f.text_field :location, placeholder: "Location (e.g. Dublin)", class: "mobile-search-input", value: params[:location] %>
-            </div>
-            <button type="submit" class="mobile-search-submit-btn" aria-label="Search">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Search
-            </button>
-          </div>
+        </div>
+        <% motors_category = Category.find_by("name ILIKE ?", "%motor%") || Category.find_by("name ILIKE ?", "%car%") %>
+        <% is_motors_category_selected = motors_category && @selected_category&.id == motors_category.id %>
+        <% show_filters_section = params[:category_id].present? || params[:search].present? || params[:location].present? || is_browse_page %>
+        <% filter_form_subcategories = @selected_category ? subcategories_for_category(@selected_category) : [] %>
+        <% active_filter_count = [params[:make], params[:model], params[:min_year], params[:max_year], params[:min_mileage], params[:max_mileage], params[:min_price], params[:max_price], params[:subcategory], params[:location], params[:include_sold], params[:posted_today], params[:has_images]].count { |v| v.present? } %>
+        <% if show_filters_section %>
+        <button type="button" class="btn-mobile-filters btn-mobile-filters-inline" id="mobileFiltersBtn" data-active-count="<%= active_filter_count %>">
+          <span class="btn-mobile-filters-label">Filters</span>
+          <% if active_filter_count > 0 %>
+            <span class="btn-mobile-filters-count"><%= active_filter_count %></span>
+          <% end %>
+        </button>
         <% end %>
       </div>
     </div>
@@ -520,14 +693,17 @@
     </div>
   </section>
 
-  <section class="filters-button-container-mobile">
+  <% show_listings_search_header = params[:category_id].present? || params[:search].present? || params[:location].present? || is_browse_page %>
+  <section class="filters-button-container-mobile <%= 'filters-button-container-mobile-hidden' if show_listings_search_header %>">
     <div class="container">
+      <% unless show_listings_search_header %>
       <button type="button" class="btn-mobile-filters" id="mobileFiltersBtn" data-active-count="<%= active_filter_count %>">
         <span class="btn-mobile-filters-label">Filters</span>
         <% if active_filter_count > 0 %>
           <span class="btn-mobile-filters-count"><%= active_filter_count %></span>
         <% end %>
       </button>
+      <% end %>
     </div>
   </section>
 
@@ -594,7 +770,6 @@
                 <option value="newest" <%= params[:sort] == 'newest' || params[:sort].blank? ? 'selected' : '' %>>Newest first</option>
                 <option value="price_asc" <%= params[:sort] == 'price_asc' ? 'selected' : '' %>>Price: low to high</option>
                 <option value="price_desc" <%= params[:sort] == 'price_desc' ? 'selected' : '' %>>Price: high to low</option>
-                <option value="distance" <%= params[:sort] == 'distance' ? 'selected' : '' %>>Closest first</option>
               </select>
             </div>
           </div>
