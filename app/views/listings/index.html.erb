@@ -148,7 +148,11 @@
               <div class="motors-category-section">
                 <div class="motors-section-header">
                   <span class="motors-section-header-icon" aria-hidden="true">
-                    <i data-lucide="<%= header[:icon] %>" class="motors-section-icon" aria-hidden="true"></i>
+                    <% if header[:emoji].present? %>
+                      <span class="motors-section-emoji" aria-hidden="true"><%= header[:emoji] %></span>
+                    <% else %>
+                      <i data-lucide="<%= header[:icon] %>" class="motors-section-icon" aria-hidden="true"></i>
+                    <% end %>
                   </span>
                   <div class="motors-section-header-text">
                     <h3 class="motors-section-title"><%= section_heading %></h3>
@@ -175,7 +179,11 @@
           <div class="motors-category-section">
             <div class="motors-section-header">
               <span class="motors-section-header-icon" aria-hidden="true">
-                <i data-lucide="<%= header[:icon] %>" class="motors-section-icon" aria-hidden="true"></i>
+                <% if header[:emoji].present? %>
+                  <span class="motors-section-emoji" aria-hidden="true"><%= header[:emoji] %></span>
+                <% else %>
+                  <i data-lucide="<%= header[:icon] %>" class="motors-section-icon" aria-hidden="true"></i>
+                <% end %>
               </span>
               <div class="motors-section-header-text">
                 <h3 class="motors-section-title">Marketplace</h3>
@@ -202,7 +210,11 @@
               <div class="motors-category-section">
                 <div class="motors-section-header">
                   <span class="motors-section-header-icon" aria-hidden="true">
-                    <i data-lucide="<%= header[:icon] %>" class="motors-section-icon" aria-hidden="true"></i>
+                    <% if header[:emoji].present? %>
+                      <span class="motors-section-emoji" aria-hidden="true"><%= header[:emoji] %></span>
+                    <% else %>
+                      <i data-lucide="<%= header[:icon] %>" class="motors-section-icon" aria-hidden="true"></i>
+                    <% end %>
                   </span>
                   <div class="motors-section-header-text">
                     <h3 class="motors-section-title"><%= section_heading %></h3>
