@@ -163,7 +163,7 @@ module ListingsHelper
   end
 
   # Marketplace: single section, section-level icon in header, tiles text-only.
-  MARKETPLACE_SECTION_HEADER = { icon: "shopping-bag", emoji: "🛍️", subtitle: "Browse by category" }.freeze
+  MARKETPLACE_SECTION_HEADER = { icon: "shopping-bag", emoji: "✨", subtitle: "Browse by category" }.freeze
 
   def marketplace_section_header
     MARKETPLACE_SECTION_HEADER
