@@ -20,6 +20,11 @@
                   <span>📷</span>
                 </div>
               <% end %>
+              <% if listing.sold? %>
+                <div class="listing-sold-overlay" aria-hidden="true">
+                  <span class="listing-sold-text">Sold</span>
+                </div>
+              <% end %>
             </div>
             <div class="listing-info">
               <h3 class="listing-title"><%= listing.title %></h3>
@@ -39,6 +44,9 @@
                   Price on request
                 <% end %>
               </div>
+              <% if listing.sold? %>
+                <span class="listing-card-sold-label">Sold</span>
+              <% end %>
               <div class="listing-location">
                 📍 <%= listing.city || "Location not specified" %>
               </div>

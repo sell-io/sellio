@@ -476,13 +476,13 @@
         <%= link_to listings_path, class: "browse-category-card" do %>
           <span class="browse-category-icon" aria-hidden="true">📋</span>
           <span class="browse-category-name">All Categories</span>
-          <span class="browse-category-count"><%= Listing.available.count %> ads</span>
+          <span class="browse-category-count"><%= Listing.count %> ads</span>
         <% end %>
         <% @categories.each do |category| %>
           <%= link_to listings_path(category_id: category.id), class: "browse-category-card" do %>
             <span class="browse-category-icon" aria-hidden="true"><%= category_icon(category) %></span>
             <span class="browse-category-name"><%= category.name %></span>
-            <span class="browse-category-count"><%= category.listings.available.count %> ads</span>
+            <span class="browse-category-count"><%= category.listings.count %> ads</span>
           <% end %>
         <% end %>
       </div>
@@ -779,7 +779,9 @@
                     </div>
                   <% end %>
                   <% if listing.sold? %>
-                    <span class="listing-badge-sold-overlay">Sold</span>
+                    <div class="listing-sold-overlay" aria-hidden="true">
+                      <span class="listing-sold-text">Sold</span>
+                    </div>
                   <% end %>
                 </div>
                 <div class="listing-content">
@@ -825,7 +827,11 @@
                         Price on request
                       <% end %>
                     </span>
-                    <span class="btn-view">View</span>
+                    <% if listing.sold? %>
+                      <span class="listing-card-sold-label">Sold</span>
+                    <% else %>
+                      <span class="btn-view">View</span>
+                    <% end %>
                   </div>
                 </div>
               <% end %>

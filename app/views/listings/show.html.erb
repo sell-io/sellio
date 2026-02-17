@@ -43,6 +43,11 @@
             </div>
             <div class="main-image" id="main-image-container">
               <%= image_tag ordered_images.first, class: "listing-main-image", id: "main-listing-image", data: { image_url: url_for(ordered_images.first) } %>
+              <% if @listing.sold? %>
+                <div class="listing-sold-overlay listing-sold-overlay--detail" aria-hidden="true">
+                  <span class="listing-sold-text">Sold</span>
+                </div>
+              <% end %>
             </div>
             
             <!-- Hidden images for JavaScript to access all images -->
@@ -63,7 +68,7 @@
               <h1 class="listing-detail-title"><%= @listing.title %></h1>
               <div class="listing-meta">
                 <% if @listing.sold? %>
-                  <span class="listing-badge-sold">Sold</span>
+                  <span class="listing-badge-sold listing-badge-sold--detail">Sold</span>
                 <% end %>
                 <% if @listing.boosted? %>
                   <span class="listing-badge-boosted"><%= @listing.boost_time_left ? "Boosted (#{@listing.boost_time_left})" : "Boosted" %></span>
@@ -316,7 +321,9 @@
                     <div class="image-placeholder small">📷</div>
                   <% end %>
                   <% if listing.sold? %>
-                    <span class="listing-badge-sold-overlay">Sold</span>
+                    <div class="listing-sold-overlay" aria-hidden="true">
+                      <span class="listing-sold-text">Sold</span>
+                    </div>
                   <% end %>
                 </div>
                 <div class="similar-listing-content">
@@ -328,6 +335,9 @@
                       Price on request
                     <% end %>
                   </span>
+                  <% if listing.sold? %>
+                    <span class="listing-card-sold-label">Sold</span>
+                  <% end %>
                 </div>
               <% end %>
             </div>

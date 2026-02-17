@@ -5,8 +5,7 @@ class ListingsController < ApplicationController
   # GET /listings or /listings.json
   def index
     @listings = Listing.all
-    # Exclude sold unless include_sold=1
-    @listings = @listings.available unless params[:include_sold] == "1"
+    # (Exclude sold later so total count includes sold – count only drops when listing is deleted)
     # Featured listings: always show a small randomized set on the homepage section
     @featured_listings = Listing.available.order(Arel.sql('RANDOM()')).limit(4)
     @categories = Category.by_display_order
@@ -144,6 +143,11 @@ class ListingsController < ApplicationController
       @listings = @listings.joins(:images_attachments).distinct
     end
 
+    # Total count includes sold (so marking as sold doesn't lower "X listings" – only delete does)
+    @listings_total_count = @listings.count
+    # Keep sold listings in search – they stay visible and show "Sold" on the card (filter can be added later)
+    # @listings = @listings.available unless params[:include_sold] == "1"
+
     # Boosted listings first (when searching by category or search term), then apply sort
     boost_first = Arel.sql("(CASE WHEN boosted_until IS NOT NULL AND boosted_until > NOW() THEN 0 ELSE 1 END) ASC")
     case params[:sort]
@@ -159,12 +163,12 @@ class ListingsController < ApplicationController
 
     # Paginate with limit/offset (24 per page)
     per_page = 24
-    @listings_total_count = @listings.count
+    list_count = @listings.count
     page_num = [params[:page].to_i, 1].max
     @listings = @listings.limit(per_page).offset((page_num - 1) * per_page)
     @listings_current_page = page_num
     @listings_per_page = per_page
-    @listings_total_pages = (@listings_total_count.to_f / per_page).ceil
+    @listings_total_pages = (list_count.to_f / per_page).ceil
   end
 
   # GET /listings/1 or /listings/1.json
@@ -185,8 +189,9 @@ class ListingsController < ApplicationController
   end
 
   # POST /listings/:id/mark_as_sold
+  # Only updates status to "sold". Does NOT delete or destroy the listing – the listing stays in the DB.
   def mark_as_sold
-    @listing.update!(status: "sold")
+    @listing.update_columns(status: "sold")
     redirect_to @listing, notice: "Listing marked as sold."
   end
 

@@ -3571,6 +3571,7 @@ select[name*="year"]:focus {
 }
 
 .listing-image-container {
+  position: relative;
   width: 100%;
   height: 280px;
   overflow: hidden;
@@ -3745,6 +3746,18 @@ select[name*="year"]:focus {
 .btn-view:hover {
   background-color: #4FD1A5;
   transform: scale(1.05);
+}
+
+.listing-card-sold-label {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #374151;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 4px;
 }
 
 .empty-state {
@@ -5409,10 +5422,47 @@ select[name*="year"]:focus {
   font-weight: 600;
 }
 
+.listing-badge-sold--detail {
+  font-size: 1.125rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+}
+
 .listing-badge-sold-overlay {
   position: absolute;
   top: 0.5rem;
   left: 0.5rem;
+}
+
+/* Big "SOLD" overlay on listing image (cards + detail) */
+.listing-sold-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.listing-sold-text {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  padding: 0.5rem 1rem;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+}
+
+.listing-sold-overlay--detail .listing-sold-text {
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  letter-spacing: 0.2em;
+  padding: 0.75rem 1.5rem;
+  border-width: 4px;
 }
 
 .listing-card .listing-image,

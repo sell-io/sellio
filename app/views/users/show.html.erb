@@ -163,6 +163,11 @@
                     <span>📷</span>
                   </div>
                 <% end %>
+                <% if listing.sold? %>
+                  <div class="listing-sold-overlay" aria-hidden="true">
+                    <span class="listing-sold-text">Sold</span>
+                  </div>
+                <% end %>
               </div>
               <div class="listing-content">
                 <h3 class="listing-title">
@@ -177,7 +182,11 @@
                       Price on request
                     <% end %>
                   </span>
-                  <%= link_to "View", listing, class: "btn-view" %>
+                  <% if listing.sold? %>
+                    <span class="listing-card-sold-label">Sold</span>
+                  <% else %>
+                    <%= link_to "View", listing, class: "btn-view" %>
+                  <% end %>
                 </div>
               </div>
             </div>
