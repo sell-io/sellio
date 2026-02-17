@@ -148,17 +148,18 @@ class ListingsController < ApplicationController
     # Keep sold listings in search – they stay visible and show "Sold" on the card (filter can be added later)
     # @listings = @listings.available unless params[:include_sold] == "1"
 
-    # Boosted listings first (when searching by category or search term), then apply sort
+    # Boosted first, then available first / sold last (sold items on later pages), then sort
     boost_first = Arel.sql("(CASE WHEN boosted_until IS NOT NULL AND boosted_until > NOW() THEN 0 ELSE 1 END) ASC")
+    sold_last = Arel.sql("(CASE WHEN status = 'sold' THEN 1 ELSE 0 END) ASC")
     case params[:sort]
     when "price_asc"
-      @listings = @listings.reorder(boost_first, price: :asc)
+      @listings = @listings.reorder(boost_first, sold_last, price: :asc)
     when "price_desc"
-      @listings = @listings.reorder(boost_first, price: :desc)
+      @listings = @listings.reorder(boost_first, sold_last, price: :desc)
     when "newest", "distance"
-      @listings = @listings.reorder(boost_first, created_at: :desc)
+      @listings = @listings.reorder(boost_first, sold_last, created_at: :desc)
     else
-      @listings = @listings.reorder(boost_first, created_at: :desc)
+      @listings = @listings.reorder(boost_first, sold_last, created_at: :desc)
     end
 
     # Paginate with limit/offset (24 per page)
