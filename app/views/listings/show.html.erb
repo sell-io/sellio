@@ -273,7 +273,7 @@
                   <% if current_user.is_verified? && current_user.free_boosts_remaining > 0 %>
                     <%= link_to "Use free boost (#{current_user.free_boosts_remaining} left this month)", boost_listing_path(@listing.id), class: "btn-seller-action btn-boost", data: { turbo: "false" } %>
                   <% else %>
-                    <%= link_to "Boost listing (€1, 7 days)", boost_listing_path(@listing.id), class: "btn-seller-action btn-boost", data: { turbo: "false" } %>
+                    <%= link_to "Boost listing (€0.99, 7 days)", boost_listing_path(@listing.id), class: "btn-seller-action btn-boost", data: { turbo: "false" } %>
                   <% end %>
                 <% end %>
                 <%= link_to "Edit Listing", edit_listing_path(@listing), class: "btn-seller-action btn-edit" %>

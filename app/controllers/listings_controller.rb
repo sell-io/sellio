@@ -9,10 +9,25 @@ class ListingsController < ApplicationController
     # Featured listings: always show a small randomized set on the homepage section
     @featured_listings = Listing.available.order(Arel.sql('RANDOM()')).limit(4)
     @categories = Category.by_display_order
-    
-    # Category filter (by ID)
+
+    # Homepage scope: search only within the selected tab (cars / marketplace / farming)
+    if params[:scope].present?
+      motors_cat = Category.find_by("name ILIKE ?", "%motor%")
+      farming_cat = Category.find_by("name ILIKE ?", "%farming%")
+      case params[:scope].to_s.downcase
+      when "cars"
+        @listings = @listings.where(category_id: motors_cat.id) if motors_cat
+      when "farming"
+        @listings = @listings.where(category_id: farming_cat.id) if farming_cat
+      when "marketplace"
+        marketplace_ids = Category.by_display_order.reject { |c| c.name.to_s.downcase.include?("motor") || c.name.to_s.downcase.include?("farming") }.map(&:id)
+        @listings = @listings.where(category_id: marketplace_ids) if marketplace_ids.any?
+      end
+    end
+
+    # Category filter (by ID) – only when not scoped by homepage (scope param already filtered above)
     if params[:category_id].present?
-      @listings = @listings.where(category_id: params[:category_id])
+      @listings = @listings.where(category_id: params[:category_id]) if params[:scope].blank?
       @selected_category = Category.find_by(id: params[:category_id])
     end
     

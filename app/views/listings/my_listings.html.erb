@@ -62,7 +62,7 @@
                     <% if current_user.is_verified? && current_user.free_boosts_remaining > 0 %>
                       <%= link_to "Free boost (#{current_user.free_boosts_remaining})", boost_listing_path(listing.id), class: "btn-boost-small", data: { turbo: "false" } %>
                     <% else %>
-                      <%= link_to "Boost", boost_listing_path(listing.id), class: "btn-boost-small", data: { turbo: "false" } %>
+                      <%= link_to "Boost for €0.99", boost_listing_path(listing.id), class: "btn-boost-small", data: { turbo: "false" } %>
                     <% end %>
                   <% end %>
                 </div>
