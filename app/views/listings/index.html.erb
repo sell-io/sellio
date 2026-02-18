@@ -35,6 +35,7 @@
         <div class="marketplace-search-wrap" id="marketplaceSearchWrap" hidden>
           <%= form_with url: listings_path, method: :get, local: true, class: "marketplace-search-form" do |f| %>
             <%= f.hidden_field :category_id, value: "", id: "marketplaceSearchCategoryId" %>
+            <%= f.hidden_field :scope, value: "cars", id: "marketplaceSearchScope" %>
             <div class="marketplace-search-row">
               <div class="marketplace-search-input-wrap">
                 <span class="marketplace-search-icon" aria-hidden="true">
@@ -249,6 +250,7 @@
           var input = document.getElementById('marketplaceSearchInput');
           var btn = document.getElementById('marketplaceSearchButton');
           var catInput = document.getElementById('marketplaceSearchCategoryId');
+          var scopeInput = document.getElementById('marketplaceSearchScope');
           if (input && btn) {
             var p = input.getAttribute('data-placeholder-' + tab);
             var l = btn.getAttribute('data-label-' + tab);
@@ -256,6 +258,7 @@
             btn.value = l || 'Search Marketplace';
           }
           if (catInput) { catInput.value = categoryId || ''; }
+          if (scopeInput) { scopeInput.value = tab || 'marketplace'; }
         }
       cards.forEach(function(card) {
         card.addEventListener('click', function() {
@@ -274,6 +277,10 @@
           panels.forEach(function(p) {
             if (p.getAttribute('data-tab') === t) { p.classList.add('active'); } else { p.classList.remove('active'); }
           });
+          var activePanel = document.getElementById('panel-' + t);
+          if (activePanel) {
+            activePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
           if (typeof lucide !== 'undefined') {
             var root = document.getElementById('panel-cars');
             if (t === 'cars' && root) lucide.createIcons({ root: root });
@@ -466,9 +473,9 @@
   </section>
   <% end %>
 
-  <!-- Browse by Category (clickable cards, no form - show when on browse page with no filters) -->
+  <!-- Browse by Category (clickable cards - hide when search is scoped to marketplace/cars/farming) -->
   <% has_filters = params[:make].present? || params[:model].present? || params[:min_year].present? || params[:max_year].present? || params[:min_mileage].present? || params[:max_mileage].present? || params[:min_price].present? || params[:max_price].present? || params[:subcategory].present? %>
-  <% if params[:category_id].blank? && params[:search].blank? && params[:location].blank? && is_browse_page && !has_filters %>
+  <% if params[:category_id].blank? && params[:search].blank? && params[:location].blank? && params[:scope].blank? && is_browse_page && !has_filters %>
   <section class="browse-category-section">
     <div class="container">
       <h2 class="browse-category-title">Browse by Category</h2>
