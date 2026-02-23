@@ -3,7 +3,7 @@ class Category < ApplicationRecord
 
   # Display order for navigation and Browse by Category (demand-led)
   DISPLAY_ORDER = [
-    "Motors", "Properties", "Property", "Electronics", "Furniture",
+    "Motors", "Properties", "Property", "Electronics", "Furniture", "DIY",
     "Baby + Kids", "Sport + Hobbies", "Services", "Animals", "Farming",
     "Music + Education"
   ].freeze

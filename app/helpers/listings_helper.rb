@@ -23,6 +23,14 @@ module ListingsHelper
       Home\ Office Catering\ Fittings Carpets\ &\ Rugs Curtains
       Mattresses Mirrors Other
     ],
+    "DIY" => %w[
+      Power\ tools Hand\ tools Hardware Paint\ &\ Decorating Plumbing\ supplies
+      Electrical\ supplies Timber Tiles Flooring Garden\ DIY Kitchens Bathrooms
+      Building\ materials Doors\ &\ Windows Fencing Roofing Insulation
+      Tiling Grouting Adhesives Screws\ &\ Fixings Ladders Workbenches
+      Storage Safety\ equipment Sanders Drills Saws Screwdrivers
+      Paintbrushes Rollers Fillers Sealants Other
+    ],
     "Fashion" => %w[
       Men Women Kids Unisex Shoes Bags Accessories Jewellery Watches
       Coats Jackets Sportswear Mens\ Clothes Womens\ Clothes Childrens\ Clothes
@@ -66,7 +74,9 @@ module ListingsHelper
       Golf Tennis Football GAA Rugby Water\ sports Winter\ sports Hiking
       Yoga Fitness Skateboard Swimming Equestrian Martial\ arts
       Gymnastics Athletics Badminton Basketball Hurling Golf\ clubs
-      Ski\ &\ Snowboard Other
+      Ski\ &\ Snowboard Hobbies Collectibles Crafts Board\ games
+      Puzzles Model\ kits Art\ supplies Musical\ instruments
+      Books Comics Memorabilia Stamps Coins Other
     ],
     "Baby + Kids" => %w[
       Pram Pushchair Stroller Clothing Toys Furniture Crib Cot High\ chair
