@@ -81,6 +81,12 @@ Category.find_or_create_by(name: "Furniture") do |cat|
   cat.slug = nil
 end
 
+Category.find_or_create_by(name: "DIY") do |cat|
+  cat.description = "Tools, Materials & Home Improvement"
+  cat.icon = "🔨"
+  cat.slug = nil
+end
+
 Category.find_or_create_by(name: "Fashion") do |cat|
   cat.description = "Clothing & Accessories"
   cat.icon = "👕"
