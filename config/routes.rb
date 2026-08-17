@@ -5,7 +5,6 @@ Rails.application.routes.draw do
     registrations: 'registrations',
     sessions: 'users/sessions'
   }
-  resources :tasks
   resources :messages, only: [:index, :show, :new, :create]
   resources :users, only: [:show] do
     resources :reviews, only: [:create]
