@@ -1,0 +1,7 @@
+You've got a counter-offer
+
+For <%= @offer.listing.title %>, <%= @offer.proposer.name || @offer.proposer.email %> countered with €<%= number_with_delimiter(@offer.amount.to_i) %>.
+<% if @offer.message.present? %>
+"<%= @offer.message %>"
+<% end %>
+Respond here: <%= offers_url %>

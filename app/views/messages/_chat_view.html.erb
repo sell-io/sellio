@@ -1,4 +1,7 @@
-<div class="chat-shell">
+<div class="chat-shell"
+     data-listing-id="<%= message.listing.id %>"
+     data-other-user-id="<%= other_user.id %>"
+     data-current-user-id="<%= current_user.id %>">
   <!-- Header -->
   <div class="chat-header">
     <div class="left">
@@ -54,12 +57,15 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+  import { createConsumer } from "@rails/actioncable";
+
   document.addEventListener('DOMContentLoaded', function() {
+    const chatShell = document.querySelector('.chat-shell');
     const chatMessages = document.getElementById('chat-messages');
     const chatInput = document.getElementById('chat-input');
     const chatForm = document.getElementById('chat-form');
-    
+
     // Smooth scroll to bottom
     function scrollToBottom() {
       if (chatMessages) {
@@ -69,15 +75,15 @@
         });
       }
     }
-    
+
     // Initial smooth scroll after a tiny delay to ensure content is rendered
     setTimeout(scrollToBottom, 100);
-    
+
     // Also scroll immediately for instant feedback
     if (chatMessages) {
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
-    
+
     // Handle input focus for mobile - scroll input into view
     if (chatInput) {
       chatInput.addEventListener('focus', function() {
@@ -108,21 +114,11 @@
       chatInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
           e.preventDefault();
-          if (chatForm && chatInput.value.trim()) {
-            // Scroll to bottom before submitting for smooth transition
-            scrollToBottom();
-            // Small delay to allow scroll to start
-            setTimeout(function() {
-              chatForm.submit();
-            }, 50);
-          }
+          sendMessage();
         }
       });
-      
-      // Focus input on load (but don't scroll on initial load)
-      // chatInput.focus(); // Commented out to prevent auto-focus on page load
     }
-    
+
     // Scroll to bottom when new messages are added (with smooth behavior)
     const observer = new MutationObserver(function() {
       // Use requestAnimationFrame for smooth updates
@@ -130,21 +126,76 @@
         scrollToBottom();
       });
     });
-    
+
     if (chatMessages) {
       observer.observe(chatMessages, { childList: true, subtree: true });
     }
-    
-    // Handle form submission
+
+    // Send the message via fetch (no full-page reload). The new message bubble - for both
+    // the sender and the recipient - is rendered from the ConversationChannel broadcast below,
+    // not from this response, so there's a single code path for "a message appeared."
+    function sendMessage() {
+      if (!chatInput.value.trim()) return;
+
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+      const formData = new FormData(chatForm);
+
+      chatInput.disabled = true;
+      fetch(chatForm.action, {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': csrfToken, 'Accept': 'application/json' },
+        body: formData
+      })
+        .then(function(response) {
+          if (response.ok) {
+            chatInput.value = '';
+          }
+        })
+        .finally(function() {
+          chatInput.disabled = false;
+          chatInput.focus();
+        });
+    }
+
     if (chatForm) {
       chatForm.addEventListener('submit', function(e) {
-        if (!chatInput.value.trim()) {
-          e.preventDefault();
-          return false;
-        }
-        // Scroll to bottom before form submits
-        scrollToBottom();
+        e.preventDefault();
+        sendMessage();
       });
+    }
+
+    // Live-append messages sent by either side of this conversation.
+    if (chatShell) {
+      const { listingId, otherUserId, currentUserId } = chatShell.dataset;
+      const consumer = createConsumer();
+
+      consumer.subscriptions.create(
+        { channel: "ConversationChannel", listing_id: listingId, other_user_id: otherUserId },
+        {
+          received(data) {
+            const isSent = String(data.sender_id) === String(currentUserId);
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'message ' + (isSent ? 'outgoing' : 'incoming');
+
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+
+            const text = document.createElement('span');
+            text.className = 'text';
+            text.textContent = data.content;
+
+            const time = document.createElement('span');
+            time.className = 'time';
+            time.textContent = data.created_at;
+
+            bubble.appendChild(text);
+            bubble.appendChild(time);
+            wrapper.appendChild(bubble);
+            chatMessages.appendChild(wrapper);
+          }
+        }
+      );
     }
   });
 </script>

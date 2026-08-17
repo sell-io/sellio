@@ -1,11 +1,27 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title) || "Dealo - Buy & Sell Anything" %></title>
+    <% page_title = content_for(:title) || "Dealo - Buy & Sell Anything" %>
+    <% page_description = content_for(:description) || "Buy and sell cars, property, electronics, furniture and more on Dealo - Ireland's marketplace for local deals." %>
+    <% page_image = content_for(:image) || "#{request.base_url}/SellioHomePage.png" %>
+    <title><%= page_title %></title>
+    <meta name="description" content="<%= page_description %>">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Dealo">
     <meta name="mobile-web-app-capable" content="yes">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Dealo">
+    <meta property="og:title" content="<%= page_title %>">
+    <meta property="og:description" content="<%= page_description %>">
+    <meta property="og:image" content="<%= page_image %>">
+    <meta property="og:url" content="<%= request.original_url %>">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<%= page_title %>">
+    <meta name="twitter:description" content="<%= page_description %>">
+    <meta name="twitter:image" content="<%= page_image %>">
+
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
@@ -547,6 +563,7 @@
               <% if current_user&.admin? %>
                 <%= link_to "Admin", admin_root_path, class: "mobile-menu-item" %>
               <% end %>
+              <%= link_to "My Offers", offers_path, class: "mobile-menu-item" %>
               <%= link_to "My Listings", my_listings_path, class: "mobile-menu-item" %>
               <%= link_to "My Saved Ads", my_saved_ads_path, class: "mobile-menu-item" %>
               <%= link_to "Saved Searches", my_saved_searches_path, class: "mobile-menu-item" %>
@@ -598,6 +615,7 @@
                   <li><hr class="dropdown-divider"></li>
                 <% end %>
                 <li><%= link_to "My Messages", my_messages_path, class: "dropdown-item" %></li>
+                <li><%= link_to "My Offers", offers_path, class: "dropdown-item" %></li>
                 <li><%= link_to "My Listings", my_listings_path, class: "dropdown-item" %></li>
                 <li><%= link_to "My Saved Ads", my_saved_ads_path, class: "dropdown-item" %></li>
                 <li><%= link_to "Saved Searches", my_saved_searches_path, class: "dropdown-item" %></li>
@@ -624,6 +642,8 @@
         </div>
       </div>
     </header>
+
+    <%= render "shared/flash" %>
 
     <main class="main-content">
       <%= yield %>
@@ -770,5 +790,77 @@
 
     <%# Lucide icons (e.g. farming category grid) %>
     <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+
+    <% if user_signed_in? %>
+      <script>
+        window.VAPID_PUBLIC_KEY = "<%= Rails.application.config.x.vapid[:public_key] %>";
+
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/service-worker.js');
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+          const padding = '='.repeat((4 - base64String.length % 4) % 4);
+          const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+          const rawData = atob(base64);
+          return Uint8Array.from([...rawData].map(function(c) { return c.charCodeAt(0); }));
+        }
+
+        window.DealoPush = {
+          async isSubscribed() {
+            if (!('serviceWorker' in navigator)) return false;
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            return !!subscription;
+          },
+
+          async subscribe() {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+              alert('Push notifications are not supported in this browser.');
+              return false;
+            }
+
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') return false;
+
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY)
+            });
+
+            const subJson = subscription.toJSON();
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+            await fetch('/push_subscription', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+              body: JSON.stringify({
+                endpoint: subJson.endpoint,
+                p256dh: subJson.keys.p256dh,
+                auth: subJson.keys.auth
+              })
+            });
+
+            return true;
+          },
+
+          async unsubscribe() {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            if (!subscription) return;
+
+            const endpoint = subscription.endpoint;
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+            await subscription.unsubscribe();
+            await fetch('/push_subscription?endpoint=' + encodeURIComponent(endpoint), {
+              method: 'DELETE',
+              headers: { 'X-CSRF-Token': csrfToken }
+            });
+          }
+        };
+      </script>
+    <% end %>
   </body>
 </html>

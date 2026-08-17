@@ -1,0 +1,14 @@
+<% content_for :title, "Something went wrong - Dealo" %>
+<div class="static-page error-page">
+  <div class="container static-page-container">
+    <p class="error-page-code">500</p>
+    <h1 class="static-page-title">Something went wrong on our end</h1>
+    <div class="static-page-content">
+      <p class="static-lead">We've hit an unexpected error. It's not you - it's us. Please try again in a moment.</p>
+      <div class="error-page-actions">
+        <%= link_to "Go to homepage", root_path, class: "btn-primary" %>
+        <%= link_to "Contact support", contact_path, class: "btn-secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

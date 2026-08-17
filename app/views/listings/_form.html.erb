@@ -73,7 +73,7 @@
       <div class="form-row">
         <div class="form-field">
           <label for="listing_make">Make</label>
-          <select name="listing[make]" id="listing_make" class="form-select" onchange="if(window.updateListingModels) { console.log('Make changed via onchange, calling updateListingModels'); window.updateListingModels(); } else { console.error('updateListingModels not available on change'); }">
+          <select name="listing[make]" id="listing_make" class="form-select" onchange="if(window.updateListingModels) { window.updateListingModels(); } else { console.error('updateListingModels not available on change'); }">
             <option value="">All Makes</option>
             <option value="Alfa Romeo" <%= 'selected' if listing.extra_fields&.dig('make') == 'Alfa Romeo' %>>Alfa Romeo</option>
             <option value="Aston Martin" <%= 'selected' if listing.extra_fields&.dig('make') == 'Aston Martin' %>>Aston Martin</option>
@@ -415,7 +415,6 @@
   // Function to update models based on selected make in listing form
   // Make sure this is assigned to window so it's globally accessible
   window.updateListingModels = function() {
-    console.log('=== updateListingModels function called ===');
     const makeSelect = document.getElementById('listing_make');
     const modelSelect = document.getElementById('listing_model');
     
@@ -429,14 +428,12 @@
     const selectedMakeText = makeSelect.options[makeSelect.selectedIndex]?.text || '';
     const currentModel = modelSelect.value; // Preserve current selection if editing
     
-    console.log('updateListingModels called - Make value:', selectedMakeValue, 'Make text:', selectedMakeText);
     
     // Clear existing options
     modelSelect.innerHTML = '<option value="">Select Model</option>';
     
     // If no make is selected or it's the "All Makes" option, clear model dropdown
     if (!selectedMakeValue || selectedMakeValue === '' || selectedMakeText === 'All Makes') {
-      console.log('No make selected or "All Makes" selected, clearing models');
       modelSelect.value = '';
       return;
     }
@@ -451,8 +448,6 @@
       return;
     }
     
-    console.log('Looking for make:', selectedMake);
-    console.log('Available makes in carModels:', Object.keys(modelsData));
     
     // Try exact match first
     let models = modelsData[selectedMake];
@@ -464,7 +459,6 @@
       });
       if (foundKey) {
         models = modelsData[foundKey];
-        console.log('Found make with case-insensitive match:', foundKey);
       } else {
         // Try matching by text if value doesn't match
         const foundByText = Object.keys(modelsData).find(function(key) {
@@ -472,13 +466,11 @@
         });
         if (foundByText) {
           models = modelsData[foundByText];
-          console.log('Found make by matching text:', foundByText);
         }
       }
     }
     
     if (models && Array.isArray(models) && models.length > 0) {
-      console.log('✓ Found models for make:', selectedMake, 'Models:', models);
       // Add models for selected make
       models.forEach(function(model) {
         const option = document.createElement('option');
@@ -486,14 +478,12 @@
         option.textContent = model;
         modelSelect.appendChild(option);
       });
-      console.log('✓ Added', models.length, 'models to dropdown');
       
       // If editing and current model exists in the list, restore it
       if (currentModel) {
         const modelOption = Array.from(modelSelect.options).find(opt => opt.value === currentModel);
         if (modelOption) {
           modelSelect.value = currentModel;
-          console.log('✓ Restored current model:', currentModel);
         }
       }
     } else {
@@ -506,7 +496,6 @@
       option.textContent = 'Other';
       modelSelect.appendChild(option);
     }
-    console.log('=== updateListingModels function finished ===');
   };
   
   // Vehicle registration lookup
@@ -553,7 +542,6 @@
       
       // If editing and make is already selected, populate models immediately
       if (makeSelect.value) {
-        console.log('Make already selected on page load:', makeSelect.value);
         if (window.updateListingModels) {
           window.updateListingModels();
         } else {
@@ -564,7 +552,6 @@
       // Also try after a short delay to catch any edge cases
       setTimeout(function() {
         if (makeSelect.value && modelSelect.options.length <= 1) {
-          console.log('Retrying model update after delay, make:', makeSelect.value);
           if (window.updateListingModels) {
             window.updateListingModels();
           } else {
@@ -576,7 +563,6 @@
       // One more retry after a longer delay to ensure it works
       setTimeout(function() {
         if (makeSelect.value && modelSelect.options.length <= 1) {
-          console.log('Final retry for model update, make:', makeSelect.value);
           if (window.updateListingModels) {
             window.updateListingModels();
           }
@@ -741,7 +727,6 @@
     function processFiles(files) {
       if (!files || files.length === 0) return;
       if (window.processingFiles) {
-        console.log('Already processing files, skipping duplicate call');
         return;
       }
       
@@ -812,13 +797,11 @@
       const imageUploadZone = document.getElementById('image-upload-zone');
       
       if (!imageUploadInput || !imageUploadZone) {
-        console.log('Image upload elements not found, skipping listener setup');
         return;
       }
       
       // Check if already set up to prevent duplicates
       if (imageUploadZone.hasAttribute('data-upload-listeners-setup')) {
-        console.log('Upload listeners already set up, removing old ones and re-setting up...');
         // Remove the flag to allow re-setup
         imageUploadZone.removeAttribute('data-upload-listeners-setup');
       }
@@ -846,7 +829,6 @@
       // File input change - use global flag to prevent duplicate processing
       const newChangeHandler = function(e) {
         if (window.processingFiles) {
-          console.log('Already processing files, skipping...');
           e.target.value = '';
           return;
         }
@@ -914,7 +896,6 @@
       imageUploadZone.addEventListener('dragleave', zoneDragLeave);
       imageUploadZone.addEventListener('drop', zoneDrop);
       
-      console.log('Image upload listeners set up successfully');
     };
     
     // Setup listeners initially - wait for DOM to be ready
@@ -1078,7 +1059,6 @@
               fileId: thisItem.dataset.fileId,
               fileIndex: thisItem.dataset.index
             }));
-            console.log('Drag start (new image):', thisItem.dataset.fileId);
           });
           
           // Desktop drag over - CRITICAL: must prevent default
@@ -1325,7 +1305,6 @@
               e.preventDefault();
               e.stopImmediatePropagation();
               const fileId = this.getAttribute('data-file-id');
-              console.log('Remove button clicked, fileId:', fileId);
               if (fileId) {
                 removeImageByFileId(fileId);
               } else {
@@ -1515,7 +1494,6 @@
           return index;
         }).join(',');
         imageOrderInput.value = order;
-        console.log('Updated new image order:', order, 'File count:', imageFiles.length);
       } else if (imageOrderInput) {
         // Clear if no files
         imageOrderInput.value = '';
@@ -1534,13 +1512,10 @@
         return;
       }
       
-      console.log('Setting up drag handlers for existing images...');
-      console.log('Grid element:', existingImageGrid);
       
       // Check if handlers are already set up to avoid duplicates
       const handlersAlreadySetup = existingImageGrid.hasAttribute('data-drag-handlers-setup');
       if (handlersAlreadySetup) {
-        console.log('Drag handlers already set up, skipping to prevent duplication');
         return;
       }
       
@@ -1637,7 +1612,6 @@
         endTouchDrag();
       }, { passive: true });
       
-      console.log('Set up drag handlers for', allDraggableItems.length, 'items');
       
       // Add .image-item class to all items for consistent selection
       const allItems = existingImageGrid.querySelectorAll('.existing-image-item, .image-thumbnail-item, .new-image-placeholder');
@@ -1702,7 +1676,6 @@
             }
           }).filter(function(id) { return id; }).join(',');
           imageOrderContainer.value = order;
-          console.log('Initialized/updated existing image order:', order);
         }
       }
       
@@ -1902,7 +1875,6 @@
       
       // Mark as set up after all handlers are attached
       existingImageGrid.setAttribute('data-drag-handlers-setup', 'true');
-      console.log('✓ Drag handlers setup complete for', existingItems.length, 'items');
       
       // Function to setup drag handlers for new image placeholders
       // Since we use event delegation on the grid, we just need to make it draggable
@@ -2095,7 +2067,6 @@
         );
         if (items.length === 0) {
           container.value = '';
-          console.log('No existing images to order');
           return;
         }
         const order = Array.from(items).map(function(item) {
@@ -2111,7 +2082,6 @@
           }
         }).filter(function(id) { return id; }).join(',');
         container.value = order;
-        console.log('Updated existing image order:', order, 'Item count:', items.length);
       }
       
       // Initialize the existing image order on page load
@@ -2150,14 +2120,12 @@
             if (reorderedFiles.length > 0) {
               window.imageFiles = reorderedFiles;
               imageFiles = reorderedFiles;
-              console.log('Rebuilt imageFiles from placeholders in grid order:', reorderedFiles.length, 'files');
             }
           }
           
           // CRITICAL: Update file input with current imageFiles (so files are submitted)
           if (typeof updateFileInput === 'function') {
             updateFileInput();
-            console.log('Updated file input before submission, file count:', imageFiles ? imageFiles.length : 0);
           }
           
           // Update combined image order (this includes both new and existing) - MOST IMPORTANT
@@ -2221,15 +2189,11 @@
           const newOrderContainer = document.getElementById('image-order');
           const fileInput = document.getElementById('image-upload-input');
           
-          console.log('=== FORM SUBMISSION DEBUG ===');
           if (fileInput && fileInput.files) {
-            console.log('File input has', fileInput.files.length, 'files');
             for (let i = 0; i < fileInput.files.length; i++) {
-              console.log('  File', i, ':', fileInput.files[i].name);
             }
           }
           if (combinedOrderInput) {
-            console.log('Combined image order:', combinedOrderInput.value);
             // If it's still empty, try one more time
             if (!combinedOrderInput.value) {
               console.warn('Combined order is empty! Trying to update again...');
@@ -2239,13 +2203,9 @@
             }
           }
           if (existingOrderContainer) {
-            console.log('Existing image order:', existingOrderContainer.value);
           }
           if (newOrderContainer) {
-            console.log('New image order:', newOrderContainer.value);
           }
-          console.log('imageFiles array length:', window.imageFiles ? window.imageFiles.length : 0);
-          console.log('===========================');
         }, true);
         
         // Also update order when submit button is clicked (as a backup)
@@ -2625,7 +2585,6 @@
           // And again after a delay to ensure it's set
           setTimeout(function() {
             window.updateCombinedImageOrder();
-            console.log('Initialized combined order on page load');
           }, 150);
         }
       }, 100);
@@ -2690,7 +2649,6 @@
           // And again after a delay to ensure it's set
           setTimeout(function() {
             window.updateCombinedImageOrder();
-            console.log('Initialized combined order on turbo render');
           }, 150);
         }
       }, 100);

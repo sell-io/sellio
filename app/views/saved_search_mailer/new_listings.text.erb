@@ -1,0 +1,10 @@
+<%= @listings.count %> new <%= 'listing'.pluralize(@listings.count) %> for "<%= @saved_search.name %>"
+
+<% @listings.each do |listing| %>
+- <%= listing.title %> - €<%= number_with_delimiter(listing.price.to_i) %> (<%= listing.city %>)
+  <%= listing_url(listing) %>
+<% end %>
+
+See all results: <%= listings_url(@saved_search.query_params.symbolize_keys) %>
+
+You're getting this because you saved the search "<%= @saved_search.name %>" on Dealo.

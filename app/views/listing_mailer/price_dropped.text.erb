@@ -1,0 +1,7 @@
+Price drop on a listing you saved
+
+<%= @listing.title %> just dropped from €<%= number_with_delimiter(@listing.previous_price.to_i) %> to €<%= number_with_delimiter(@listing.price.to_i) %>.
+
+View it here: <%= listing_url(@listing) %>
+
+You're getting this because you saved this listing as a favorite on Dealo.

@@ -1,0 +1,9 @@
+<% if @offer.status == "accepted" %>
+Your offer was accepted!
+<% else %>
+Your offer wasn't accepted.
+<% end %>
+
+Your offer of €<%= number_with_delimiter(@offer.amount.to_i) %> for <%= @offer.listing.title %> was <%= @offer.status %>.
+
+View listing: <%= listing_url(@offer.listing) %>

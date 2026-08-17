@@ -1,7 +1,7 @@
-<% content_for :title, @listing.title %>
-
-<% if notice %>
-  <div class="alert alert-success"><%= notice %></div>
+<% content_for :title, "#{@listing.title} - €#{number_with_delimiter(@listing.price.to_i)} - Dealo" %>
+<% content_for :description, @listing.description.to_s.truncate(160) %>
+<% if (first_image = @listing.ordered_images.first) %>
+  <% content_for :image, rails_blob_url(first_image, host: request.base_url) %>
 <% end %>
 
 <% breadcrumb_items = [[ "Home", root_path ]] %>
@@ -22,7 +22,6 @@
       <!-- Images and Details on the Left -->
       <div class="listing-images-section">
         <% ordered_images = @listing.ordered_images.to_a %>
-        <% Rails.logger.info "Listing #{@listing.id} - ordered_images count: #{ordered_images.count}, image_order: #{@listing.extra_fields&.dig('image_order').inspect}, total attachments: #{@listing.images_attachments.count}" %>
         <% if ordered_images.any? %>
           <div class="image-gallery-container">
             <!-- Small thumbnails on the left side -->
@@ -283,6 +282,7 @@
               <% end %>
               <% if current_user != @listing.user && @listing.user %>
                 <%= link_to "Send Message", new_message_path(listing_id: @listing.id, recipient_id: @listing.user.id), class: "btn-seller-primary" %>
+                <%= link_to "Make an offer", new_listing_offer_path(@listing), class: "btn-seller-action btn-make-offer" %>
               <% end %>
             <% else %>
               <%= link_to "Login to Contact Seller", new_user_session_path, class: "btn-seller-primary" %>
@@ -296,6 +296,12 @@
               <%= link_to @listing.user.phone, "tel:#{@listing.user.phone.gsub(/\s+/, '')}", class: "phone-number-link", title: "Tap or click to call" %>
               <span class="phone-call-hint">Tap to call</span>
             </div>
+            <% if (whatsapp_url = whatsapp_chat_link(@listing.user.phone, @listing)) %>
+              <%= link_to whatsapp_url, class: "btn-whatsapp-chat", target: "_blank", rel: "noopener", data: { turbo: "false" } do %>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm5.8 14.09c-.24.68-1.4 1.3-1.93 1.36-.5.06-1.01.29-3.38-.7-2.86-1.19-4.7-4.1-4.84-4.29-.14-.19-1.16-1.55-1.16-2.95 0-1.41.74-2.1 1-2.39.26-.29.57-.36.76-.36.19 0 .38 0 .55.01.18.01.42-.07.65.5.24.58.82 2 .89 2.14.07.14.12.31.02.5-.1.19-.15.31-.29.48-.14.17-.3.37-.43.5-.14.14-.29.29-.13.57.17.29.75 1.24 1.61 2.01 1.11.99 2.04 1.3 2.33 1.44.29.14.46.12.63-.07.17-.19.72-.84.91-1.13.19-.29.38-.24.63-.14.26.1 1.65.78 1.93.92.29.14.48.21.55.33.07.12.07.68-.17 1.36z"/></svg>
+                Chat on WhatsApp
+              <% end %>
+            <% end %>
           <% end %>
           
           <!-- View all ads link -->

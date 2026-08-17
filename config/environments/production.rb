@@ -27,8 +27,13 @@ Rails.application.configure do
   # Increase max file upload size for multiple images (50MB total)
   config.action_dispatch.parameter_size_limit = 50.megabytes
 
-  # Action Cable is not used in this app; explicitly disable mounting in production.
-  config.action_cable.mount_path = nil
+  # Action Cable powers live chat (see ConversationChannel). The default `async` adapter
+  # (config/cable.yml) is fine here since Puma runs as a single process (no WEB_CONCURRENCY) -
+  # broadcasts and connections share the same process. If this ever scales to multiple Puma
+  # workers/servers, switch config/cable.yml's production adapter to solid_cable.
+  config.action_cable.mount_path = "/cable"
+  config.action_cable.allowed_request_origins =
+    ENV.fetch("ACTION_CABLE_ALLOWED_ORIGINS", "https://dealo.ie,https://www.dealo.ie").split(",")
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   # config.assume_ssl = true

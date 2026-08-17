@@ -1,1 +1,14 @@
 # See https://www.robotstxt.org/robotstxt.html for documentation on how to use the robots.txt file
+
+User-agent: *
+Disallow: /admin
+Disallow: /my_listings
+Disallow: /my_messages
+Disallow: /my_saved_ads
+Disallow: /my_saved_searches
+Disallow: /messages
+Disallow: /users/sign_in
+Disallow: /users/sign_up
+Disallow: /users/password
+
+Sitemap: https://dealo.ie/sitemap.xml

@@ -6,10 +6,6 @@
     <p>Join Dealo and start buying and selling today!</p>
   </div>
 
-  <% if alert %>
-    <div class="alert alert-alert"><%= alert %></div>
-  <% end %>
-
   <% if resource.errors.any? %>
     <div class="alert alert-alert">
       <h3><%= pluralize(resource.errors.count, "error") %> prohibited this account from being created:</h3>

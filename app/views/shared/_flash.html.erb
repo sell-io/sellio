@@ -1,0 +1,16 @@
+<% if flash[:notice] || flash[:alert] %>
+  <div class="site-flash-container">
+    <% if flash[:notice] %>
+      <div class="site-flash site-flash-notice" role="status">
+        <span class="site-flash-message"><%= flash[:notice] %></span>
+        <button type="button" class="site-flash-close" aria-label="Dismiss" onclick="this.closest('.site-flash').remove()">&times;</button>
+      </div>
+    <% end %>
+    <% if flash[:alert] %>
+      <div class="site-flash site-flash-alert" role="alert">
+        <span class="site-flash-message"><%= flash[:alert] %></span>
+        <button type="button" class="site-flash-close" aria-label="Dismiss" onclick="this.closest('.site-flash').remove()">&times;</button>
+      </div>
+    <% end %>
+  </div>
+<% end %>

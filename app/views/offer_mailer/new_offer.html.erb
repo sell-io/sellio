@@ -1,0 +1,17 @@
+<h1 style="font-size:18px; margin:0 0 16px;">New offer on your listing 💶</h1>
+
+<p style="margin:0 0 16px;">
+  <strong><%= @offer.buyer.name || @offer.buyer.email %></strong> offered
+  <strong style="color:#4FD1A5;">€<%= number_with_delimiter(@offer.amount.to_i) %></strong>
+  for <strong><%= @offer.listing.title %></strong> (listed at €<%= number_with_delimiter(@offer.listing.price.to_i) %>).
+</p>
+
+<% if @offer.message.present? %>
+  <p style="margin:0 0 16px; padding:12px; background-color:#f9fafb; border-radius:6px;">"<%= @offer.message %>"</p>
+<% end %>
+
+<p style="margin:0 0 24px;">
+  <a href="<%= offers_url %>" style="display:inline-block; background-color:#4FD1A5; color:#ffffff; text-decoration:none; padding:12px 24px; border-radius:6px; font-weight:600;">
+    Review offer
+  </a>
+</p>

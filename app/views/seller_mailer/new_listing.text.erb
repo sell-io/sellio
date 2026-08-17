@@ -1,0 +1,7 @@
+<%= @seller.name || @seller.email %> just posted a new listing
+
+<%= @listing.title %> - €<%= number_with_delimiter(@listing.price.to_i) %><% if @listing.city.present? %> (<%= @listing.city %>)<% end %>
+
+View it here: <%= listing_url(@listing) %>
+
+You're getting this because you follow <%= @seller.name || @seller.email %> on Dealo.

@@ -1,0 +1,21 @@
+<h1 style="font-size:18px; margin:0 0 16px;">
+  <%= @seller.name || @seller.email %> just posted a new listing 🆕
+</h1>
+
+<p style="margin:0 0 16px;">
+  <strong><%= @listing.title %></strong>
+  <br>
+  <span style="color:#4FD1A5; font-weight:700;">€<%= number_with_delimiter(@listing.price.to_i) %></span>
+  <% if @listing.city.present? %> &middot; <%= @listing.city %><% end %>
+</p>
+
+<p style="margin:0 0 24px;">
+  <a href="<%= listing_url(@listing) %>" style="display:inline-block; background-color:#4FD1A5; color:#ffffff; text-decoration:none; padding:12px 24px; border-radius:6px; font-weight:600;">
+    View listing
+  </a>
+</p>
+
+<p style="margin:0; color:#6b7280; font-size:13px;">
+  You're getting this because you follow <%= @seller.name || @seller.email %> on Dealo.
+  <a href="<%= user_url(@seller) %>" style="color:#6b7280;">Manage from their profile</a>.
+</p>

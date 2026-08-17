@@ -33,4 +33,22 @@ module ApplicationHelper
   def irish_counties
     IRISH_COUNTIES
   end
+
+  # Builds a wa.me click-to-chat link from a stored phone number (handles Irish local "08X..."
+  # format, "+353..." and "353..." forms) with a pre-filled message about the listing.
+  def whatsapp_chat_link(phone, listing)
+    digits = phone.to_s.gsub(/\D/, "")
+    return nil if digits.blank?
+
+    international = if digits.start_with?("353")
+      digits
+    elsif digits.start_with?("0")
+      "353#{digits[1..]}"
+    else
+      digits
+    end
+
+    message = "Hi, I'm interested in your listing \"#{listing.title}\" on Dealo: #{listing_url(listing)}"
+    "https://wa.me/#{international}?text=#{ERB::Util.url_encode(message)}"
+  end
 end

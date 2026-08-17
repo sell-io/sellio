@@ -26,5 +26,10 @@ module MyWebsite
     
     # Increase max file upload size to handle multiple images (50MB total)
     config.action_dispatch.parameter_size_limit = 50.megabytes
+
+    # Route 404/422/500 through our own branded error pages (ErrorsController) instead of
+    # the static public/*.html files, so nav/footer/search stay visible when something goes wrong.
+    # The public/*.html files remain as the final fallback for when the app can't boot at all.
+    config.exceptions_app = routes
   end
 end
