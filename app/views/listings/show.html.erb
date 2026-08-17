@@ -1,4 +1,8 @@
-<% content_for :title, @listing.title %>
+<% content_for :title, "#{@listing.title} - €#{number_with_delimiter(@listing.price.to_i)} - Dealo" %>
+<% content_for :description, @listing.description.to_s.truncate(160) %>
+<% if (first_image = @listing.ordered_images.first) %>
+  <% content_for :image, rails_blob_url(first_image, host: request.base_url) %>
+<% end %>
 
 <% breadcrumb_items = [[ "Home", root_path ]] %>
 <% if @listing.category %>

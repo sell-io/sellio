@@ -21,6 +21,8 @@ Rails.application.routes.draw do
   get "cookies", to: "pages#cookie_policy", as: :cookie_policy
   get "community-guidelines", to: "pages#community_guidelines", as: :community_guidelines
 
+  get "sitemap.xml", to: "sitemap#show", as: :sitemap, defaults: { format: "xml" }
+
   # Payments (Stripe payment links – MVP)
   get "payment-success", to: "payments#success", as: :payment_success
   get "boost_listing/:listing_id", to: "payments#redirect_boost", as: :boost_listing
