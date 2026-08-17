@@ -6,14 +6,6 @@
     <p>Enter your email and we'll send you a link to reset your password.</p>
   </div>
 
-  <% if alert %>
-    <div class="alert alert-alert"><%= alert %></div>
-  <% end %>
-
-  <% if notice %>
-    <div class="alert alert-notice"><%= notice %></div>
-  <% end %>
-
   <% if resource.errors.any? %>
     <div class="alert alert-alert">
       <ul>

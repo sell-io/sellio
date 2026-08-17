@@ -1,9 +1,5 @@
 <% content_for :title, @listing.title %>
 
-<% if notice %>
-  <div class="alert alert-success"><%= notice %></div>
-<% end %>
-
 <% breadcrumb_items = [[ "Home", root_path ]] %>
 <% if @listing.category %>
   <% breadcrumb_items << [ @listing.category.name, listings_path(category_id: @listing.category.id) ] %>
