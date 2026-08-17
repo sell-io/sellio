@@ -18,7 +18,6 @@
       <!-- Images and Details on the Left -->
       <div class="listing-images-section">
         <% ordered_images = @listing.ordered_images.to_a %>
-        <% Rails.logger.info "Listing #{@listing.id} - ordered_images count: #{ordered_images.count}, image_order: #{@listing.extra_fields&.dig('image_order').inspect}, total attachments: #{@listing.images_attachments.count}" %>
         <% if ordered_images.any? %>
           <div class="image-gallery-container">
             <!-- Small thumbnails on the left side -->

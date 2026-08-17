@@ -201,7 +201,6 @@ class ListingsController < ApplicationController
     else
       Listing.none
     end
-    Rails.logger.info "Listing #{@listing.id} - Show action. Image order: #{@listing.extra_fields&.dig('image_order').inspect}, Total attachments: #{@listing.images_attachments.count}"
   end
 
   # POST /listings/:id/mark_as_sold
@@ -232,7 +231,6 @@ class ListingsController < ApplicationController
     @categories = Category.visible.order(:name)
     # CRITICAL: Reload to ensure we have the latest images and order
     @listing.reload
-    Rails.logger.info "Edit action - Listing #{@listing.id}: Total attachments: #{@listing.images_attachments.count}, Image order: #{@listing.extra_fields&.dig('image_order').inspect}"
   end
 
   # POST /listings or /listings.json
@@ -288,7 +286,6 @@ class ListingsController < ApplicationController
         
         # ALWAYS remove images from update_params - we'll attach them separately
         update_params = update_params.except(:images)
-        Rails.logger.info "Extracted images param from update_params to prevent deletion of existing images"
       end
       
       # Handle removed images first (before updating)
@@ -297,7 +294,6 @@ class ListingsController < ApplicationController
       if params[:removed_image_ids].present?
         removed_ids = params[:removed_image_ids].is_a?(Array) ? params[:removed_image_ids] : [params[:removed_image_ids]]
         removed_ids = removed_ids.reject(&:blank?).map(&:to_i)
-        Rails.logger.info "Removing #{removed_ids.length} image(s) explicitly marked for removal: #{removed_ids.inspect}"
         removed_ids.each do |image_id|
           begin
             # First try by attachment ID (normal case)
@@ -307,12 +303,10 @@ class ListingsController < ApplicationController
             # In that case, match on blob_id so the delete still works.
             if attachment.nil?
               attachment = @listing.images_attachments.find_by(blob_id: image_id)
-              Rails.logger.info "Fallback matched blob_id #{image_id} to attachment #{attachment&.id}" if attachment
             end
 
             if attachment
               attachment.purge
-              Rails.logger.info "Removed image attachment #{attachment.id} (requested id #{image_id})"
             else
               Rails.logger.warn "Image attachment with id/blob_id #{image_id} not found for removal on listing #{@listing.id}"
             end
@@ -326,26 +320,19 @@ class ListingsController < ApplicationController
       combined_image_order = params[:combined_image_order]
       existing_image_order = params[:existing_image_order]
       
-      Rails.logger.info "Combined image order param: #{combined_image_order.inspect}"
-      Rails.logger.info "Existing image order param: #{existing_image_order.inspect}"
-      Rails.logger.info "Has new images: #{has_new_images}, New images count: #{new_images ? new_images.length : 0}"
       
       # Update listing WITHOUT images param to preserve existing images
       if @listing.update(update_params)
         # Attach new images separately (this appends, doesn't replace)
         if has_new_images && new_images.present?
-          Rails.logger.info "Attaching #{new_images.length} new image(s) to listing #{@listing.id}"
           @listing.images.attach(new_images)
-          Rails.logger.info "Attached new images. Total attachments now: #{@listing.images_attachments.count}"
         end
         # Handle image ordering - prioritize combined_image_order if present
         if combined_image_order.present?
           # Combined order contains both new and existing images in the correct order
-          Rails.logger.info "Processing combined image order for listing #{@listing.id}: #{combined_image_order}"
           process_combined_image_order(@listing, combined_image_order, has_new_images)
           # CRITICAL: Ensure the save actually persisted
           @listing.reload
-          Rails.logger.info "After process_combined_image_order, saved order: #{@listing.extra_fields&.dig('image_order').inspect}"
         elsif has_new_images && new_images.present?
           # New images were just attached - get them in the order they were attached
           # The most recently created attachments are the new ones
@@ -373,11 +360,8 @@ class ListingsController < ApplicationController
           @listing.save(validate: false)
           @listing.reload
           
-          Rails.logger.info "Updated image order - new images first for listing #{@listing.id}: #{image_order.inspect}"
-          Rails.logger.info "Verified saved order: #{@listing.extra_fields['image_order'].inspect}"
         elsif existing_image_order.present?
           # Only existing images were reordered (no new images uploaded)
-          Rails.logger.info "Reordering existing images for listing #{@listing.id} with order: #{existing_image_order}"
           reorder_existing_images(@listing, existing_image_order)
         elsif combined_image_order.blank?
           # No combined order provided - check if we need to create/update order from current state
@@ -387,7 +371,6 @@ class ListingsController < ApplicationController
             # But if it doesn't exist, create order from current attachments
             if @listing.extra_fields.nil? || @listing.extra_fields['image_order'].blank?
               # No order exists - create one from current attachments
-              Rails.logger.info "No image order found, creating one from current attachments for listing #{@listing.id}"
               reorder_listing_images(@listing)
             else
               # Order exists - validate and preserve it
@@ -401,15 +384,12 @@ class ListingsController < ApplicationController
               final_order = valid_order.map(&:to_i) + missing_ids
               
               if final_order != existing_order.map(&:to_i)
-                Rails.logger.info "Updating image order to remove invalid IDs for listing #{@listing.id}"
                 @listing.extra_fields['image_order'] = final_order
                 @listing.save(validate: false)
                 @listing.reload
-                Rails.logger.info "Saved updated order: #{@listing.extra_fields['image_order'].inspect}"
               else
                 # Order is valid - explicitly save it to ensure it persists
                 # This is important when user submits without changes
-                Rails.logger.info "Preserving existing image order for listing #{@listing.id}: #{final_order.inspect}"
                 # Make sure extra_fields is initialized
                 if @listing.extra_fields.nil?
                   @listing.extra_fields = {}
@@ -417,7 +397,6 @@ class ListingsController < ApplicationController
                 @listing.extra_fields['image_order'] = final_order
                 @listing.save(validate: false)
                 @listing.reload
-                Rails.logger.info "Saved image order to database: #{@listing.extra_fields['image_order'].inspect}"
               end
             end
           end
@@ -428,8 +407,6 @@ class ListingsController < ApplicationController
         
         # Verify the image order was saved correctly
         saved_order = @listing.extra_fields&.dig('image_order')
-        Rails.logger.info "Listing #{@listing.id} - After update, saved image_order: #{saved_order.inspect}"
-        Rails.logger.info "Listing #{@listing.id} - Total attachments: #{@listing.images_attachments.count}"
         
         format.html { redirect_to @listing, notice: "Listing was successfully updated.", status: :see_other }
         format.json { render :show, status: :ok, location: @listing }
@@ -536,7 +513,6 @@ class ListingsController < ApplicationController
       listing.extra_fields['image_order'] = image_order
       listing.save(validate: false) # Save without validation to avoid issues
       
-      Rails.logger.info "Stored image order for listing #{listing.id}: #{image_order.inspect}"
     end
     
     # Reorder existing images based on provided order
@@ -547,11 +523,9 @@ class ListingsController < ApplicationController
       ordered_ids = image_order_string.split(',').map(&:strip).reject(&:blank?)
       return if ordered_ids.empty?
 
-      Rails.logger.info "Parsed ordered IDs: #{ordered_ids.inspect}"
 
       # Get all current attachments
       attachments = listing.images_attachments.to_a
-      Rails.logger.info "Current attachment IDs: #{attachments.map(&:id).inspect}"
 
       # Validate that all IDs in the order exist
       # Convert to integers for comparison (attachment IDs are integers)
@@ -565,7 +539,6 @@ class ListingsController < ApplicationController
       remaining_ids = attachment_ids - valid_ordered_ids
       final_order = valid_ordered_ids + remaining_ids
       
-      Rails.logger.info "Final image order for listing #{listing.id}: #{final_order.inspect}"
       
       # Reorder attachments based on the provided order
       # Note: Active Storage doesn't have a built-in position field, so we store order in extra_fields
@@ -579,7 +552,6 @@ class ListingsController < ApplicationController
       # Force persistence
       listing.reload
       
-      Rails.logger.info "Saved image order to extra_fields: #{listing.extra_fields['image_order'].inspect}"
     end
     
     # Process combined image order (new + existing images)
@@ -587,7 +559,6 @@ class ListingsController < ApplicationController
     def process_combined_image_order(listing, combined_order_string, has_new_images)
       return unless listing.images.attached? && combined_order_string.present?
       
-      Rails.logger.info "Processing combined image order: #{combined_order_string}"
       
       # Parse the combined order string
       order_parts = combined_order_string.split(',').map(&:strip).reject(&:blank?)
@@ -618,7 +589,6 @@ class ListingsController < ApplicationController
           # The attachment at this position in the new_attachments array
           if new_attachments[new_items_before]
             new_file_id_to_attachment[file_id] = new_attachments[new_items_before].id
-            Rails.logger.info "Mapped new file ID #{file_id} to attachment ID #{new_attachments[new_items_before].id}"
           end
         end
       end
@@ -668,7 +638,6 @@ class ListingsController < ApplicationController
         Rails.logger.warn "Forcing final_order to include all attachments: #{final_order.inspect}"
       end
       
-      Rails.logger.info "Final combined image order for listing #{listing.id}: #{final_order.inspect} (should have #{attachment_ids.length} items)"
       
       # Save the order
       if listing.extra_fields.nil?
@@ -685,8 +654,6 @@ class ListingsController < ApplicationController
       
       # Verify the save worked
       verified_order = listing.extra_fields&.dig('image_order')
-      Rails.logger.info "Saved combined image order: #{verified_order.inspect}"
-      Rails.logger.info "Total images attached: #{listing.images_attachments.count}"
       
       # If the order didn't save, try one more time with update_column
       if verified_order != final_order
@@ -694,9 +661,7 @@ class ListingsController < ApplicationController
         listing.update_column(:extra_fields, listing.extra_fields.merge('image_order' => final_order))
         listing.reload
         verified_order = listing.extra_fields&.dig('image_order')
-        Rails.logger.info "After retry, saved order: #{verified_order.inspect}"
       end
       
-      Rails.logger.info "✓ Image order saved for listing #{listing.id}: #{verified_order.inspect}"
     end
 end
