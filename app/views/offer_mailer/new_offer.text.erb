@@ -1,0 +1,7 @@
+New offer on your listing
+
+<%= @offer.buyer.name || @offer.buyer.email %> offered €<%= number_with_delimiter(@offer.amount.to_i) %> for <%= @offer.listing.title %> (listed at €<%= number_with_delimiter(@offer.listing.price.to_i) %>).
+<% if @offer.message.present? %>
+"<%= @offer.message %>"
+<% end %>
+Review it here: <%= offers_url %>

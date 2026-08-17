@@ -94,7 +94,10 @@ class MessagesController < ApplicationController
       if @message.save
         # Redirect to my_messages with the conversation selected
         format.html { redirect_to my_messages_path(message_id: @message.id), notice: "Message sent successfully." }
-        format.json { render :show, status: :created, location: @message }
+        # The chat view sends here via fetch() once a conversation is already open; the new
+        # message reaches both participants' screens via ConversationChannel's broadcast, so
+        # no response body is needed here beyond the success status.
+        format.json { head :created }
       else
         format.html { render :new, status: :unprocessable_entity }
         format.json { render json: @message.errors, status: :unprocessable_entity }

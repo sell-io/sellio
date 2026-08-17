@@ -8,6 +8,10 @@ Rails.application.routes.draw do
   resources :messages, only: [:index, :show, :new, :create]
   resources :users, only: [:show] do
     resources :reviews, only: [:create]
+    member do
+      post :follow
+      delete :unfollow
+    end
   end
 
   # Static pages (footer and info)
@@ -40,9 +44,19 @@ Rails.application.routes.draw do
   # Listings with favorites
   resources :listings do
     resources :favorites, only: [:create, :destroy]
+    resources :offers, only: [:new, :create]
     member do
       post :mark_as_sold
       post :mark_available
+    end
+  end
+
+  resources :offers, only: [:index] do
+    member do
+      post :accept
+      post :reject
+      post :counter
+      post :withdraw
     end
   end
 
@@ -74,9 +88,16 @@ Rails.application.routes.draw do
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
 
-  # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
-  # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
-  # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
+  # Branded error pages (see config.exceptions_app in config/application.rb)
+  match "/404", to: "errors#not_found", via: :all
+  match "/422", to: "errors#unprocessable_entity", via: :all
+  match "/500", to: "errors#internal_server_error", via: :all
+
+  # Render dynamic PWA files from app/views/pwa/*
+  get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
+  get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
+
+  resource :push_subscription, only: [:create, :destroy], controller: "push_subscriptions"
 
   # Defines the root path route ("/")
   # root "posts#index"

@@ -1,10 +1,18 @@
 # MVP: Stripe payment links. No custom checkout, no webhooks.
-# Success is assumed when user reaches /payment-success.
+#
+# A PendingPayment is created (server-side) right before redirecting the user to Stripe, and
+# consumed (single-use, expires after PendingPayment::EXPIRY) when they land back on
+# /payment-success. This means /payment-success can no longer just be visited directly, or
+# replayed, to grant a boost/verification for free.
+#
+# This is NOT real payment verification - it doesn't confirm with Stripe that money actually
+# changed hands (that needs the Stripe secret key + webhook signature checks). It only closes
+# the "guess the URL, never interact with Stripe at all" hole.
 class PaymentsController < ApplicationController
   STRIPE_BOOST_LINK = "https://buy.stripe.com/28E7sMckG6HPe9Bey608g01".freeze
   STRIPE_VERIFIED_LINK = "https://buy.stripe.com/9B66oIfwSgip6H9ahQ08g02".freeze
 
-  before_action :authenticate_user!, only: [:redirect_boost, :redirect_verified]
+  before_action :authenticate_user!, only: [:redirect_boost, :redirect_verified, :success]
 
   # User clicked "Boost listing" -> use free boost if verified and available, else redirect to Stripe
   def redirect_boost
@@ -15,59 +23,60 @@ class PaymentsController < ApplicationController
     end
     if current_user.is_verified? && current_user.free_boosts_left_this_month?
       current_user.use_free_boost!
-      apply_boost(listing.id)
-      session.delete(:pending_boost_listing_id)
+      apply_boost(listing)
       remaining = current_user.free_boosts_remaining
       @message = "Your listing \"#{listing.title}\" is now boosted for 7 days! (#{remaining} free boost#{remaining == 1 ? '' : 's'} left this month.)"
       render :success, status: :ok
       return
     end
-    session[:pending_boost_listing_id] = listing.id
+    current_user.pending_payments.create!(kind: "boost", listing: listing)
     redirect_to STRIPE_BOOST_LINK, allow_other_host: true
   end
 
   # User clicked "Verified Seller" -> redirect to Stripe
   def redirect_verified
+    current_user.pending_payments.create!(kind: "verified")
     redirect_to STRIPE_VERIFIED_LINK, allow_other_host: true
   end
 
   # Stripe redirects here after payment. Set success URL in Stripe Dashboard (Payment links → customize):
   # - Boost: https://dealo.ie/payment-success?type=boost
   # - Verified: https://dealo.ie/payment-success?type=verified
-  # See STRIPE_SETUP.md. Optional: add &listingId=123 for boost (else we use session).
+  # See STRIPE_SETUP.md.
   def success
     type = params[:type].to_s.downcase
-    listing_id = params[:listingId].presence || params[:listing_id].presence || session[:pending_boost_listing_id]
 
-    if type == "boost"
-      apply_boost(listing_id)
-    elsif type == "verified"
-      apply_verified
-    else
+    unless PendingPayment::KINDS.include?(type)
       redirect_to root_path, notice: "Payment received."
       return
     end
 
-    session.delete(:pending_boost_listing_id)
+    pending_payment = PendingPayment.consume!(user: current_user, kind: type)
+    unless pending_payment
+      @success_type = nil
+      @message = "We couldn't verify this payment. If you were charged, please contact support."
+      render :success, status: :ok
+      return
+    end
+
+    if type == "boost"
+      apply_boost(pending_payment.listing)
+    else
+      apply_verified
+    end
+
     render :success, status: :ok
   end
 
   private
 
-  def apply_boost(listing_id)
-    if listing_id.blank?
+  def apply_boost(listing)
+    unless listing
       @success_type = nil
       @message = "We couldn't identify which listing to boost. Please contact support if you were charged."
       return
     end
-    listing = Listing.find_by(id: listing_id)
-    unless listing
-      @success_type = nil
-      @message = "Listing not found."
-      return
-    end
-    # Only allow boosting own listing (or admin could be added)
-    unless listing.user_id == current_user&.id || current_user&.admin?
+    unless listing.user_id == current_user.id || current_user.admin?
       @success_type = nil
       @message = "You can only boost your own listing."
       return
@@ -79,11 +88,6 @@ class PaymentsController < ApplicationController
   end
 
   def apply_verified
-    unless user_signed_in?
-      @success_type = nil
-      @message = "Please sign in to complete verification."
-      return
-    end
     current_user.update!(is_verified: true)
     @success_type = "verified"
     @message = "You're now a Verified Seller!"

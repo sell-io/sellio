@@ -1,0 +1,94 @@
+<% content_for :title, "My Offers - Dealo" %>
+
+<div class="my-listings-page">
+  <div class="container">
+    <div class="page-header">
+      <h1>My Offers</h1>
+      <p>Offers you've made and received on listings</p>
+    </div>
+
+    <h2 class="offers-section-title">Received</h2>
+    <% if @offers_received.any? %>
+      <div class="offers-list">
+        <% @offers_received.each do |offer| %>
+          <div class="offer-card offer-status-<%= offer.status %>">
+            <div class="offer-card-main">
+              <p class="offer-listing-title"><%= link_to offer.listing.title, offer.listing, class: "static-link" %></p>
+              <p class="offer-amount">€<%= number_with_delimiter(offer.amount.to_i) %></p>
+              <p class="offer-meta">
+                From <%= offer.buyer.name || offer.buyer.email %>
+                &middot; <span class="offer-status-badge offer-status-badge-<%= offer.status %>"><%= offer.status.capitalize %></span>
+                <% if offer.proposed_by == "seller" %> &middot; waiting on buyer<% end %>
+              </p>
+              <% if offer.message.present? %>
+                <p class="offer-message">"<%= offer.message %>"</p>
+              <% end %>
+            </div>
+
+            <% if offer.pending? && offer.responder == current_user %>
+              <div class="offer-card-actions">
+                <%= button_to "Accept", accept_offer_path(offer), method: :post, class: "btn-primary btn-small" %>
+                <%= button_to "Reject", reject_offer_path(offer), method: :post, class: "btn-secondary btn-small" %>
+                <details class="offer-counter-details">
+                  <summary class="btn-secondary btn-small">Counter</summary>
+                  <%= form_with url: counter_offer_path(offer), method: :post, local: true, class: "offer-counter-form" do |f| %>
+                    <%= f.number_field :amount, step: 1, min: 1, placeholder: "Amount (€)", required: true %>
+                    <%= f.submit "Send counter", class: "btn-primary btn-small" %>
+                  <% end %>
+                </details>
+              </div>
+            <% elsif offer.pending? && offer.proposer == current_user %>
+              <div class="offer-card-actions">
+                <%= button_to "Withdraw", withdraw_offer_path(offer), method: :post, class: "btn-secondary btn-small", form: { data: { turbo_confirm: "Withdraw this offer?" } } %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="offers-empty">No offers received yet.</p>
+    <% end %>
+
+    <h2 class="offers-section-title">Made</h2>
+    <% if @offers_made.any? %>
+      <div class="offers-list">
+        <% @offers_made.each do |offer| %>
+          <div class="offer-card offer-status-<%= offer.status %>">
+            <div class="offer-card-main">
+              <p class="offer-listing-title"><%= link_to offer.listing.title, offer.listing, class: "static-link" %></p>
+              <p class="offer-amount">€<%= number_with_delimiter(offer.amount.to_i) %></p>
+              <p class="offer-meta">
+                To <%= offer.seller.name || offer.seller.email %>
+                &middot; <span class="offer-status-badge offer-status-badge-<%= offer.status %>"><%= offer.status.capitalize %></span>
+                <% if offer.proposed_by == "buyer" %> &middot; waiting on seller<% end %>
+              </p>
+              <% if offer.message.present? %>
+                <p class="offer-message">"<%= offer.message %>"</p>
+              <% end %>
+            </div>
+
+            <% if offer.pending? && offer.responder == current_user %>
+              <div class="offer-card-actions">
+                <%= button_to "Accept", accept_offer_path(offer), method: :post, class: "btn-primary btn-small" %>
+                <%= button_to "Reject", reject_offer_path(offer), method: :post, class: "btn-secondary btn-small" %>
+                <details class="offer-counter-details">
+                  <summary class="btn-secondary btn-small">Counter</summary>
+                  <%= form_with url: counter_offer_path(offer), method: :post, local: true, class: "offer-counter-form" do |f| %>
+                    <%= f.number_field :amount, step: 1, min: 1, placeholder: "Amount (€)", required: true %>
+                    <%= f.submit "Send counter", class: "btn-primary btn-small" %>
+                  <% end %>
+                </details>
+              </div>
+            <% elsif offer.pending? && offer.proposer == current_user %>
+              <div class="offer-card-actions">
+                <%= button_to "Withdraw", withdraw_offer_path(offer), method: :post, class: "btn-secondary btn-small", form: { data: { turbo_confirm: "Withdraw this offer?" } } %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="offers-empty">No offers made yet.</p>
+    <% end %>
+  </div>
+</div>

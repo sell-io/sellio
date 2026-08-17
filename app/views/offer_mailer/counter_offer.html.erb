@@ -1,0 +1,16 @@
+<h1 style="font-size:18px; margin:0 0 16px;">You've got a counter-offer 🔁</h1>
+
+<p style="margin:0 0 16px;">
+  For <strong><%= @offer.listing.title %></strong>, <%= @offer.proposer.name || @offer.proposer.email %> countered with
+  <strong style="color:#4FD1A5;">€<%= number_with_delimiter(@offer.amount.to_i) %></strong>.
+</p>
+
+<% if @offer.message.present? %>
+  <p style="margin:0 0 16px; padding:12px; background-color:#f9fafb; border-radius:6px;">"<%= @offer.message %>"</p>
+<% end %>
+
+<p style="margin:0 0 24px;">
+  <a href="<%= offers_url %>" style="display:inline-block; background-color:#4FD1A5; color:#ffffff; text-decoration:none; padding:12px 24px; border-radius:6px; font-weight:600;">
+    Respond to counter-offer
+  </a>
+</p>

@@ -6,6 +6,9 @@
     <div class="conversations-header">
       <div class="conversations-header-content">
         <div class="conversations-title">Chats</div>
+        <button type="button" id="notifications-toggle" class="notifications-toggle-btn" title="Get notified of new messages">
+          🔔 Enable notifications
+        </button>
       </div>
     </div>
     
@@ -135,6 +138,37 @@
             item.style.display = 'none';
           }
         });
+      });
+    }
+
+    // Push notification opt-in for new messages
+    const notificationsToggle = document.getElementById('notifications-toggle');
+    if (notificationsToggle && window.DealoPush) {
+      function renderState(subscribed) {
+        notificationsToggle.textContent = subscribed ? '🔔 Notifications on' : '🔔 Enable notifications';
+        notificationsToggle.classList.toggle('is-active', subscribed);
+      }
+
+      window.DealoPush.isSubscribed().then(renderState);
+
+      notificationsToggle.addEventListener('click', async function() {
+        notificationsToggle.disabled = true;
+        try {
+          const currentlySubscribed = await window.DealoPush.isSubscribed();
+
+          if (currentlySubscribed) {
+            await window.DealoPush.unsubscribe();
+            renderState(false);
+          } else {
+            const subscribed = await window.DealoPush.subscribe();
+            renderState(subscribed);
+          }
+        } catch (err) {
+          console.error('Push notification toggle failed:', err);
+          renderState(false);
+          alert("Couldn't enable notifications: " + err.message);
+        }
+        notificationsToggle.disabled = false;
       });
     }
   });

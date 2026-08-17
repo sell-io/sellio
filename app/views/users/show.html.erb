@@ -51,6 +51,15 @@
           <p class="profile-phone">📞 <%= link_to @user.phone, "tel:#{@user.phone.gsub(/\s+/, '')}", class: "phone-number-link", title: "Tap or click to call" %></p>
         <% end %>
         <p class="profile-joined">Member since <%= @user.created_at.strftime("%B %Y") %></p>
+        <% if user_signed_in? && current_user != @user %>
+          <p class="profile-follow-cta">
+            <% if current_user.following?(@user) %>
+              <%= button_to "Following ✓", unfollow_user_path(@user), method: :delete, class: "btn-follow-seller is-following", data: { turbo: "false" } %>
+            <% else %>
+              <%= button_to "Follow seller", follow_user_path(@user), method: :post, class: "btn-follow-seller", data: { turbo: "false" } %>
+            <% end %>
+          </p>
+        <% end %>
         <% if user_signed_in? && current_user == @user && @user.is_verified %>
           <p class="profile-free-boosts">
             <strong>Free ad boosts:</strong> <%= @user.free_boosts_remaining %> of <%= User::FREE_BOOSTS_PER_MONTH %> left this month<% if @user.free_boosts_reset_on.present? %> (resets <%= @user.free_boosts_reset_on %>)<% end %>.
@@ -71,6 +80,10 @@
       <div class="stat-item">
         <div class="stat-number"><%= @user.reviews_count %></div>
         <div class="stat-label">Reviews</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number"><%= @user.followers.count %></div>
+        <div class="stat-label">Followers</div>
       </div>
     </div>
 

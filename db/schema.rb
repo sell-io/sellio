@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_12_125749) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_17_230000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -98,6 +98,49 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_125749) do
     t.index ["sender_id"], name: "index_messages_on_sender_id"
   end
 
+  create_table "offers", force: :cascade do |t|
+    t.decimal "amount", precision: 10, scale: 2, null: false
+    t.bigint "buyer_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "listing_id", null: false
+    t.text "message"
+    t.bigint "previous_offer_id"
+    t.string "proposed_by", null: false
+    t.bigint "seller_id", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.index ["buyer_id"], name: "index_offers_on_buyer_id"
+    t.index ["listing_id"], name: "index_offers_on_listing_id"
+    t.index ["previous_offer_id"], name: "index_offers_on_previous_offer_id"
+    t.index ["seller_id"], name: "index_offers_on_seller_id"
+    t.index ["status"], name: "index_offers_on_status"
+  end
+
+  create_table "pending_payments", force: :cascade do |t|
+    t.datetime "consumed_at"
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.string "kind", null: false
+    t.bigint "listing_id"
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["listing_id"], name: "index_pending_payments_on_listing_id"
+    t.index ["token"], name: "index_pending_payments_on_token", unique: true
+    t.index ["user_id"], name: "index_pending_payments_on_user_id"
+  end
+
+  create_table "push_subscriptions", force: :cascade do |t|
+    t.string "auth", null: false
+    t.datetime "created_at", null: false
+    t.string "endpoint", null: false
+    t.string "p256dh", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["endpoint"], name: "index_push_subscriptions_on_endpoint", unique: true
+    t.index ["user_id"], name: "index_push_subscriptions_on_user_id"
+  end
+
   create_table "reports", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -125,6 +168,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_125749) do
 
   create_table "saved_searches", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.datetime "last_notified_at"
     t.string "name"
     t.jsonb "query_params", default: {}
     t.datetime "updated_at", null: false
@@ -132,11 +176,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_125749) do
     t.index ["user_id"], name: "index_saved_searches_on_user_id"
   end
 
-  create_table "tasks", force: :cascade do |t|
+  create_table "seller_follows", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.text "description"
-    t.string "title"
+    t.bigint "seller_id", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["seller_id"], name: "index_seller_follows_on_seller_id"
+    t.index ["user_id", "seller_id"], name: "index_seller_follows_on_user_id_and_seller_id", unique: true
+    t.index ["user_id"], name: "index_seller_follows_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -158,7 +205,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_125749) do
     t.string "uid"
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
-    t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true, where: "((provider IS NOT NULL) AND (uid IS NOT NULL))"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
@@ -169,9 +215,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_125749) do
   add_foreign_key "messages", "listings"
   add_foreign_key "messages", "users", column: "recipient_id"
   add_foreign_key "messages", "users", column: "sender_id"
+  add_foreign_key "offers", "listings"
+  add_foreign_key "offers", "offers", column: "previous_offer_id"
+  add_foreign_key "offers", "users", column: "buyer_id"
+  add_foreign_key "offers", "users", column: "seller_id"
+  add_foreign_key "pending_payments", "listings"
+  add_foreign_key "pending_payments", "users"
+  add_foreign_key "push_subscriptions", "users"
   add_foreign_key "reports", "listings"
   add_foreign_key "reports", "users"
   add_foreign_key "reviews", "users", column: "reviewed_user_id"
   add_foreign_key "reviews", "users", column: "reviewer_id"
   add_foreign_key "saved_searches", "users"
+  add_foreign_key "seller_follows", "users"
+  add_foreign_key "seller_follows", "users", column: "seller_id"
 end

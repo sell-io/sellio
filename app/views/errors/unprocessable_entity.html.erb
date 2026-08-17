@@ -1,0 +1,14 @@
+<% content_for :title, "Something went wrong - Dealo" %>
+<div class="static-page error-page">
+  <div class="container static-page-container">
+    <p class="error-page-code">422</p>
+    <h1 class="static-page-title">That request couldn't be completed</h1>
+    <div class="static-page-content">
+      <p class="static-lead">Something about the request didn't look right - it may have expired, or been submitted twice. Please try again.</p>
+      <div class="error-page-actions">
+        <%= link_to "Go to homepage", root_path, class: "btn-primary" %>
+        <%= link_to "Browse listings", listings_path, class: "btn-secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

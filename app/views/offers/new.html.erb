@@ -1,0 +1,38 @@
+<% content_for :title, "Make an offer - #{@listing.title}" %>
+
+<div class="form-container">
+  <div class="form-card">
+    <h1>Make an offer</h1>
+    <p class="form-subtitle">
+      Listing: <%= link_to @listing.title, @listing, class: "static-link" %>
+      (asking €<%= number_with_delimiter(@listing.price.to_i) %>)
+    </p>
+
+    <% if @offer.errors.any? %>
+      <div class="alert alert-danger">
+        <ul>
+          <% @offer.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <%= form_with model: @offer, url: listing_offers_path(@listing), local: true do |f| %>
+      <div class="form-group">
+        <%= f.label :amount, "Your offer (€)" %>
+        <%= f.number_field :amount, step: 1, min: 1, class: "form-control", required: true %>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :message, "Message to seller (optional)" %>
+        <%= f.text_area :message, rows: 3, class: "form-control", placeholder: "e.g. I can collect today, cash in hand." %>
+      </div>
+
+      <div class="form-actions">
+        <%= f.submit "Send offer", class: "btn-primary" %>
+        <%= link_to "Cancel", @listing, class: "btn-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>

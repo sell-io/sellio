@@ -1,0 +1,14 @@
+<% content_for :title, "Page not found - Dealo" %>
+<div class="static-page error-page">
+  <div class="container static-page-container">
+    <p class="error-page-code">404</p>
+    <h1 class="static-page-title">We couldn't find that page</h1>
+    <div class="static-page-content">
+      <p class="static-lead">The listing or page you're looking for may have been removed, sold, or the link might be broken.</p>
+      <div class="error-page-actions">
+        <%= link_to "Go to homepage", root_path, class: "btn-primary" %>
+        <%= link_to "Browse listings", listings_path, class: "btn-secondary" %>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,18 @@
+<h1 style="font-size:18px; margin:0 0 16px;">
+  <% if @offer.status == "accepted" %>
+    Your offer was accepted! 🎉
+  <% else %>
+    Your offer wasn't accepted
+  <% end %>
+</h1>
+
+<p style="margin:0 0 24px;">
+  Your offer of <strong>€<%= number_with_delimiter(@offer.amount.to_i) %></strong> for
+  <strong><%= @offer.listing.title %></strong> was <%= @offer.status %>.
+</p>
+
+<p style="margin:0;">
+  <a href="<%= listing_url(@offer.listing) %>" style="display:inline-block; background-color:#4FD1A5; color:#ffffff; text-decoration:none; padding:12px 24px; border-radius:6px; font-weight:600;">
+    View listing
+  </a>
+</p>

@@ -20,6 +20,19 @@ class User < ApplicationRecord
 
   has_many :reports, dependent: :destroy
   has_many :saved_searches, dependent: :destroy
+  has_many :pending_payments, dependent: :destroy
+  has_many :push_subscriptions, dependent: :destroy
+
+  # Sellers this user follows (to be notified of their new listings)
+  has_many :seller_follows, dependent: :destroy
+  has_many :followed_sellers, through: :seller_follows, source: :seller
+
+  # Users following this user as a seller
+  has_many :follower_relationships, class_name: "SellerFollow", foreign_key: "seller_id", dependent: :destroy
+  has_many :followers, through: :follower_relationships, source: :user
+
+  has_many :offers_made, class_name: "Offer", foreign_key: "buyer_id", dependent: :destroy
+  has_many :offers_received, class_name: "Offer", foreign_key: "seller_id", dependent: :destroy
   
   # Helper method to get unread messages count
   def unread_messages_count
@@ -77,5 +90,9 @@ class User < ApplicationRecord
 
   def use_free_boost!
     increment!(:free_boosts_used)
+  end
+
+  def following?(seller)
+    seller_follows.exists?(seller_id: seller.id)
   end
 end
